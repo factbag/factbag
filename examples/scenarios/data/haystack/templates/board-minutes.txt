@@ -1,0 +1,46 @@
+{{companyName}}
+MINUTES OF A MEETING OF THE BOARD OF DIRECTORS
+
+Date: {{meetingDate}}
+Venue: Registered office, {{companyCity}}
+Present: {{chairName}} (Chair), {{directorName}}, and three non-executive
+directors. The company secretary attended and took the minutes.
+
+1. QUORUM AND NOTICE
+
+The Chair confirmed that notice had been given in accordance with the
+articles and that a quorum was present. The minutes of the previous meeting
+held on {{previousMeetingDate}} were approved and signed as a correct record.
+
+2. TRADING UPDATE
+
+{{directorName}} reported that volumes in the {{segmentName}} segment were
+ahead of budget for the period, with order intake of {{orderIntake}} against
+a plan of {{orderPlan}}. Margin pressure in the second half was attributed to
+freight costs and the timing of the {{projectName}} commissioning works.
+
+3. TREASURY
+
+The board reviewed the schedule of bank facilities. The revolving facility
+with {{bankName}} matures on {{facilityMaturity}} and management was asked to
+begin refinancing discussions in good time. Cash balances of {{cashBalance}}
+were held across the group's accounts at the period end.
+
+4. {{projectName}} UPDATE
+
+The commissioning programme remains on schedule. The board noted the
+appointment of an independent engineer and approved additional capital
+expenditure of {{capitalExpenditure}} to complete the works.
+
+5. GOVERNANCE
+
+The board received the annual conflicts of interest declarations. The company
+secretary confirmed that the register of directors' interests had been updated
+and is available for inspection.
+
+6. ANY OTHER BUSINESS
+
+There being no further business, the Chair closed the meeting.
+
+Signed: {{chairName}}, Chair
+Date: {{meetingDate}}

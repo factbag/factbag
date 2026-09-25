@@ -1,0 +1,15 @@
+INTERNAL MEMORANDUM — TRANSACTION CLASSIFICATION
+
+Transaction: {{transactionId}}
+Date: {{classification}}
+
+Following review of the underlying contract and supporting documentation,
+the Compliance Department has classified this transaction under the
+following industry sector:
+
+  Industry: {{industryName}}
+
+This classification is based on the nature of the services described in the
+contract and the primary business activities of the counterparty.
+
+Classification Officer: J. Morrison, VP Compliance

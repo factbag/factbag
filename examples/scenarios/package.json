@@ -1,0 +1,29 @@
+{
+  "name": "@factbag/scenarios",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./j1": "./src/j1/scenario.ts",
+    "./ofac": "./src/ofac/scenario.ts",
+    "./haystack": "./src/haystack/scenario.ts"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

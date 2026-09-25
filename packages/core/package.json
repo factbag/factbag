@@ -1,0 +1,28 @@
+{
+  "name": "@factbag/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./dsl": "./src/dsl/index.ts",
+    "./kb": "./src/knowledge-base/index.ts",
+    "./query": "./src/query/index.ts",
+    "./explain": "./src/explanation/index.ts"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local --config api-extractor.dsl.json && api-extractor run --local --config api-extractor.kb.json && api-extractor run --local --config api-extractor.query.json && api-extractor run --local --config api-extractor.explain.json",
+    "api-report:check": "api-extractor run --config api-extractor.dsl.json && api-extractor run --config api-extractor.kb.json && api-extractor run --config api-extractor.query.json && api-extractor run --config api-extractor.explain.json",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:examples": "vitest run examples/test-runner.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

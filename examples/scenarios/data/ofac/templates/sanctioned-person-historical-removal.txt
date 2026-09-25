@@ -1,0 +1,16 @@
+OFFICE OF FOREIGN ASSETS CONTROL
+NOTICE OF REMOVAL FROM SDN LIST
+
+Date: {{removal}}
+
+The following individual has been removed from the Specially Designated
+Nationals and Blocked Persons List:
+
+{{ownerName}}
+Registration/ID: Passport 2115935452 ({{ownerJurisdiction}})
+
+Original Designation Date: {{originalDesignation}}
+Removal Date: {{removal}}
+
+Effective immediately, U.S. persons are no longer prohibited from engaging
+in transactions with the above-named individual.

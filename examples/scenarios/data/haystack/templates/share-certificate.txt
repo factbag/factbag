@@ -1,0 +1,19 @@
+SHARE CERTIFICATE No. {{certificateNumber}}
+
+{{entityName}}
+(incorporated in {{entityJurisdiction}})
+Registration No. {{registrationNumber}}
+
+This is to certify that {{ownerName}} is the registered holder of
+{{shareCount}} ordinary shares of {{shareCurrency}} 1.00 each, fully paid,
+in {{entityName}}, numbered {{firstShare}} to {{lastShare}}, representing
+{{percentage}}% of the issued share capital of {{issuedShares}} shares.
+
+Given under the Common Seal of {{entityName}}.
+
+Director: [signature]
+Secretary: [signature]
+Date of issue: {{issueDate}}
+
+Transfer restrictions: See Article {{articleNumber}} of the Articles of Association.
+This certificate must be surrendered before any transfer can be registered.

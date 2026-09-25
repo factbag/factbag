@@ -1,0 +1,10 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts", "examples/**/*.ts"]
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "./api-extractor.json",
+  "mainEntryPointFilePath": "<projectFolder>/dist/dsl/index.d.ts",
+  "apiReport": {
+    "reportFileName": "core-dsl"
+  },
+  "docModel": {
+    "apiJsonFilePath": "<projectFolder>/temp/core-dsl.api.json"
+  }
+}

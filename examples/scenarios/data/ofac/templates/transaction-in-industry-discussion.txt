@@ -1,0 +1,24 @@
+From: Sarah Chen <s.chen@compliance-internal.com>
+To: Legal Review Team <legal-review@compliance-internal.com>
+Date: {{discussion}}
+Subject: RE: Industry classification for {{transactionId}}
+
+Team,
+
+Following up on our call about how to classify {{transactionId}}.
+The counterparty operates across several sectors, which complicates the analysis.
+Looking at the contract and the counterparty's filings, there are arguments for
+retail or healthcare depending on how broadly we interpret the scope of services.
+
+James from external counsel feels strongly that we should consider retail given
+the nature of the underlying deliverables. He also flagged the "predominant
+purpose" test in the sector guidance, which would require us to look at what the
+bulk of the payment actually covers rather than the contract title.
+
+Can we schedule a call to align? I'd like to have the official
+classification memo finalized by end of week.
+
+Best,
+Sarah
+
+Sarah Chen | VP, Sanctions Compliance

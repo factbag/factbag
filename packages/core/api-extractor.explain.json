@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "./api-extractor.json",
+  "mainEntryPointFilePath": "<projectFolder>/dist/explanation/index.d.ts",
+  "apiReport": {
+    "reportFileName": "core-explain"
+  },
+  "docModel": {
+    "apiJsonFilePath": "<projectFolder>/temp/core-explain.api.json"
+  }
+}

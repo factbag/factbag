@@ -1,0 +1,16 @@
+PAYMENT ADVICE — OPERATIONS COPY
+Reference: {{paymentReference}}
+Value date: {{paymentDate}}
+Status: SETTLED
+
+Ordering customer:   {{payerName}}
+                     {{companyCity}}, {{companyJurisdiction}}
+Beneficiary:         {{payeeName}}
+Beneficiary bank:    {{bankName}}
+Amount:              {{paymentAmount}}
+
+Payment details: Invoice settlement under framework agreement, {{segmentName}}
+segment deliveries for the period ending {{periodEnd}}.
+
+This advice is issued for operational reconciliation. It is not a statement of
+account and does not confirm receipt by the beneficiary.

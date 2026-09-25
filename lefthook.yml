@@ -1,0 +1,23 @@
+pre-commit:
+  commands:
+    format:
+      glob: "*.{css,js,jsx,json,jsonc,md,mdx,ts,tsx,yaml,yml}"
+      run: pnpm exec oxfmt --check {staged_files}
+    lint:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm lint
+    typecheck:
+      glob: "*.{json,ts,yaml,yml}"
+      run: pnpm typecheck
+    examples:
+      glob: "*.{json,ts,yaml,yml}"
+      run: pnpm test:examples
+
+pre-push:
+  commands:
+    api-report:
+      run: pnpm api-report:check
+    lint-deps:
+      run: pnpm lint:deps
+    examples:
+      run: pnpm test:examples

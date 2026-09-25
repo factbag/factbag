@@ -1,0 +1,77 @@
+{{companyName}}
+ANNUAL REPORT AND ACCOUNTS {{reportYear}}
+Section {{sectionNumber}}: {{sectionTitle}}
+
+OVERVIEW
+
+Revenue for the year in the {{segmentName}} segment was {{segmentRevenue}},
+compared with {{priorRevenue}} in the prior year. Growth was driven by the
+{{projectName}} programme and by improved utilisation at the {{companyCity}}
+facility, partly offset by weaker demand in the final quarter.
+
+Operating profit before exceptional items was {{operatingProfit}}. Exceptional
+charges of {{exceptionalCharge}} relate to the reorganisation announced in the
+first half and to the write-down of legacy tooling. The board does not expect
+further charges of this nature in the coming year.
+
+OPERATIONS
+
+The {{companyCity}} site completed its scheduled maintenance shutdown during
+the second quarter. Output returned to planned levels within three weeks, and
+the engineering team has since implemented condition monitoring on the main
+production line. Capital expenditure of {{capitalExpenditure}} was committed
+during the year, of which {{capitalSpent}} had been spent by the year end.
+
+Headcount at the year end was {{employeeCount}}, broadly unchanged. Voluntary
+turnover fell to 9.1%, which management attributes to the revised shift
+patterns introduced after consultation with the works council.
+
+CUSTOMERS AND SUPPLIERS
+
+The five largest customers accounted for 38% of revenue, with no single
+customer exceeding 12%. Payment terms are typically 45 days. The group
+continues to source the majority of raw material under framework agreements
+with three suppliers, the largest of which is {{supplierName}}.
+
+A review of the supply base was completed during the year. Two suppliers were
+replaced following quality findings, and the group's approved supplier list
+now runs to 84 entries. Dual sourcing has been established for the components
+used in the {{projectName}} programme.
+
+TREASURY AND FUNDING
+
+Net debt at the year end was {{netDebt}}, against facilities of
+{{facilityAmount}} provided by {{bankName}}. The revolving facility matures on
+{{facilityMaturity}}. The group operated comfortably within its covenants
+throughout the year, with interest cover of 5.4 times.
+
+Cash generated from operations was {{cashBalance}}. The board has recommended
+a final dividend consistent with the stated policy of distributing between a
+quarter and a third of underlying earnings.
+
+RISK
+
+The principal risks are unchanged: input cost volatility, the availability of
+skilled labour at the {{companyCity}} site, and the execution risk attached to
+the {{projectName}} programme. The group's risk register is reviewed twice a
+year by the audit committee, most recently on {{meetingDate}}.
+
+The directors have considered the group's ability to continue as a going
+concern and have concluded that it is appropriate to prepare the accounts on
+that basis.
+
+GOVERNANCE
+
+The board comprises the Chair, {{chairName}}, two executive directors and
+three non-executive directors. The audit committee met four times during the
+year. The company complies with the corporate governance code applicable in
+{{companyJurisdiction}}, save that the nomination committee is chaired by the
+Chair of the board rather than by an independent non-executive director.
+
+Directors' interests in the share capital of the company are set out in the
+remuneration report.
+
+RELATED PARTIES
+
+Transactions with related parties comprised remuneration of key management
+personnel and purchases of {{supplierName}} product on normal commercial terms.

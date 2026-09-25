@@ -1,0 +1,24 @@
+FOR IMMEDIATE RELEASE
+{{companyName}}
+{{releaseDate}}
+
+{{headline}}
+
+{{companyCity}}, {{companyJurisdiction}} — {{companyName}} today announced
+{{announcementSummary}}. The agreement is expected to complete in the second
+half of the year, subject to customary conditions.
+
+"{{quote}}" said {{chairName}}, Chair of {{companyName}}. "Our focus remains
+on operational delivery for customers in the {{segmentName}} segment."
+
+{{companyName}} will publish further detail in its next scheduled financial
+report.
+
+About {{companyName}}
+
+{{companyName}} is a {{segmentName}} business registered in
+{{companyJurisdiction}} under number {{registrationNumber}}. It employs
+around {{employeeCount}} people and operates from sites in {{companyCity}}
+and two other locations.
+
+Media enquiries: press@example.invalid

@@ -1,0 +1,19 @@
+SHARE CERTIFICATE No. 2444
+
+{{entityName}}
+(incorporated in {{entityJurisdiction}})
+Registration No. 103219366536
+
+This is to certify that {{ownerName}} is the registered holder of 77,000
+(seventy-seven thousand) ordinary shares of EUR 1.00 each, fully paid,
+in the above-named company, numbered 28591 to 105590, representing
+77.0% of the total issued share capital of 100,000 shares.
+
+Given under the Common Seal of the Company.
+
+Director: [signature]
+Secretary: [signature]
+Date of issue: {{ownership}}
+
+Transfer restrictions: See Article 8 of the Articles of Association.
+This certificate must be surrendered before any transfer can be registered.

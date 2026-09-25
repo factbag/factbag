@@ -1,0 +1,58 @@
+{{companyName}}
+SITE INSPECTION REPORT — {{companyCity}} FACILITY
+Inspection date: {{memoDate}}
+Inspector: independent engineer instructed by the board
+
+SCOPE
+
+This report covers the annual inspection of the {{companyCity}} facility:
+process equipment, pressure systems, fire detection, and the works in progress
+for the {{projectName}} programme. It does not cover the two smaller sites,
+which are inspected on an alternating cycle.
+
+PROCESS EQUIPMENT
+
+The main production line was examined under load. Vibration readings on the
+number three drive were above the manufacturer's recommended band and should
+be investigated before the next shutdown. The condition monitoring installed
+during the year is working as intended and the data is being retained.
+
+Guarding on the packing line has been replaced since the previous inspection
+and now meets the applicable standard. Two interlocks were found taped open on
+the day of the visit; the site manager removed the tape during the inspection
+and has since issued a toolbox briefing.
+
+PRESSURE SYSTEMS
+
+All twelve vessels carry current written schemes of examination. The nitrogen
+receiver is due for internal examination before {{facilityMaturity}} and the
+site has booked the contractor. Relief valve test certificates were produced
+for eleven of the twelve vessels; the missing certificate relates to a valve
+replaced in the period and the certificate has since been supplied.
+
+FIRE AND EMERGENCY
+
+Detection coverage in the finished goods warehouse remains thin following the
+racking changes. The inspector recommends a detection survey before the racking
+is extended further. Evacuation drill records show two drills in the period,
+with muster times of 4 minutes 10 seconds and 3 minutes 52 seconds.
+
+{{projectName}} WORKS
+
+Civil works are complete and the mechanical installation is approximately 70%
+finished. Temporary power distribution is well managed. The inspector notes
+that the permit-to-work system is being applied to contractor activity, and
+that the contractor's own supervision is present on site each shift.
+
+Capital expenditure committed to the programme stands at {{capitalExpenditure}},
+of which {{capitalSpent}} has been spent. Completion remains scheduled for the
+period ending {{periodEnd}}.
+
+RECOMMENDATIONS
+
+1. Investigate the number three drive vibration readings.
+2. Commission a detection survey for the warehouse racking.
+3. Review the interlock defeat procedure with the packing line crews.
+4. Retain the relief valve certificate pack in a single location.
+
+This report is issued to the board of {{companyName}} and to the site manager.

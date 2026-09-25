@@ -1,0 +1,25 @@
+{
+  "name": "@factbag/corpus",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

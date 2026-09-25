@@ -1,0 +1,16 @@
+{{entityName}}
+SHAREHOLDER REGISTER — CERTIFIED EXTRACT
+As of {{historicalOwnership}}
+
+Entity Name: {{entityName}}
+Registration No.: 103219366536 ({{entityJurisdiction}})
+
+SHAREHOLDER SCHEDULE:
+
+Shareholder                         Percentage of capital
+{{ownerName}}                       25.0%
+Other shareholders                  75.0%
+Total                              100.0%
+
+Certified as a true extract from the register of shareholders.
+Date: {{historicalOwnership}}

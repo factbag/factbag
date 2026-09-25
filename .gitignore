@@ -1,0 +1,8 @@
+dist/
+node_modules/
+coverage/
+.DS_Store
+.turbo/
+.env
+.scratch/
+packages/*/temp/

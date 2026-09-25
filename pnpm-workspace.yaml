@@ -1,0 +1,35 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+  - "tooling/*"
+
+catalog:
+  "@microsoft/api-extractor": "7.58.9"
+  "@types/node": "22.20.0"
+  "@types/react": "19.2.17"
+  "@typesafe-ai/sdk": "0.6.0"
+  ink: "7.1.1"
+  knip: "6.24.0"
+  lefthook: "2.1.9"
+  msw: "2.15.0"
+  oxfmt: "0.58.0"
+  oxlint: "1.73.0"
+  oxlint-tsgolint: "0.24.0"
+  react: "19.2.7"
+  syncpack: "15.3.2"
+  turbo: "2.9.18"
+  tsx: "4.23.0"
+  typescript: "7.0.2"
+  vitest: "4.1.8"
+
+minimumReleaseAge: 1440
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 10080
+strictDepBuilds: true
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  # Node-only HTTP interception; no browser worker setup needed.
+  msw: false
+engineStrict: true

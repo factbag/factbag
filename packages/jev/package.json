@@ -1,0 +1,36 @@
+{
+  "name": "@factbag/jev",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./classifier": "./src/classifier.ts",
+    "./errors": "./src/errors.ts",
+    "./resolve": "./src/resolve.ts"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json",
+    "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json",
+    "build": "tsc -p tsconfig.build.json",
+    "demo": "tsx examples/run.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@typesafe-ai/sdk": "catalog:"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "msw": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

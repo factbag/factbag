@@ -1,0 +1,30 @@
+{
+  "name": "@factbag/jev-examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "demo": "tsx src/main.tsx",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@factbag/jev": "workspace:*",
+    "@factbag/scenarios": "workspace:*",
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@typesafe-ai/sdk": "catalog:",
+    "ink": "catalog:",
+    "msw": "catalog:",
+    "react": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

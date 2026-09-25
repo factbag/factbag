@@ -1,0 +1,37 @@
+{
+  "name": "factbag",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.27.1",
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
+    "api-report:check": "turbo api-report:check --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
+    "build": "turbo build",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "prepare": "lefthook install",
+    "lint": "syncpack lint && turbo run //#oxlint",
+    "lint:deps": "syncpack lint",
+    "oxlint": "oxlint .",
+    "test": "turbo test",
+    "test:examples": "turbo test:examples --filter=@factbag/core",
+    "typecheck": "turbo typecheck",
+    "knip": "knip"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "catalog:",
+    "knip": "catalog:",
+    "lefthook": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "syncpack": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}

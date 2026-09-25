@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@factbag/corpus": ["../corpus/dist/index.d.ts"],
+      "@factbag/guards": ["../guards/dist/index.d.ts"],
+      "@factbag/core/dsl": ["../core/dist/dsl/index.d.ts"],
+      "@factbag/core/kb": ["../core/dist/knowledge-base/index.d.ts"],
+      "@factbag/core/query": ["../core/dist/query/index.d.ts"]
+    }
+  }
+}

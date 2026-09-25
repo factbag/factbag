@@ -1,0 +1,16 @@
+U.S. DEPARTMENT OF THE TREASURY
+OFFICE OF FOREIGN ASSETS CONTROL
+SPECIALLY DESIGNATED NATIONALS AND BLOCKED PERSONS LIST
+Last Updated: {{listPublication}}
+
+{{ownerName}}; nationality {{ownerJurisdiction}}; Passport 2115935452.
+
+Designated {{designation}} under E.O. 13661. [UKRAINE-EO13661].
+
+All property and interests in property of the above-named individual that are in
+the United States, that come within the United States, or that are or come within
+the possession or control of any U.S. person are blocked and may not be
+transferred, paid, exported, withdrawn, or otherwise dealt in.
+
+For questions about this entry contact the OFAC Compliance Hotline
+at 1-800-540-6322.

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "./api-extractor.json",
+  "mainEntryPointFilePath": "<projectFolder>/dist/resolve.d.ts",
+  "apiReport": {
+    "reportFileName": "jev-resolve"
+  },
+  "docModel": {
+    "apiJsonFilePath": "<projectFolder>/temp/jev-resolve.api.json"
+  }
+}

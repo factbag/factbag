@@ -1,0 +1,17 @@
+WIRE TRANSFER — OPERATIONS COPY
+Direction: Outgoing
+Status: HELD
+
+Reference: {{transactionId}}
+Value date: {{payment}}
+Amount: USD 2,450,000.00
+Ordering customer: US Customer Corp
+                  500 Park Avenue South, New York, NY 10010
+Beneficiary: {{entityName}}
+Country: {{entityJurisdiction}}
+Remittance information: Services rendered / {{transactionId}}
+Charges: Shared
+
+Screening result: MATCH — manual review required
+Operator: JL (Wire Operations)
+Processing date: {{payment}}

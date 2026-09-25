@@ -1,0 +1,26 @@
+{{companyName}}
+SHAREHOLDER REGISTER — CERTIFIED EXTRACT
+Registered office: {{companyCity}}, {{companyJurisdiction}}
+Registration No.: {{registrationNumber}}
+As of {{asOf}}
+
+SHAREHOLDER SCHEDULE
+
+Shareholder                                     Class      Percentage
+{{holderName}}                                  Ordinary   {{holderPercentage}}%
+{{secondHolderName}}                            Ordinary   {{secondHolderPercentage}}%
+Employee benefit trust                          Ordinary   3.0%
+Free float / nominee accounts                   Ordinary   {{floatPercentage}}%
+Total                                                      100.0%
+
+NOTES
+
+1. The shares carry one vote each.
+2. The nominee accounts are held through {{custodianName}}.
+3. The previous extract was issued on {{previousExtract}}.
+
+Certified as a true extract from the register of shareholders kept under
+section 112 of the Companies Act.
+
+Registrar: [signature]
+Date: {{asOf}}
