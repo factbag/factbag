@@ -79,6 +79,31 @@ async function settle(run: ReturnType<typeof resolver>) {
 }
 
 describe("resolver", () => {
+  it.fails("does not merge distinct atoms with delimiter-bearing string fields", () => {
+    // Arrange
+    const related = predicate("related", { left: String, right: String });
+    const assertedAtom = related({ left: "x", right: "y|string:z" });
+    const deniedAtom = related({ left: "x|string:y", right: "z" });
+    const kb = new KnowledgeBase();
+    const corpus = new Corpus();
+    const assertion = corpus.add({ documentId: "assertion", text: "asserted" });
+    const denial = corpus.add({ documentId: "denial", text: "denied" });
+    kb.asserts(assertedAtom, {
+      source: corpus.slice(assertion, { start: 0, end: assertion.text.length }).id,
+    });
+    kb.denies(deniedAtom, {
+      source: corpus.slice(denial, { start: 0, end: denial.text.length }).id,
+    });
+
+    // Act
+    const jobs = [...resolver(corpus, kb)];
+
+    // Assert
+    expect(query(kb, assertedAtom).value).toBe("true");
+    expect(query(kb, deniedAtom).value).toBe("false");
+    expect(jobs).toHaveLength(0);
+  });
+
   it("makes no requests until a job executes, with one job per contradiction", () => {
     const { kb, corpus, atom, removal, redesignation } = setup();
     const client = clientWith(standing(0.9));
