@@ -1,0 +1,12 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "isolatedDeclarations": false,
+    "types": ["node"],
+    "lib": ["ES2024", "DOM", "DOM.Iterable"]
+  },
+  "include": ["consumer.ts"]
+}

@@ -4,10 +4,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./dsl": "./src/dsl/index.ts",
-    "./kb": "./src/knowledge-base/index.ts",
-    "./query": "./src/query/index.ts",
-    "./explain": "./src/explanation/index.ts"
+    "./dsl": {
+      "types": "./dist/dsl/index.d.ts",
+      "import": "./dist/dsl/index.js"
+    },
+    "./kb": {
+      "types": "./dist/knowledge-base/index.d.ts",
+      "import": "./dist/knowledge-base/index.js"
+    },
+    "./query": {
+      "types": "./dist/query/index.d.ts",
+      "import": "./dist/query/index.js"
+    },
+    "./explain": {
+      "types": "./dist/explanation/index.d.ts",
+      "import": "./dist/explanation/index.js"
+    }
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
@@ -15,7 +27,7 @@
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.dsl.json && api-extractor run --local --config api-extractor.kb.json && api-extractor run --local --config api-extractor.query.json && api-extractor run --local --config api-extractor.explain.json",
     "api-report:check": "api-extractor run --config api-extractor.dsl.json && api-extractor run --config api-extractor.kb.json && api-extractor run --config api-extractor.query.json && api-extractor run --config api-extractor.explain.json",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup src/dsl/index.ts src/knowledge-base/index.ts src/query/index.ts src/explanation/index.ts --format esm --target node22 --platform node --splitting --clean --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "test": "vitest run",
     "test:examples": "vitest run examples/test-runner.test.ts",
     "typecheck": "tsc --noEmit"

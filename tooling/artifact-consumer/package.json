@@ -1,0 +1,20 @@
+{
+  "name": "@factbag/artifact-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@factbag/jev": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

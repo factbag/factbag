@@ -26,6 +26,7 @@ catalog:
   storybook: "10.6.0"
   syncpack: "15.3.2"
   tailwindcss: "4.3.3"
+  tsup: "8.5.1"
   turbo: "2.9.18"
   tsx: "4.23.0"
   typescript: "7.0.2"

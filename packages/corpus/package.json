@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
@@ -12,7 +15,7 @@
   "scripts": {
     "api-report": "api-extractor run --local",
     "api-report:check": "api-extractor run",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup src/index.ts --format esm --target node22 --platform node --splitting --clean --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
