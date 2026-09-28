@@ -56,6 +56,25 @@ function nextJob(run: Iterator<ClassificationJob>): ClassificationJob {
 }
 
 describe("classifier registration", () => {
+  it.fails("classifies reflexive relations in the candidate Cartesian product", async () => {
+    const kb = new KnowledgeBase();
+    const corpus = new Corpus();
+    corpus.add({ documentId: "record", text: "Both references identify Alice." });
+    const alice = new Person("alice");
+    const samePerson = predicate(
+      "same_person",
+      { left: Person, right: Person },
+      { description: "Both references identify the same person." },
+    );
+    kb.entities.add(alice);
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", samePerson), { client });
+
+    await nextJob(run).execute();
+
+    expect(query(run.kb, samePerson({ left: alice, right: alice })).value).toBe("true");
+  });
+
   it("accepts omitted or empty options without creating a client or making requests", () => {
     const { corpus, access } = setup();
     const transport = vi.spyOn(TypeSafeClient.prototype, "systemOne");
