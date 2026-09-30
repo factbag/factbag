@@ -53,6 +53,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify packed packages
+        run: pnpm build:verify
+
       - name: Check API reports
         run: pnpm api-report:check
 

@@ -368,9 +368,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/jev
     devDependencies:
-      '@factbag/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0

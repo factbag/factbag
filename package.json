@@ -12,7 +12,7 @@
     "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
     "api-report:check": "turbo api-report:check --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
     "build": "turbo build",
-    "build:verify": "node scripts/verify-artifacts.ts && pnpm --filter @factbag/artifact-consumer typecheck",
+    "build:verify": "node scripts/verify-artifacts.ts && pnpm release:pack && node scripts/verify-packed-consumer.ts",
     "changeset": "changeset",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

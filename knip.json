@@ -4,7 +4,7 @@
   "workspaces": {
     ".": {},
     "tooling/artifact-consumer": {
-      "entry": ["consumer.ts"]
+      "entry": ["consumer.ts", "runtime.mjs"]
     }
   }
 }
