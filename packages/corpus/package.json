@@ -1,6 +1,6 @@
 {
   "name": "@factbag/corpus",
-  "version": "0.0.0",
+  "version": "0.1.0-next.0",
   "description": "An in-memory document corpus with exact source chunking and provenance.",
   "keywords": [
     "documents",

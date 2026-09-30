@@ -41,3 +41,8 @@ pnpm test
 pnpm typecheck
 pnpm format
 ```
+
+## Releases
+
+See [`RELEASING.md`](RELEASING.md) for changesets, prerelease preparation, publication,
+and recovery procedures.

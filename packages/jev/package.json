@@ -1,6 +1,6 @@
 {
   "name": "@factbag/jev",
-  "version": "0.0.0",
+  "version": "0.1.0-next.0",
   "description": "Lazy AI-assisted classification and evidence resolution for Factbag.",
   "keywords": [
     "classification",
