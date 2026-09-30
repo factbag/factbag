@@ -313,5 +313,5 @@ understand well enough to fix, without losing the parts you've already checked.
 root. The examples use fictional structured records and scripted Jev responses;
 they perform no live sanctions screening or model calls. Evidence review,
 support scoring, and factor analysis are runnable; calibration is a proposed
-next step. See the [example notes](../examples/README.md) for the code and its
+next step. See the [example notes](https://github.com/factbag/factbag/tree/main/packages/jev/examples#readme) for the code and its
 scope, or the [package reference](../README.md) for the current API.

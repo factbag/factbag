@@ -1,8 +1,33 @@
 {
   "name": "@factbag/jev",
   "version": "0.0.0",
-  "private": true,
+  "description": "Lazy AI-assisted classification and evidence resolution for Factbag.",
+  "keywords": [
+    "classification",
+    "evidence",
+    "ai",
+    "rules-engine",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/jev#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/jev"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "type": "module",
+  "files": [
+    "dist",
+    "docs/README.md",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "./classifier": {
       "types": "./dist/classifier.d.ts",
@@ -18,7 +43,10 @@
     }
   },
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json",

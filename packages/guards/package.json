@@ -1,8 +1,32 @@
 {
   "name": "@factbag/guards",
   "version": "0.0.0",
-  "private": true,
+  "description": "Permission-enforcing views over Factbag knowledge bases.",
+  "keywords": [
+    "authorization",
+    "policy",
+    "rules-engine",
+    "knowledge-base",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/guards#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/guards"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "type": "module",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -10,7 +34,10 @@
     }
   },
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "api-report": "api-extractor run --local",

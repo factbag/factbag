@@ -1,8 +1,32 @@
 {
   "name": "@factbag/core",
   "version": "0.0.0",
-  "private": true,
+  "description": "A four-valued logic runtime and DSL for explainable fact and rule evaluation.",
+  "keywords": [
+    "logic",
+    "rules-engine",
+    "knowledge-base",
+    "explainability",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/core"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "type": "module",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     "./dsl": {
       "types": "./dist/dsl/index.d.ts",
@@ -22,7 +46,10 @@
     }
   },
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.dsl.json && api-extractor run --local --config api-extractor.kb.json && api-extractor run --local --config api-extractor.query.json && api-extractor run --local --config api-extractor.explain.json",
