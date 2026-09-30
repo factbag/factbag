@@ -1,0 +1,62 @@
+/*
+ * Tailwind v4 theme fragment for the widgets. The host app's stylesheet
+ * imports this after Tailwind itself, then points an `@source` at this
+ * package so the widgets' utility classes are generated. The README shows
+ * the three lines; apps/storybook/.storybook/styles.css is a working copy.
+ */
+
+/* Sub-xs type size for dense diagram labels. */
+@theme {
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: calc(1 / 0.625);
+}
+
+/* Semantic verdict colors, aliased onto the stock Tailwind palette. Override
+ * these to retheme every lattice value without touching a component. */
+@theme {
+  --color-positive: var(--color-emerald-600);
+  --color-negative: var(--color-red-600);
+  --color-warning: var(--color-yellow-600);
+  --color-attention: var(--color-violet-600);
+  --color-info: var(--color-sky-600);
+  --color-neutral: var(--color-slate-400);
+}
+
+/* Animated dashes for "signal flowing along a wire" edges. */
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.edge-flow {
+  stroke-dasharray: 8 8;
+  animation: edge-flow 0.55s linear infinite;
+}
+
+/* Pop-in for a verdict changing under the reader's cursor. */
+@keyframes value-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.3;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.value-pop {
+  display: inline-block;
+  animation: value-pop 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-flow,
+  .value-pop {
+    animation: none;
+  }
+}

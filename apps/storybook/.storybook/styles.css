@@ -1,0 +1,10 @@
+/* Exactly what a host app does: Tailwind, the widgets' theme fragment, and an
+ * @source so the widgets' utility classes are generated. */
+@import "tailwindcss";
+@import "@factbag/widgets/theme.css";
+@source "../../../packages/widgets/src";
+
+button,
+select {
+  font: inherit;
+}
