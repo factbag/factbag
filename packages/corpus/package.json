@@ -15,7 +15,7 @@
   "scripts": {
     "api-report": "api-extractor run --local",
     "api-report:check": "api-extractor run",
-    "build": "tsup src/index.ts --format esm --target node22 --platform node --splitting --clean --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

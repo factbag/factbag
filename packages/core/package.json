@@ -27,7 +27,7 @@
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.dsl.json && api-extractor run --local --config api-extractor.kb.json && api-extractor run --local --config api-extractor.query.json && api-extractor run --local --config api-extractor.explain.json",
     "api-report:check": "api-extractor run --config api-extractor.dsl.json && api-extractor run --config api-extractor.kb.json && api-extractor run --config api-extractor.query.json && api-extractor run --config api-extractor.explain.json",
-    "build": "tsup src/dsl/index.ts src/knowledge-base/index.ts src/query/index.ts src/explanation/index.ts --format esm --target node22 --platform node --splitting --clean --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/dsl/index.ts src/knowledge-base/index.ts src/query/index.ts src/explanation/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "test": "vitest run",
     "test:examples": "vitest run examples/test-runner.test.ts",
     "typecheck": "tsc --noEmit"

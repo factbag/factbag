@@ -23,7 +23,7 @@
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json",
     "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json",
-    "build": "tsup src/classifier.ts src/errors.ts src/resolve.ts --format esm --target node22 --platform node --splitting --clean --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/classifier.ts src/errors.ts src/resolve.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "demo": "tsx examples/run.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
