@@ -10,18 +10,15 @@ This package is private and is not published to npm.
 
 ## Widgets
 
-| Component            | Shows                                                  |
-| -------------------- | ------------------------------------------------------ |
-| `EvaluationGraph`    | A rule tree evaluated under ∧ or ∨                     |
-| `EverydayDecision`   | An everyday AND/OR decision tree                       |
-| `PepScreeningTree`   | A PEP screening rule with its DSL source               |
-| `CountRangeExplorer` | Counting under uncertainty                             |
-| `ProofTreeExplorer`  | A judgment's proof tree and its `explainJudgment` JSON |
-| `LiveSolverExplorer` | A live solve next to the code that ran                 |
-| `LiveSolverTree`     | A live solve drawn as a diagram                        |
+| Component            | Shows                                    |
+| -------------------- | ---------------------------------------- |
+| `EvaluationGraph`    | A rule tree evaluated under ∧ or ∨       |
+| `EverydayDecision`   | An everyday AND/OR decision tree         |
+| `PepScreeningTree`   | A PEP screening rule with its DSL source |
+| `CountRangeExplorer` | Counting under uncertainty               |
 
-`ProofTree`, `ValuePill`, `WidgetChrome` and `VERDICT` are exported for hosts
-that compose their own pages from the same pieces.
+`WidgetChrome` and `VERDICT` are exported for hosts that compose their own
+pages from the same pieces.
 
 ## Hosting
 

@@ -45,20 +45,6 @@ export function solveScaffold<Id extends string>(
   return Object.fromEntries(entries) as Record<Id, GoalValue>;
 }
 
-/**
- * The same scaffold, answered as one judgment: query `rootId` and return the
- * solver's full proof, ready to hand to `ProofTree`/`ProofFlow`. Leaf atoms in
- * the proof carry the scaffold's ids as predicate names, so a tap handler can
- * map `atom.predicate.name` straight back to its `leafValues` key.
- */
-export function solveScaffoldJudgment<Id extends string>(
-  gates: readonly ScaffoldGate<Id>[],
-  leafValues: Readonly<Partial<Record<Id, GoalValue>>>,
-  rootId: Id,
-): Judgment {
-  return buildScaffold(gates, leafValues).queryOf(rootId);
-}
-
 function buildScaffold(
   gates: readonly ScaffoldGate<string>[],
   leafValues: Readonly<Partial<Record<string, GoalValue>>>,

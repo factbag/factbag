@@ -72,17 +72,6 @@ export function RuleBox(props: { readonly children: ReactNode }): JSX.Element {
   );
 }
 
-/** One-line interaction hint under the lead paragraph. */
-export function Hint(props: { readonly children: ReactNode }): JSX.Element {
-  return <p className="mb-3 text-sm text-slate-500">{props.children}</p>;
-}
-
-export function InlineCode(props: { readonly children: ReactNode }): JSX.Element {
-  return (
-    <code className="rounded bg-slate-200/70 px-1 py-0.5 font-mono text-sm">{props.children}</code>
-  );
-}
-
 /** Four-stop indicator showing where a cycling value currently sits. */
 export function ValueDots(props: {
   readonly className?: string;

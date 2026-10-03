@@ -278,7 +278,7 @@ function caseRows(operator: Ineq, l: number, c: number, u: number, n: number): r
         },
         {
           holds: l < n && n <= l + c,
-          reason: "The disputed records alone could close the gap — the dispute decides.",
+          reason: "The disputed records alone could close the gap.",
           value: "conflicted",
         },
         {
@@ -301,7 +301,7 @@ function caseRows(operator: Ineq, l: number, c: number, u: number, n: number): r
         },
         {
           holds: l <= n && n < l + c,
-          reason: "The disputed records alone could push the count past it — the dispute decides.",
+          reason: "The disputed records alone could push the count past it.",
           value: "conflicted",
         },
         {
@@ -324,7 +324,7 @@ function caseRows(operator: Ineq, l: number, c: number, u: number, n: number): r
         },
         {
           holds: l <= n && n < l + c,
-          reason: "Only the disputed records could push the count past it — the dispute decides.",
+          reason: "Only the disputed records could push the count past it.",
           value: "conflicted",
         },
         {
@@ -348,7 +348,7 @@ function caseRows(operator: Ineq, l: number, c: number, u: number, n: number): r
         },
         {
           holds: l < n && n <= l + c,
-          reason: "Only the disputed records could lift the count to it — the dispute decides.",
+          reason: "Only the disputed records could lift the count to it.",
           value: "conflicted",
         },
         {

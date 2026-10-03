@@ -13,10 +13,7 @@ const WIDGETS: Record<string, () => JSX.Element> = {
   CountRangeExplorer: widgets.CountRangeExplorer,
   EvaluationGraph: widgets.EvaluationGraph,
   EverydayDecision: widgets.EverydayDecision,
-  LiveSolverExplorer: widgets.LiveSolverExplorer,
-  LiveSolverTree: widgets.LiveSolverTree,
   PepScreeningTree: widgets.PepScreeningTree,
-  ProofTreeExplorer: widgets.ProofTreeExplorer,
 };
 
 describe("widgets", () => {

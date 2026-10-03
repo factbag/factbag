@@ -1,7 +1,5 @@
 import type { JSX } from "react";
 
-import type { Explanation } from "@factbag/core/explain";
-
 type CodeTone = "add" | "comment" | "plain" | "remove";
 
 export type CodeLine = {
@@ -36,25 +34,4 @@ export function CodeBlock(props: {
       </pre>
     </div>
   );
-}
-
-/** A solver explanation as pretty-printed JSON, with verdict lines tinted. */
-export function jsonLines(explanation: Explanation): readonly CodeLine[] {
-  return JSON.stringify(explanation, null, 2)
-    .split("\n")
-    .map((text) => ({ text, tone: toneForLine(text) }));
-}
-
-function toneForLine(text: string): CodeTone {
-  if (text.includes('"because"') && !text.includes("=")) {
-    return "comment";
-  }
-  if (text.includes("= true")) {
-    return "add";
-  }
-  if (text.includes("= false")) {
-    return "remove";
-  }
-
-  return "plain";
 }

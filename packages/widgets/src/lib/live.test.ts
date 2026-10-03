@@ -4,10 +4,9 @@
  */
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { explainJudgment } from "@factbag/core/explain";
 import type { GoalValue } from "@factbag/core/query";
 
-import { solveScaffold, solveScaffoldJudgment } from "./live";
+import { solveScaffold } from "./live";
 
 describe("solveScaffold", () => {
   it("returns every required leaf and gate with their exact key union", () => {
@@ -73,33 +72,5 @@ describe("solveScaffold", () => {
     expect(values.compliance).toBe("unknown");
     expect(values.risk).toBe("conflicted");
     expect(values.root).toBe("unknown");
-  });
-});
-
-describe("solveScaffoldJudgment", () => {
-  it("returns the root's full proof with leaf ids as predicate names", () => {
-    const gates = [
-      { id: "approvals", inputs: ["lead_signoff", "founder_override"], operator: "or" },
-      { id: "ship", inputs: ["tests_green", "approvals"], operator: "and" },
-    ] as const;
-    const judgment = solveScaffoldJudgment(
-      gates,
-      { founder_override: "unknown", lead_signoff: "true", tests_green: "true" },
-      "ship",
-    );
-
-    expect(judgment.value).toBe("true");
-    expect(judgment.goal.kind).toBe("atom");
-    if (judgment.goal.kind === "atom") {
-      expect(judgment.goal.atom.predicate.name).toBe("ship");
-    }
-    // The proof reaches the leaves: it agrees with the per-node view.
-    const values = solveScaffold(gates, {
-      founder_override: "unknown",
-      lead_signoff: "true",
-      tests_green: "true",
-    });
-    expect(values.approvals).toBe("true");
-    expect(JSON.stringify(explainJudgment(judgment))).toContain("lead_signoff");
   });
 });

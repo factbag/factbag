@@ -6,12 +6,7 @@
 export { CountRangeExplorer } from "./CountRangeExplorer";
 export { EvaluationGraph } from "./EvaluationGraph";
 export { EverydayDecision } from "./EverydayDecision";
-export { LiveSolverExplorer } from "./LiveSolverExplorer";
-export { LiveSolverTree } from "./LiveSolverTree";
 export { PepScreeningTree } from "./PepScreeningTree";
-export { ProofTreeExplorer } from "./ProofTreeExplorer";
 
-export { ProofTree } from "./kb/proof-tree";
-export { ValuePill } from "./kb/value-pill";
 export { WidgetChrome } from "./lib/ui";
 export { VERDICT } from "./theme";
