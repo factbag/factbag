@@ -6,3 +6,4 @@ coverage/
 .env
 .scratch/
 packages/*/temp/
+storybook-static/

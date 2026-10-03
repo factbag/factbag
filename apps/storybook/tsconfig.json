@@ -1,0 +1,12 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "isolatedDeclarations": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "types": ["node", "vite/client"]
+  },
+  "include": [".storybook/**/*.ts", "src/**/*.ts", "src/**/*.tsx"]
+}
