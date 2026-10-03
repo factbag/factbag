@@ -1,0 +1,18 @@
+/* Exactly what a host app does: Tailwind, the widgets' theme fragment, and an
+ * @source so the widgets' utility classes are generated. */
+@import "tailwindcss";
+@import "@factbag/widgets/theme.css";
+@source "../../../packages/widgets/src";
+
+button,
+select {
+  font: inherit;
+}
+
+/* The centered layout makes the story root a flex item, which would otherwise
+ * grow to its longest unbreakable line (a code block's) instead of letting the
+ * block scroll. */
+#storybook-root {
+  min-width: 0;
+  max-width: 100%;
+}

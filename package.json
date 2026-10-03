@@ -15,6 +15,7 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "prepare": "lefthook install",
+    "storybook": "pnpm --filter @factbag/storybook dev",
     "lint": "syncpack lint && turbo run //#oxlint",
     "lint:deps": "syncpack lint",
     "oxlint": "oxlint .",
