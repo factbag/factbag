@@ -54,8 +54,20 @@
   animation: value-pop 0.25s ease-out;
 }
 
+/* On/off blink for a siren's light rays. */
+@keyframes siren-flash {
+  50% {
+    opacity: 0.1;
+  }
+}
+
+.siren-flash {
+  animation: siren-flash 0.8s steps(2, jump-none) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .edge-flow,
+  .siren-flash,
   .value-pop {
     animation: none;
   }

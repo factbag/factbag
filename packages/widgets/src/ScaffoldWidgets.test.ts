@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { EvaluationGraph } from "./EvaluationGraph";
 import { EverydayDecision } from "./EverydayDecision";
-import { TrialEligibilityTree } from "./TrialEligibilityTree";
+import { PepScreeningTree } from "./PepScreeningTree";
 
 /** SSR splits adjacent JSX text expressions with comment markers. */
 function render(component: () => JSX.Element): string {
@@ -25,11 +25,11 @@ describe("scaffold widgets on the live solver", () => {
 
   it("EverydayDecision: conflicting signals are reason enough to escalate", () => {
     const html = render(EverydayDecision);
-    expect(html).toContain("Signals disagree — a person should look");
+    expect(html).toContain("Mixed signals — flag for review");
   });
 
-  it("TrialEligibilityTree: the extended-window route carries eligibility", () => {
-    const html = render(TrialEligibilityTree);
-    expect(html).toContain("Yes — eligible");
+  it("PepScreeningTree: a disputed family link outranks an open own-right route", () => {
+    const html = render(PepScreeningTree);
+    expect(html).toContain("Records disagree — needs review");
   });
 });

@@ -15,7 +15,7 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { query, type Judgment } from "@factbag/core/query";
 import { explainJudgment, type Explanation } from "@factbag/core/explain";
 
-import { CodeBlock, type CodeLine, type CodeTone } from "./lib/CodeBlock";
+import { CodeBlock, jsonLines, type CodeLine } from "./lib/CodeBlock";
 import { ProofTree } from "./kb/proof-tree";
 import { Hint, InlineCode, RuleBox, WidgetShell } from "./lib/ui";
 import type { GoalValue } from "./lib/values";
@@ -253,24 +253,4 @@ function explainState(filed: Record<FilingId, boolean>, value: GoalValue): strin
     return "The revocation filing makes not(card_revoked) false, and and() takes the worst value of its parts — so even a proven (or contested) card cannot rescue the verdict. A hard “no” anywhere in a conjunction sinks the whole thing.";
   }
   return "The audit denial is the only word on the card, so has_card is false outright. The conjunction fails on its first leg, and the iff rule turns that failure into a definite “no” at the root.";
-}
-
-function jsonLines(explanation: Explanation): readonly CodeLine[] {
-  return JSON.stringify(explanation, null, 2)
-    .split("\n")
-    .map((text) => ({ text, tone: toneForLine(text) }));
-}
-
-function toneForLine(text: string): CodeTone {
-  if (text.includes('"because"') && !text.includes("=")) {
-    return "comment";
-  }
-  if (text.includes("= true")) {
-    return "add";
-  }
-  if (text.includes("= false")) {
-    return "remove";
-  }
-
-  return "plain";
 }

@@ -8,7 +8,7 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { query, type Judgment } from "@factbag/core/query";
 import { explainJudgment, type Explanation } from "@factbag/core/explain";
 
-import { CodeBlock, type CodeLine, type CodeTone } from "./lib/CodeBlock";
+import { CodeBlock, jsonLines } from "./lib/CodeBlock";
 import { ProofTree } from "./kb/proof-tree";
 import { Hint, InlineCode, RuleBox, WidgetShell } from "./lib/ui";
 import { VERDICT } from "./theme";
@@ -192,24 +192,4 @@ function explainState(filed: Record<SourceId, boolean>): string {
     return "The only filing on record denies the sanction, so the proof bottoms out in quoted evidence. Drew is eligible for the same reason as an empty registry would give — but with a different proof. Withdraw this filing too and compare the two trees.";
   }
   return 'Nobody has filed anything — and that is not an unknown. Because the registry is closed-world, silence counts as evidence: the proof bottoms out in a terminal "nothing on file" step, and the tree is at its shortest.';
-}
-
-function jsonLines(explanation: Explanation): readonly CodeLine[] {
-  return JSON.stringify(explanation, null, 2)
-    .split("\n")
-    .map((text) => ({ text, tone: toneForLine(text) }));
-}
-
-function toneForLine(text: string): CodeTone {
-  if (text.includes('"because"') && !text.includes("=")) {
-    return "comment";
-  }
-  if (text.includes("= true")) {
-    return "add";
-  }
-  if (text.includes("= false")) {
-    return "remove";
-  }
-
-  return "plain";
 }

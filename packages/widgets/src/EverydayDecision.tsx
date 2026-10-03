@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { EverydayDecisionScene } from "./EverydayDecisionScene";
 import { DiagramCanvas, FlowEdge, treeCurve } from "./lib/diagram";
 import { solveScaffold } from "./lib/live";
 import { ChoicePill, OperatorBadge, RuleBox, ValueDots, VerdictCard, WidgetShell } from "./lib/ui";
@@ -45,25 +46,25 @@ const SCENARIOS: Record<ScenarioKey, Scenario> = {
     ],
     defaults: ["conflicted", "false", "false", "unknown"],
     operator: "or",
-    rule: "Hand the conversation to a person if the customer sounds upset, or needs it urgently, or asks for a human, or the bot is out of its depth.",
-    tabLabel: "Hand this to a person?",
+    rule: "Hand the chat to a plumber if the customer sounds upset, or the problem is urgent, or they ask for a human, or the bot is out of its depth.",
+    tabLabel: "Hand this to a plumber?",
     verdicts: {
       false: "The bot's got this",
       unknown: "Not enough to go on yet",
-      conflicted: "Signals disagree — a person should look",
-      true: "Passing you to a person",
+      conflicted: "Mixed signals — flag for review",
+      true: "Passing you to a plumber",
     },
   },
   review: {
     checks: [
       { Icon: Smile, label: "Seems happy" },
-      { Icon: Wrench, label: "Problem fixed" },
-      { Icon: Repeat, label: "Planning to return" },
+      { Icon: Wrench, label: "Leak fixed" },
+      { Icon: Repeat, label: "Would use us again" },
       { Icon: CalendarClock, label: "Not asked recently" },
     ],
     defaults: ["true", "unknown", "true", "true"],
     operator: "and",
-    rule: "Ask for a review only when the customer seems happy, the problem is confirmed fixed, they say they'll be back, and we haven't asked recently.",
+    rule: "Ask for a review only when the customer seems happy, the leak is confirmed fixed, they say they'd use us again, and we haven't asked recently.",
     tabLabel: "Ask for a review?",
     verdicts: {
       false: "Don't ask",
@@ -131,6 +132,7 @@ export function EverydayDecision(): JSX.Element {
       <RuleBox>
         <strong>The rule:</strong> {scenario.rule}
       </RuleBox>
+      <EverydayDecisionScene kind={scenarioKey} values={statuses} />
       <DiagramCanvas
         height={GRAPH_HEIGHT}
         svg={

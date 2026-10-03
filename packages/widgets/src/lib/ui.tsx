@@ -102,39 +102,6 @@ export function ValueDots(props: {
   );
 }
 
-/** The weakest-to-strongest legend strip. */
-export function ValueLadder(props: { readonly lead?: "icon" | "symbol" }): JSX.Element {
-  const lead = props.lead ?? "icon";
-
-  return (
-    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
-      <span className="font-bold text-slate-400">weakest</span>
-      {VALUES.map((value, index) => (
-        <span key={value} className="flex items-center gap-2">
-          {index > 0 ? <span className="font-bold text-slate-400">&lt;</span> : null}
-          {(() => {
-            const Icon = VERDICT[value].Icon;
-
-            return (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 leading-none font-extrabold whitespace-nowrap text-white ${VERDICT[value].pill}`}
-              >
-                {lead === "icon" ? (
-                  <Icon className="size-3.5" strokeWidth={3} />
-                ) : (
-                  VERDICT[value].symbol
-                )}
-                {VERDICT[value].word}
-              </span>
-            );
-          })()}
-        </span>
-      ))}
-      <span className="font-bold text-slate-400">strongest</span>
-    </div>
-  );
-}
-
 /** Black AND / OR pill, absolutely positioned on a wire junction. */
 export function OperatorBadge(props: {
   readonly operator: Operator;

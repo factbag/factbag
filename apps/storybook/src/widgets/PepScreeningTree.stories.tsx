@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { LiveSolverTree } from "@factbag/widgets";
+import { PepScreeningTree } from "@factbag/widgets";
 
-const meta: Meta<typeof LiveSolverTree> = {
-  title: "Widgets/Live solver/Live Solver Tree",
-  component: LiveSolverTree,
+const meta: Meta<typeof PepScreeningTree> = {
+  title: "Widgets/Scenarios/PEP Screening Tree",
+  component: PepScreeningTree,
   tags: ["autodocs"],
 };
 

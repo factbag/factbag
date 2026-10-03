@@ -15,8 +15,8 @@ const WIDGETS: Record<string, () => JSX.Element> = {
   EverydayDecision: widgets.EverydayDecision,
   LiveSolverExplorer: widgets.LiveSolverExplorer,
   LiveSolverTree: widgets.LiveSolverTree,
+  PepScreeningTree: widgets.PepScreeningTree,
   ProofTreeExplorer: widgets.ProofTreeExplorer,
-  TrialEligibilityTree: widgets.TrialEligibilityTree,
 };
 
 describe("widgets", () => {
