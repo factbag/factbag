@@ -6,4 +6,4 @@ Add a changeset for every user-visible change:
 pnpm changeset
 ```
 
-All four public Factbag packages are versioned together. Private examples and tooling are excluded. See [`RELEASING.md`](../RELEASING.md) for release procedures.
+Only the `factbag` package is published; the component packages, examples, and tooling are private and are not versioned. See [`RELEASING.md`](../RELEASING.md) for release procedures.

@@ -14,7 +14,7 @@ for the thinking behind it.
 ## Install
 
 ```sh
-npm install factbag@next
+npm install factbag
 ```
 
 ESM only. Requires Node 22.18+ on the 22.x line, or Node 24 or 26.
