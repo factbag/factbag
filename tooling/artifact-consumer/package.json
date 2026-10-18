@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "typescript6": "catalog:"
+    "typescript6": "catalog:",
+    "@typesafe-ai/sdk": "catalog:"
   }
 }

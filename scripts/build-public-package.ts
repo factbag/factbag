@@ -8,6 +8,8 @@ interface Manifest {
   name: string;
   exports: Record<string, { types: string; import: string }>;
   dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,9 +36,12 @@ for (const component of components) {
   for (const [name, range] of Object.entries(source.dependencies ?? {})) {
     if (!name.startsWith("@factbag/")) {
       assert.equal(
-        publicManifest.dependencies?.[name],
+        publicManifest.dependencies?.[name] ??
+          (publicManifest.peerDependencies?.[name]
+            ? publicManifest.devDependencies?.[name]
+            : undefined),
         range,
-        `Missing external dependency ${name}`,
+        `External dependency ${name} must be shipped or declared as a peer with a matching development version`,
       );
     }
   }

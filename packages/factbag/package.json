@@ -74,13 +74,19 @@
   "scripts": {
     "build": "node ../../scripts/build-public-package.ts"
   },
-  "dependencies": {
-    "@typesafe-ai/sdk": "catalog:"
-  },
   "devDependencies": {
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",
-    "@factbag/jev": "workspace:*"
+    "@factbag/jev": "workspace:*",
+    "@typesafe-ai/sdk": "catalog:"
+  },
+  "peerDependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@typesafe-ai/sdk": {
+      "optional": true
+    }
   }
 }

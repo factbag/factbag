@@ -12,5 +12,5 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["consumer.ts", "runtime.mjs"]
+  "include": ["consumer.ts", "runtime.mjs", "without-sdk.ts", "without-sdk.mjs", "base.mjs"]
 }
