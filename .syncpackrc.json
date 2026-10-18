@@ -8,6 +8,13 @@
       "pinVersion": "workspace:*"
     },
     {
+      "label": "Allow compatible SDK patches for the optional public Jev peer",
+      "packages": ["factbag"],
+      "dependencies": ["@typesafe-ai/sdk"],
+      "dependencyTypes": ["peer"],
+      "pinVersion": "^0.6.0"
+    },
+    {
       "label": "Use pnpm catalog for external dependencies",
       "dependencyTypes": ["prod", "dev", "peer", "pnpmCatalog"],
       "policy": "catalog"

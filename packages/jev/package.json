@@ -1,20 +1,57 @@
 {
   "name": "@factbag/jev",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-next.0",
+  "description": "Lazy AI-assisted classification and evidence resolution for Factbag.",
+  "keywords": [
+    "classification",
+    "evidence",
+    "ai",
+    "rules-engine",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/jev#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/jev"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "type": "module",
+  "files": [
+    "dist",
+    "docs/README.md",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
-    "./classifier": "./src/classifier.ts",
-    "./errors": "./src/errors.ts",
-    "./resolve": "./src/resolve.ts"
+    "./classifier": {
+      "types": "./dist/classifier.d.ts",
+      "import": "./dist/classifier.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.js"
+    },
+    "./resolve": {
+      "types": "./dist/resolve.d.ts",
+      "import": "./dist/resolve.js"
+    }
   },
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json",
     "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/classifier.ts src/errors.ts src/resolve.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "demo": "tsx examples/run.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -32,5 +69,6 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "private": true
 }

@@ -1,18 +1,48 @@
 {
   "name": "@factbag/guards",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-next.0",
+  "description": "Permission-enforcing views over Factbag knowledge bases.",
+  "keywords": [
+    "authorization",
+    "policy",
+    "rules-engine",
+    "knowledge-base",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/guards#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/guards"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
   "type": "module",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "api-report": "api-extractor run --local",
     "api-report:check": "api-extractor run",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -23,5 +53,6 @@
     "@factbag/tsconfig": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "private": true
 }

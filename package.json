@@ -1,38 +1,50 @@
 {
-  "name": "factbag",
+  "name": "factbag-workspace",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.27.1",
   "type": "module",
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
     "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
     "api-report:check": "turbo api-report:check --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",
     "build": "turbo build",
+    "build:verify": "node scripts/verify-artifacts.ts && pnpm release:pack && node scripts/verify-packed-consumer.ts",
+    "changeset": "changeset",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "prepare": "lefthook install",
     "storybook": "pnpm --filter @factbag/storybook dev",
-    "lint": "syncpack lint && turbo run //#oxlint",
+    "lint": "syncpack lint && turbo build && turbo run //#oxlint",
     "lint:deps": "syncpack lint",
     "oxlint": "oxlint .",
+    "release:pre-enter": "changeset pre enter next",
+    "release:pre-exit": "changeset pre exit",
+    "release:pack": "node scripts/clean-output.ts .release && changeset pack --out-dir .release",
+    "release:prepare": "changeset version && pnpm install --lockfile-only",
+    "release:publish": "changeset publish --from-pack-dir .release",
+    "release:status": "changeset status",
     "test": "turbo test",
     "test:examples": "turbo test:examples --filter=@factbag/core",
-    "typecheck": "turbo typecheck",
+    "typecheck": "turbo typecheck && tsc -p scripts/tsconfig.json",
     "knip": "knip"
   },
   "devDependencies": {
+    "@changesets/cli": "catalog:",
     "@microsoft/api-extractor": "catalog:",
+    "@types/node": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "syncpack": "catalog:",
+    "tsup": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "typescript6": "catalog:"
   }
 }

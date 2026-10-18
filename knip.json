@@ -2,6 +2,13 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "tags": ["-lintignore"],
   "workspaces": {
-    ".": {}
+    ".": {},
+    "tooling/artifact-consumer": {
+      "entry": ["consumer.ts", "runtime.mjs", "without-sdk.ts", "without-sdk.mjs"]
+    },
+    "packages/factbag": {
+      "entry": ["dist/**/*.js", "dist/**/*.d.ts"],
+      "ignoreDependencies": ["@factbag/core", "@factbag/corpus", "@factbag/guards", "@factbag/jev"]
+    }
   }
 }
