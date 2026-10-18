@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -23,6 +24,12 @@ interface PublishPlan {
   plan: PackedRelease[][];
 }
 
+interface CompilerManifest {
+  name: string;
+  version: string;
+  bin: { tsc: string };
+}
+
 interface PackedManifest {
   name: string;
   version: string;
@@ -36,6 +43,8 @@ interface PackedManifest {
   };
 }
 
+console.log(`Verifying packed packages on Node ${process.versions.node}`);
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const releaseDirectory = path.join(root, ".release");
 const plan = JSON.parse(
@@ -47,6 +56,7 @@ const expectedChunks = [
   ["@factbag/jev"],
 ];
 
+assert.equal(plan.version, 1, "Unsupported publish-plan format");
 assert.deepEqual(
   plan.plan.map((chunk) => chunk.map((release) => release.name)),
   expectedChunks,
@@ -65,6 +75,10 @@ for (const release of releases) {
   assert.equal(release.tag, "next");
 
   const tarball = path.join(releaseDirectory, release.tarball.path);
+  const integrity = `sha256-${createHash("sha256")
+    .update(await readFile(tarball))
+    .digest("base64")}`;
+  assert.equal(integrity, release.tarball.integrity, `${release.name} tarball integrity mismatch`);
   const files = tar(["-tf", tarball]).trim().split("\n").filter(Boolean);
   const documentation = new Set([
     "package/package.json",
@@ -122,6 +136,17 @@ for (const release of releases) {
 assert.equal(releaseByName.get("@factbag/guards")?.version, version);
 assert.equal(releaseByName.get("@factbag/jev")?.version, version);
 
+const compilerNames = ["typescript6", "typescript"];
+const fixtureDirectory = path.join(root, "tooling/artifact-consumer");
+const devDependencies: Record<string, string> = {};
+for (const name of ["@types/node", ...compilerNames]) {
+  const manifest = JSON.parse(
+    await readFile(path.join(fixtureDirectory, "node_modules", name, "package.json"), "utf8"),
+  ) as CompilerManifest;
+  devDependencies[name] =
+    name === manifest.name ? manifest.version : `npm:${manifest.name}@${manifest.version}`;
+}
+
 const consumerDirectory = await mkdtemp(path.join(os.tmpdir(), "factbag-packed-consumer-"));
 try {
   const realConsumerDirectory = await realpath(consumerDirectory);
@@ -141,10 +166,7 @@ try {
         type: "module",
         packageManager: "pnpm@11.27.1",
         dependencies,
-        devDependencies: {
-          "@types/node": "22.20.0",
-          typescript: "7.0.2",
-        },
+        devDependencies,
       },
       null,
       2,
@@ -177,7 +199,19 @@ try {
     );
   }
 
-  runPnpm(["exec", "tsc", "-p", "tsconfig.json"], consumerDirectory);
+  // Invoke each compiler directly: npm aliases expose the same `tsc` binary name.
+  for (const name of compilerNames) {
+    const directory = path.join(consumerDirectory, "node_modules", name);
+    const manifest = JSON.parse(
+      await readFile(path.join(directory, "package.json"), "utf8"),
+    ) as CompilerManifest;
+    console.log(`Checking packed consumer with TypeScript ${manifest.version}`);
+    run(
+      process.execPath,
+      [path.join(directory, manifest.bin.tsc), "-p", "tsconfig.json"],
+      consumerDirectory,
+    );
+  }
   run(process.execPath, ["runtime.mjs"], consumerDirectory);
 } finally {
   await rm(consumerDirectory, { force: true, recursive: true });

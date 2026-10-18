@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.27.1",
   "type": "module",
   "engines": {
-    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
     "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/jev --filter=@factbag/corpus",

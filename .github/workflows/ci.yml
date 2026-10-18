@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 permissions:
   contents: read
@@ -17,14 +17,14 @@ jobs:
   checks:
     name: Checks (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false
       matrix:
-        # One entry per release line `engines.node` supports. Bare majors, so each
-        # leg runs that line's latest patch and picks up its security fixes; an
-        # `lts/*` alias is avoided because it would jump major without a commit.
+        # Test the exact minimum plus the latest patch of every supported line.
         node-version:
+          - "22.18.0"
           - 22
           - 24
           - 26
@@ -53,7 +53,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Verify packed packages
+      - name: Verify packed packages (TypeScript 6 and 7)
         run: pnpm build:verify
 
       - name: Check API reports
@@ -64,6 +64,6 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
             git diff | head -200
-            echo "::error::A generated file is out of sync with its generator. Run 'pnpm generate && pnpm build' and commit the result."
+            echo "::error::A generated file is out of sync with its generator. Run the relevant generator (for API reports: 'pnpm api-report') and commit the result."
             exit 1
           fi
