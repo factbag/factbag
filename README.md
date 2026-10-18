@@ -1,48 +1,44 @@
 # Factbag
 
-Start with [Fix one fact, not the whole answer](packages/jev/docs/README.md):
-a walkthrough of reading documents with Jev, reviewing conflicting evidence,
-and reaching a decision you can inspect.
+A TypeScript library for combining evidence with explicit rules in a knowledgebase.
+Facts can be true, false, conflicted, or unknown. Query results keep track of the
+sources and rules behind a conclusion.
 
-Run the credential-free walkthrough:
+Factbag includes a document corpus, permission controls, and an integration with
+TypeSafe AI’s Jev model.
+
+Read [Introducing Factbag](https://blog.du-pless.is/introducing-factbag) for how and
+why to use it, or [Jev and the Art of Truth Maintenance](https://blog.du-pless.is/jev-and-the-art-of-truth-maintenance)
+for the thinking behind it.
+
+## Install
 
 ```sh
-pnpm --filter @factbag/jev demo
+npm install factbag@next
 ```
 
-Reusable J-1 and OFAC scenario factories, plus test-based Jev examples, live in
-[`examples/`](examples/README.md). The same corpora and native evidence annotations
-can be consumed by evals.
+ESM only. Requires Node 22.18+ on the 22.x line, or Node 24 or 26.
+This is an early prerelease; APIs may change.
 
-## Local Development
+## Example
 
-Prerequisites:
+```ts
+import { predicate, variable } from "factbag/dsl";
+import { KnowledgeBase } from "factbag/kb";
+import { query } from "factbag/query";
 
-- Node.js `>=22.18.0`
-- pnpm `11.27.1`
+const emailVerified = predicate("email_verified", { user: String });
+const canSignIn = predicate("can_sign_in", { user: String });
+const user = variable("user");
+const kb = new KnowledgeBase();
 
-```bash
-pnpm install
+kb.rule(canSignIn({ user })).if(emailVerified({ user }));
+kb.asserts(emailVerified({ user: "alice" }), { source: "accounts" });
+
+query(kb, canSignIn({ user: "alice" })).value; // "true"
 ```
 
-The live Jev demo needs an API key; the walkthrough above does not.
+For Jev, also install `@typesafe-ai/sdk@^0.6.0`. Other parts of Factbag do not
+require it. Live Jev requests need a TypeSafe API key.
 
-```bash
-cp .env.example .env   # then set TYPESAFE_API_KEY
-pnpm --filter @factbag/jev-examples demo
-```
-
-## Common Commands
-
-```bash
-pnpm build
-pnpm lint
-pnpm test
-pnpm typecheck
-pnpm format
-```
-
-## Releases
-
-See [`RELEASING.md`](RELEASING.md) for changesets, prerelease preparation, publication,
-and recovery procedures.
+Apache-2.0 licensed.
