@@ -4,7 +4,11 @@ import type { Chunk } from "@factbag/corpus";
 import type { Client, ClassifierClient } from "./client";
 import type { EvidenceChoice, SupportedPredicate, Tool, ToolResult } from "./types";
 
-/** Thresholds for admitting signed evidence; an application policy, not a calibration guarantee. */
+/**
+ * Thresholds for admitting signed evidence; an application policy, not a calibration guarantee.
+ *
+ * @beta
+ */
 export type AdmissionPolicy = {
   readonly minimumProbability: number;
   readonly ambiguityMargin: number;
@@ -24,7 +28,11 @@ export function admissionPolicy(
   return { minimumProbability, ambiguityMargin };
 }
 
-/** Client and admission settings supplied by the consumer. Model, timeout and retry settings belong to the client. */
+/**
+ * Client and admission settings supplied by the consumer. Model, timeout and retry settings belong to the client.
+ *
+ * @beta
+ */
 export type RequestConfig = {
   /** Defaults to `new TypeSafeClient()`, configured from `TYPESAFE_*` environment variables. */
   readonly client?: ClassifierClient;
@@ -32,7 +40,11 @@ export type RequestConfig = {
   readonly admission?: AdmissionPolicy;
 };
 
-/** Completed request with every candidate assessment and its admitted evidence. */
+/**
+ * Completed request with every candidate assessment and its admitted evidence.
+ *
+ * @beta
+ */
 export type Assessment = {
   readonly source: string;
   readonly predicate: SupportedPredicate;
@@ -44,7 +56,11 @@ export type Assessment = {
   }[];
 };
 
-/** Unevaluated remote work that the consumer may execute independently. */
+/**
+ * Unevaluated remote work that the consumer may execute independently.
+ *
+ * @beta
+ */
 export type ClassificationJob = {
   readonly source: string;
   readonly predicate: SupportedPredicate;

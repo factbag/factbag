@@ -13,8 +13,16 @@ import { admissionPolicy, createJob } from "./jobs";
 import type { ClassificationJob, RequestConfig } from "./jobs";
 import { prepareTools } from "./tools";
 
-/** A single-cursor stream of jobs and their shared, independently stored output. */
-type ClassificationRun = IterableIterator<ClassificationJob> & {
+export type { ClassifierClient, ClassificationQuestions } from "./client";
+export type { AdmissionPolicy, Assessment, ClassificationJob, RequestConfig } from "./jobs";
+export type { EvidenceChoice, Outcome, SupportedField, SupportedPredicate } from "./types";
+
+/**
+ * A single-cursor stream of jobs and their shared, independently stored output.
+ *
+ * @beta
+ */
+export type ClassificationRun = IterableIterator<ClassificationJob> & {
   /** Independent output KB. Successful jobs add evidence to it in completion order. */
   readonly kb: KnowledgeBase;
 };
@@ -23,6 +31,7 @@ type ClassificationRun = IterableIterator<ClassificationJob> & {
  * Validate available tools eagerly and return a lazy iterator of executable jobs.
  * Bare KBs expose all known predicates; explicit guards retain their permission policy.
  * Only job.execute() makes a remote call. The consumer owns pacing and concurrency.
+ * @beta
  */
 export function classifier<M extends Metadata = Metadata>(
   corpus: Corpus<M>,

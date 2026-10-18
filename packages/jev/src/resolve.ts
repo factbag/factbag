@@ -12,32 +12,52 @@ import { admissionPolicy } from "./jobs";
 import type { AdmissionPolicy } from "./jobs";
 import type { Standing, StandingChoice } from "./types";
 
-/** Client and admission settings supplied by the consumer. Model, timeout and retry settings belong to the client. */
-type ResolutionConfig = {
+export type { AdjudicationQuestions, AdjudicatorClient } from "./client";
+export type { AdmissionPolicy } from "./jobs";
+export type { Standing, StandingChoice } from "./types";
+
+/**
+ * Client and admission settings supplied by the consumer. Model, timeout and retry settings belong to the client.
+ *
+ * @beta
+ */
+export type ResolutionConfig = {
   /** Defaults to `new TypeSafeClient()`, configured from `TYPESAFE_*` environment variables. */
   readonly client?: AdjudicatorClient;
-  /** A passage is retracted only when RETRACT reaches minimumProbability and leads KEEP by more than ambiguityMargin. Defaults to 0.5 and 0. */
+  /** A passage is retracted only when RETRACT reaches minimumProbability and leads KEEP by more than ambiguityMargin. Defaults to 0.4 and 0. */
   readonly admission?: AdmissionPolicy;
 };
 
-/** One passage's judged standing and the evidence it cost. */
-type Judgment = Readonly<{
+/**
+ * One passage's judged standing and the evidence it cost.
+ *
+ * @beta
+ */
+export type Judgment = Readonly<{
   passage: Chunk;
   standing: Standing;
   answer: StandingChoice;
   retracted: readonly AnyLiteral[];
 }>;
 
-/** How one contradiction was settled: a judgment per passage, and the evidence that survived. */
-type Resolution = Readonly<{
+/**
+ * How one contradiction was settled: a judgment per passage, and the evidence that survived.
+ *
+ * @beta
+ */
+export type Resolution = Readonly<{
   atom: AnyAtom;
   judgments: readonly Judgment[];
   kept: readonly AnyLiteral[];
   retracted: readonly AnyLiteral[];
 }>;
 
-/** One contradiction to settle. Nothing remote happens until execute() is called. */
-type ResolutionJob = Readonly<{
+/**
+ * One contradiction to settle. Nothing remote happens until execute() is called.
+ *
+ * @beta
+ */
+export type ResolutionJob = Readonly<{
   atom: AnyAtom;
   /** Every distinct passage behind the contradiction, sent together in one request. */
   passages: readonly Chunk[];
@@ -48,8 +68,12 @@ type ResolutionJob = Readonly<{
   execute: () => Promise<Resolution>;
 }>;
 
-/** A single-cursor stream of jobs and their shared, independently stored output. */
-type ResolutionRun = IterableIterator<ResolutionJob> & {
+/**
+ * A single-cursor stream of jobs and their shared, independently stored output.
+ *
+ * @beta
+ */
+export type ResolutionRun = IterableIterator<ResolutionJob> & {
   /** Independent copy of the input. Successful jobs retract superseded evidence from it. */
   readonly kb: KnowledgeBase;
 };
@@ -62,6 +86,7 @@ type ResolutionRun = IterableIterator<ResolutionJob> & {
  * the surviving evidence means. The input KB is not modified. Throws during construction if
  * conflicting evidence has no source, and propagates corpus errors for sources that are not
  * resolvable chunk IDs. The consumer owns pacing and concurrency.
+ * @beta
  */
 export function resolver<M extends Metadata = Metadata>(
   corpus: Corpus<M>,

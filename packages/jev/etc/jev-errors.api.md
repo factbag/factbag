@@ -4,7 +4,9 @@
 
 ```ts
 
-// @public
+import type { PredicateDeclaration } from '@factbag/core/dsl';
+
+// @beta
 export class UnsupportedPredicateError extends Error {
     constructor(message: string,
     predicate: PredicateDeclaration,

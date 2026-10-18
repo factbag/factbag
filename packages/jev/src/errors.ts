@@ -5,7 +5,11 @@
  */
 import type { PredicateDeclaration } from "@factbag/core/dsl";
 
-/** A predicate cannot be classified over a supported finite domain. Raised during registration. */
+/**
+ * A predicate cannot be classified over a supported finite domain. Raised during registration.
+ *
+ * @beta
+ */
 export class UnsupportedPredicateError extends Error {
   constructor(
     message: string,
