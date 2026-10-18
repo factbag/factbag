@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build public distribution for dependency analysis
+        run: pnpm exec turbo build --filter=factbag
+
       - name: Run Knip and publish summary
         run: |
           set +e
