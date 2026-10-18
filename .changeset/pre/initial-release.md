@@ -1,8 +1,5 @@
 ---
-"@factbag/core": minor
-"@factbag/corpus": minor
-"@factbag/guards": minor
-"@factbag/jev": minor
+"factbag": minor
 ---
 
-Publish the initial experimental Factbag packages with native Node ESM artifacts and declarations.
+Publish the initial experimental Factbag distribution containing core, corpus, guards, and Jev with native Node ESM artifacts and declarations.

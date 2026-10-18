@@ -63,5 +63,6 @@
     "@factbag/tsconfig": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  }
+  },
+  "private": true
 }

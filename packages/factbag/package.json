@@ -1,0 +1,86 @@
+{
+  "name": "factbag",
+  "version": "0.1.0-next.0",
+  "keywords": [
+    "logic",
+    "rules-engine",
+    "knowledge-base",
+    "explainability",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Explainable fact and rule evaluation, document provenance, permission controls, and Jev integration.",
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/factbag#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/factbag"
+  },
+  "exports": {
+    "./dsl": {
+      "types": "./dist/core/dsl/index.d.ts",
+      "import": "./dist/core/dsl/index.js"
+    },
+    "./kb": {
+      "types": "./dist/core/knowledge-base/index.d.ts",
+      "import": "./dist/core/knowledge-base/index.js"
+    },
+    "./query": {
+      "types": "./dist/core/query/index.d.ts",
+      "import": "./dist/core/query/index.js"
+    },
+    "./explain": {
+      "types": "./dist/core/explanation/index.d.ts",
+      "import": "./dist/core/explanation/index.js"
+    },
+    "./corpus": {
+      "types": "./dist/corpus/index.d.ts",
+      "import": "./dist/corpus/index.js"
+    },
+    "./guards": {
+      "types": "./dist/guards/index.d.ts",
+      "import": "./dist/guards/index.js"
+    },
+    "./jev/classifier": {
+      "types": "./dist/jev/classifier.d.ts",
+      "import": "./dist/jev/classifier.js"
+    },
+    "./jev/errors": {
+      "types": "./dist/jev/errors.d.ts",
+      "import": "./dist/jev/errors.js"
+    },
+    "./jev/resolve": {
+      "types": "./dist/jev/resolve.d.ts",
+      "import": "./dist/jev/resolve.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-public-package.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "catalog:"
+  },
+  "devDependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@factbag/jev": "workspace:*"
+  }
+}

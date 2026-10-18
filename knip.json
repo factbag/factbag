@@ -5,6 +5,10 @@
     ".": {},
     "tooling/artifact-consumer": {
       "entry": ["consumer.ts", "runtime.mjs"]
+    },
+    "packages/factbag": {
+      "entry": ["dist/**/*.js", "dist/**/*.d.ts"],
+      "ignoreDependencies": ["@factbag/core", "@factbag/corpus", "@factbag/guards", "@factbag/jev"]
     }
   }
 }

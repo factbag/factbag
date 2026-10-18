@@ -7,6 +7,20 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packages = [
   {
+    directory: "packages/factbag",
+    entries: [
+      "factbag/dsl",
+      "factbag/kb",
+      "factbag/query",
+      "factbag/explain",
+      "factbag/corpus",
+      "factbag/guards",
+      "factbag/jev/classifier",
+      "factbag/jev/errors",
+      "factbag/jev/resolve",
+    ],
+  },
+  {
     directory: "packages/core",
     entries: [
       "@factbag/core/dsl",

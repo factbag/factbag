@@ -1,12 +1,27 @@
-import { predicate } from "@factbag/core/dsl";
-import { explainJudgment } from "@factbag/core/explain";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query } from "@factbag/core/query";
-import { Corpus, chunkers } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
-import { classifier } from "@factbag/jev/classifier";
-import { UnsupportedPredicateError } from "@factbag/jev/errors";
-import { resolver } from "@factbag/jev/resolve";
+import { predicate } from "factbag/dsl";
+import { explainJudgment } from "factbag/explain";
+import { KnowledgeBase } from "factbag/kb";
+import { query } from "factbag/query";
+import { Corpus, chunkers } from "factbag/corpus";
+import { guard } from "factbag/guards";
+import { classifier } from "factbag/jev/classifier";
+import { UnsupportedPredicateError } from "factbag/jev/errors";
+import { resolver } from "factbag/jev/resolve";
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+for (const name of [
+  "react",
+  "react-dom",
+  "@factbag/core",
+  "@factbag/corpus",
+  "@factbag/guards",
+  "@factbag/jev",
+]) {
+  assert.throws(() => require.resolve(name), { code: "MODULE_NOT_FOUND" });
+}
+assert.throws(() => require.resolve("factbag/widgets"), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" });
 
 /** @param {unknown} condition @param {string} message */
 function invariant(condition, message) {
@@ -53,6 +68,7 @@ invariant(typeof UnsupportedPredicateError === "function", "Jev error export is 
 
 // Execute both Jev entry points with injected clients, without credentials or network calls.
 const calls = { count: 0 };
+/** @type {import("factbag/jev/classifier").ClassifierClient} */
 const classificationClient = {
   /** @param {{ questions: Record<string, unknown> }} request */
   async systemOne(request) {

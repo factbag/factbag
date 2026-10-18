@@ -1,9 +1,9 @@
-import { predicate } from "@factbag/core/dsl";
-import { explainJudgment, type Explanation } from "@factbag/core/explain";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query, type Judgment } from "@factbag/core/query";
-import { Corpus, chunkers } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import { predicate } from "factbag/dsl";
+import { explainJudgment, type Explanation } from "factbag/explain";
+import { KnowledgeBase } from "factbag/kb";
+import { query, type Judgment } from "factbag/query";
+import { Corpus, chunkers } from "factbag/corpus";
+import { guard } from "factbag/guards";
 import {
   classifier,
   type AdmissionPolicy,
@@ -17,8 +17,8 @@ import {
   type RequestConfig,
   type SupportedField,
   type SupportedPredicate,
-} from "@factbag/jev/classifier";
-import { UnsupportedPredicateError } from "@factbag/jev/errors";
+} from "factbag/jev/classifier";
+import { UnsupportedPredicateError } from "factbag/jev/errors";
 import {
   resolver,
   type AdmissionPolicy as ResolutionAdmissionPolicy,
@@ -31,7 +31,7 @@ import {
   type ResolutionRun,
   type Standing,
   type StandingChoice,
-} from "@factbag/jev/resolve";
+} from "factbag/jev/resolve";
 
 const fact = predicate(
   "artifact_smoke",

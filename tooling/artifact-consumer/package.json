@@ -7,10 +7,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@factbag/core": "workspace:*",
-    "@factbag/corpus": "workspace:*",
-    "@factbag/guards": "workspace:*",
-    "@factbag/jev": "workspace:*"
+    "factbag": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

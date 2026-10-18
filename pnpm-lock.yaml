@@ -134,6 +134,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      typescript6:
+        specifier: 'catalog:'
+        version: typescript@6.0.2
 
   apps/storybook:
     dependencies:
@@ -275,6 +278,25 @@ importers:
         specifier: 'catalog:'
         version: 4.1.8(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.1(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.0)(yaml@2.9.1))
 
+  packages/factbag:
+    dependencies:
+      '@typesafe-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.6.0
+    devDependencies:
+      '@factbag/core':
+        specifier: workspace:*
+        version: link:../core
+      '@factbag/corpus':
+        specifier: workspace:*
+        version: link:../corpus
+      '@factbag/guards':
+        specifier: workspace:*
+        version: link:../guards
+      '@factbag/jev':
+        specifier: workspace:*
+        version: link:../jev
+
   packages/guards:
     dependencies:
       '@factbag/core':
@@ -358,18 +380,9 @@ importers:
 
   tooling/artifact-consumer:
     dependencies:
-      '@factbag/core':
+      factbag:
         specifier: workspace:*
-        version: link:../../packages/core
-      '@factbag/corpus':
-        specifier: workspace:*
-        version: link:../../packages/corpus
-      '@factbag/guards':
-        specifier: workspace:*
-        version: link:../../packages/guards
-      '@factbag/jev':
-        specifier: workspace:*
-        version: link:../../packages/jev
+        version: link:../../packages/factbag
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

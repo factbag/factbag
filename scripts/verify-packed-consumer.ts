@@ -50,21 +50,16 @@ const releaseDirectory = path.join(root, ".release");
 const plan = JSON.parse(
   await readFile(path.join(releaseDirectory, "publish-plan.json"), "utf8"),
 ) as PublishPlan;
-const expectedChunks = [
-  ["@factbag/core", "@factbag/corpus"],
-  ["@factbag/guards"],
-  ["@factbag/jev"],
-];
+const expectedChunks = [["factbag"]];
 
 assert.equal(plan.version, 1, "Unsupported publish-plan format");
 assert.deepEqual(
   plan.plan.map((chunk) => chunk.map((release) => release.name)),
   expectedChunks,
-  "Publish plan does not follow the package dependency graph",
+  "Only the canonical factbag package may be published",
 );
 
 const releases = plan.plan.flat();
-const releaseByName = new Map(releases.map((release) => [release.name, release]));
 const version = releases[0]?.version;
 assert.equal(version, "0.1.0-next.0");
 
@@ -85,7 +80,6 @@ for (const release of releases) {
     "package/LICENSE",
     "package/README.md",
     "package/CHANGELOG.md",
-    ...(release.name === "@factbag/jev" ? ["package/docs/README.md"] : []),
   ]);
 
   for (const requiredFile of documentation) {
@@ -124,6 +118,8 @@ for (const release of releases) {
     manifest.peerDependencies,
   ]) {
     for (const [name, range] of Object.entries(dependencies ?? {})) {
+      assert.ok(!name.startsWith("@factbag/"), `Unpublished dependency: ${name}`);
+      assert.ok(!["react", "react-dom", "lucide-react"].includes(name), `UI dependency: ${name}`);
       assert.ok(
         !range.startsWith("workspace:"),
         `${release.name} dependency ${name} uses ${range}`,
@@ -132,9 +128,6 @@ for (const release of releases) {
     }
   }
 }
-
-assert.equal(releaseByName.get("@factbag/guards")?.version, version);
-assert.equal(releaseByName.get("@factbag/jev")?.version, version);
 
 const compilerNames = ["typescript6", "typescript"];
 const fixtureDirectory = path.join(root, "tooling/artifact-consumer");

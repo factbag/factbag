@@ -27,5 +27,6 @@
       "dependsOn": ["^build", "^typecheck"],
       "outputs": []
     }
-  }
+  },
+  "globalDependencies": ["scripts/build-public-package.ts"]
 }

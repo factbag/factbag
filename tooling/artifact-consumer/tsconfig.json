@@ -8,7 +8,9 @@
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
     "types": ["node"],
-    "lib": ["ES2024", "DOM", "DOM.Iterable"]
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["consumer.ts"]
+  "include": ["consumer.ts", "runtime.mjs"]
 }
