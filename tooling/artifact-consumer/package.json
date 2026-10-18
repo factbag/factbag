@@ -1,0 +1,18 @@
+{
+  "name": "@factbag/artifact-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "factbag": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "typescript6": "catalog:",
+    "@typesafe-ai/sdk": "catalog:"
+  }
+}

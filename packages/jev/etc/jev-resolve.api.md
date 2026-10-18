@@ -4,13 +4,73 @@
 
 ```ts
 
+import type { AnyAtom } from '@factbag/core/dsl';
+import type { AnyLiteral } from '@factbag/core/kb';
 import type { ChoiceQuestion } from '@typesafe-ai/sdk';
 import type { ChoiceResponse } from '@typesafe-ai/sdk';
+import type { Chunk } from '@factbag/corpus';
+import type { Corpus } from '@factbag/corpus';
+import type { KnowledgeBase } from '@factbag/core/kb';
+import type { Metadata } from '@factbag/corpus';
 import type { RequestOptions } from '@typesafe-ai/sdk';
 import type { SystemOneRequest } from '@typesafe-ai/sdk';
 import type { SystemOneResult } from '@typesafe-ai/sdk';
 
-// @public
+// @beta
+export type AdjudicationQuestions = Record<string, ChoiceQuestion<Record<Standing, string>>>;
+
+// @beta
+export type AdjudicatorClient = {
+    readonly systemOne: (request: SystemOneRequest<AdjudicationQuestions>, options?: RequestOptions) => PromiseLike<SystemOneResult<AdjudicationQuestions>>;
+};
+
+// @beta
+export type AdmissionPolicy = {
+    readonly minimumProbability: number;
+    readonly ambiguityMargin: number;
+};
+
+// @beta
+export type Judgment = Readonly<{
+    passage: Chunk;
+    standing: Standing;
+    answer: StandingChoice;
+    retracted: readonly AnyLiteral[];
+}>;
+
+// @beta
+export type Resolution = Readonly<{
+    atom: AnyAtom;
+    judgments: readonly Judgment[];
+    kept: readonly AnyLiteral[];
+    retracted: readonly AnyLiteral[];
+}>;
+
+// @beta
+export type ResolutionConfig = {
+    readonly client?: AdjudicatorClient;
+    readonly admission?: AdmissionPolicy;
+};
+
+// @beta
+export type ResolutionJob = Readonly<{
+    atom: AnyAtom;
+    passages: readonly Chunk[];
+    execute: () => Promise<Resolution>;
+}>;
+
+// @beta
+export type ResolutionRun = IterableIterator<ResolutionJob> & {
+    readonly kb: KnowledgeBase;
+};
+
+// @beta
 export function resolver<M extends Metadata = Metadata>(corpus: Corpus<M>, kb: KnowledgeBase, config?: ResolutionConfig): ResolutionRun;
+
+// @beta
+export type Standing = "KEEP" | "RETRACT";
+
+// @beta
+export type StandingChoice = ChoiceResponse<Record<Standing, string>>;
 
 ```

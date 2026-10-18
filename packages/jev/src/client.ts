@@ -16,21 +16,37 @@ import type { EvidenceChoice, Outcome, Standing, StandingChoice, Tool, ToolResul
  */
 const roundingTolerance = 0.011;
 
-/** One three-way question per candidate, batched by passage and predicate. */
-type Questions = Record<string, ChoiceQuestion<Record<Outcome, string>>>;
+/**
+ * One three-way question per candidate, batched by passage and predicate.
+ *
+ * @beta
+ */
+export type ClassificationQuestions = Record<string, ChoiceQuestion<Record<Outcome, string>>>;
 
-/** The narrow SDK contract used to execute a classification job. */
+/**
+ * The narrow SDK contract used to execute a classification job.
+ *
+ * @beta
+ */
 export type ClassifierClient = {
   readonly systemOne: (
-    request: SystemOneRequest<Questions>,
+    request: SystemOneRequest<ClassificationQuestions>,
     options?: RequestOptions,
-  ) => PromiseLike<SystemOneResult<Questions>>;
+  ) => PromiseLike<SystemOneResult<ClassificationQuestions>>;
 };
 
-/** One question per conflicting passage, answered with every passage in view. */
-type AdjudicationQuestions = Record<string, ChoiceQuestion<Record<Standing, string>>>;
+/**
+ * One question per conflicting passage, answered with every passage in view.
+ *
+ * @beta
+ */
+export type AdjudicationQuestions = Record<string, ChoiceQuestion<Record<Standing, string>>>;
 
-/** The narrow SDK contract used to settle a contradiction. */
+/**
+ * The narrow SDK contract used to settle a contradiction.
+ *
+ * @beta
+ */
 export type AdjudicatorClient = {
   readonly systemOne: (
     request: SystemOneRequest<AdjudicationQuestions>,
@@ -73,7 +89,7 @@ export function jevClient(sdk?: ClassifierClient): Client {
           document: { text: chunk.text },
           candidates: tool.candidates.map(({ id, fields }) => ({ id, fields })),
         },
-        questions: buildQuestions(tool),
+        questions: buildClassificationQuestions(tool),
       });
       const answers = tool.candidates.map((candidate) => ({
         candidate,
@@ -145,8 +161,8 @@ function encodeField(value: unknown): JsonValue {
   throw new Error("Cannot encode a field value for adjudication");
 }
 
-function buildQuestions({ predicate, candidates }: Tool): Questions {
-  const questions: Questions = {};
+function buildClassificationQuestions({ predicate, candidates }: Tool): ClassificationQuestions {
+  const questions: ClassificationQuestions = {};
   const metadata = encodeMetadata(predicate);
   for (const [index, candidate] of candidates.entries()) {
     questions[candidate.id] = {

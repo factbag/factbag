@@ -7,7 +7,15 @@
   "messages": {
     "extractorMessageReporting": {
       "ae-forgotten-export": {
-        "logLevel": "none",
+        "logLevel": "error",
+        "addToApiReportFile": false
+      },
+      "ae-missing-release-tag": {
+        "logLevel": "error",
+        "addToApiReportFile": false
+      },
+      "ae-unresolved-link": {
+        "logLevel": "error",
         "addToApiReportFile": false
       }
     }

@@ -4,14 +4,23 @@
 
 ```ts
 
+import type { Atom } from '@factbag/core/dsl';
+import type { EvidenceMetadata } from '@factbag/core/kb';
+import type { GroundAtom } from '@factbag/core/dsl';
+import type { KnowledgeBase } from '@factbag/core/kb';
+import type { NegativeLiteral } from '@factbag/core/kb';
+import type { PositiveLiteral } from '@factbag/core/kb';
+import type { PredicateDeclaration } from '@factbag/core/dsl';
+import type { PredicateSchema } from '@factbag/core/dsl';
+import type { QueryAllJudgment } from '@factbag/core/query';
+import type { QueryJudgment } from '@factbag/core/query';
+
 // @public
 export type AllowedPermission = Readonly<{
     operation: Operation;
     predicate: PredicateDeclaration;
 }>;
 
-// Warning: (ae-forgotten-export) The symbol "KnowledgeBase" needs to be exported by the entry point index.d.ts
-//
 // @public
 export function guard(kb: KnowledgeBase): GuardedKB;
 
@@ -19,25 +28,17 @@ export function guard(kb: KnowledgeBase): GuardedKB;
 export class GuardedKB {
     constructor(
     kb: KnowledgeBase);
-    // Warning: (ae-forgotten-export) The symbol "PredicateSchema" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "Atom" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "EvidenceMetadata" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "PositiveLiteral" needs to be exported by the entry point index.d.ts
     asserts<Schema extends PredicateSchema>(atom: Atom<Schema>, metadata?: EvidenceMetadata): PositiveLiteral<Schema>;
     block(operation: "*"): GuardedKB;
     block(operation: Operation | "*", predicates: "*"): GuardedKB;
     block(operation: Operation | "*", ...predicates: readonly PredicateDeclaration[]): GuardedKB;
-    // Warning: (ae-forgotten-export) The symbol "NegativeLiteral" needs to be exported by the entry point index.d.ts
     denies<Schema extends PredicateSchema>(atom: Atom<Schema>, metadata?: EvidenceMetadata): NegativeLiteral<Schema>;
     fork(): GuardedKB;
     readonly kb: KnowledgeBase;
     permit(operation: "*"): GuardedKB;
     permit(operation: Operation | "*", predicates: "*"): GuardedKB;
     permit(operation: Operation | "*", ...predicates: readonly PredicateDeclaration[]): GuardedKB;
-    // Warning: (ae-forgotten-export) The symbol "GroundAtom" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "QueryJudgment" needs to be exported by the entry point index.d.ts
     query<Schema extends PredicateSchema>(atom: GroundAtom<Schema>): QueryJudgment<Schema>;
-    // Warning: (ae-forgotten-export) The symbol "QueryAllJudgment" needs to be exported by the entry point index.d.ts
     queryAll<Schema extends PredicateSchema>(pattern: Atom<Schema>): QueryAllJudgment<Schema>;
     resolve(): readonly AllowedPermission[];
     resolve(operation: Operation): readonly AllowedPermission[];
@@ -53,9 +54,5 @@ export type PermissionFilter = Readonly<{
     operations?: readonly Operation[];
     predicates?: readonly PredicateDeclaration[];
 }>;
-
-// Warnings were encountered during analysis:
-//
-// dist/types.d.ts:7:5 - (ae-forgotten-export) The symbol "PredicateDeclaration" needs to be exported by the entry point index.d.ts
 
 ```

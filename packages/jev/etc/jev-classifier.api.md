@@ -6,11 +6,77 @@
 
 import type { ChoiceQuestion } from '@typesafe-ai/sdk';
 import type { ChoiceResponse } from '@typesafe-ai/sdk';
+import type { Corpus } from '@factbag/corpus';
+import type { Entity } from '@factbag/core/dsl';
+import type { EnumType } from '@factbag/core/dsl';
+import type { GroundAtom } from '@factbag/core/dsl';
+import { GuardedKB } from '@factbag/guards';
+import type { KnowledgeBase } from '@factbag/core/kb';
+import type { Literal } from '@factbag/core/kb';
+import type { Metadata } from '@factbag/corpus';
+import type { PredicateDeclaration } from '@factbag/core/dsl';
 import type { RequestOptions } from '@typesafe-ai/sdk';
+import type { RuntimeConstructor } from '@factbag/core/dsl';
 import type { SystemOneRequest } from '@typesafe-ai/sdk';
 import type { SystemOneResult } from '@typesafe-ai/sdk';
 
-// @public
+// @beta
+export type AdmissionPolicy = {
+    readonly minimumProbability: number;
+    readonly ambiguityMargin: number;
+};
+
+// @beta
+export type Assessment = {
+    readonly source: string;
+    readonly predicate: SupportedPredicate;
+    readonly assessments: readonly {
+        readonly optionId: string;
+        readonly atom: GroundAtom;
+        readonly answer: EvidenceChoice;
+        readonly literals: readonly Literal[];
+    }[];
+};
+
+// @beta
+export type ClassificationJob = {
+    readonly source: string;
+    readonly predicate: SupportedPredicate;
+    readonly execute: () => Promise<Assessment>;
+};
+
+// @beta
+export type ClassificationQuestions = Record<string, ChoiceQuestion<Record<Outcome, string>>>;
+
+// @beta
+export type ClassificationRun = IterableIterator<ClassificationJob> & {
+    readonly kb: KnowledgeBase;
+};
+
+// @beta
 export function classifier<M extends Metadata = Metadata>(corpus: Corpus<M>, input: KnowledgeBase | GuardedKB, config?: RequestConfig): ClassificationRun;
+
+// @beta
+export type ClassifierClient = {
+    readonly systemOne: (request: SystemOneRequest<ClassificationQuestions>, options?: RequestOptions) => PromiseLike<SystemOneResult<ClassificationQuestions>>;
+};
+
+// @beta
+export type EvidenceChoice = ChoiceResponse<Record<Outcome, string>>;
+
+// @beta
+export type Outcome = "ASSERT" | "DENY" | "IRRELEVANT";
+
+// @beta
+export type RequestConfig = {
+    readonly client?: ClassifierClient;
+    readonly admission?: AdmissionPolicy;
+};
+
+// @beta
+export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+
+// @beta
+export type SupportedPredicate = PredicateDeclaration<Readonly<Record<string, SupportedField>>>;
 
 ```
