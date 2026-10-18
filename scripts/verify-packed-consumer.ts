@@ -62,13 +62,13 @@ assert.deepEqual(
 
 const releases = plan.plan.flat();
 const version = releases[0]?.version;
-assert.equal(version, "0.1.0-next.0");
+assert.equal(version, "0.0.0-alpha.0");
 
 for (const release of releases) {
   assert.equal(release.kind, "publish");
   assert.equal(release.version, version);
   assert.equal(release.access, "public");
-  assert.equal(release.tag, "next");
+  assert.equal(release.tag, "latest");
 
   const tarball = path.join(releaseDirectory, release.tarball.path);
   const integrity = `sha256-${createHash("sha256")
