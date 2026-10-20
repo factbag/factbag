@@ -265,6 +265,41 @@ The result includes the exact passage and its containing document:
 }
 ```
 
+### 9. Review conflicting evidence (optional)
+
+A tax return and an amended return might give different accounts of Alice's
+income. If Jev admits both support and denial for the same claim, that claim is
+`conflicted`.
+
+The resolver asks Jev to read the conflicting passages together and assess which
+still stand. Evidence judged superseded is retracted from the resolver's output
+knowledge base.
+
+```ts
+import { resolver } from "factbag/jev/resolve";
+
+const review = resolver(corpus, run.kb);
+
+for (const job of review) {
+  const result = await job.execute();
+  console.log(result.judgments);
+  console.log(result.retracted);
+}
+
+const reviewedQualification = query(
+  review.kb,
+  isQualifiedInvestor({ person: alice }),
+);
+
+console.log(reviewedQualification.value);
+console.log(JSON.stringify(explainJudgment(reviewedQualification), null, 2));
+```
+
+Disagreement alone doesn't establish that a source is superseded. A remaining
+conflict can be referred to a person for review, using the proof tree and source
+passages. Conflicting evidence passed to the resolver must have source IDs that
+resolve in the corpus.
+
 ## Go further
 
 - [Introducing Factbag](https://blog.du-pless.is/introducing-factbag): how and why
