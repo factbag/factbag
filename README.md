@@ -152,8 +152,7 @@ corpus.add({
 ### 5. Set Jev's permissions
 
 The guard starts with no permissions. Permit Jev to assert or deny the two income
-predicates. Identity verification remains an imported fact; qualification is
-derived by the rule.
+predicates.
 
 ```ts
 const incomeEvidence = guard(kb)
@@ -164,9 +163,6 @@ const incomeEvidence = guard(kb)
 ```
 
 ### 6. Ask Jev to assess the income evidence
-
-Pass the guarded knowledge base to the classifier, then execute its jobs.
-Only `job.execute()` makes a live request; the loop controls pacing.
 
 ```ts
 const run = classifier(corpus, incomeEvidence);
@@ -180,7 +176,7 @@ for (const job of run) {
 ### 7. Query the conclusion
 
 The output knowledge base combines the imported fact and rules with the admitted
-evidence. The input `kb` is unchanged.
+evidence.
 
 ```ts
 const qualification = query(run.kb, isQualifiedInvestor({ person: alice }));
