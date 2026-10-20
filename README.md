@@ -83,8 +83,8 @@ import { classifier } from "factbag/jev/classifier";
 
 const person = enumeration("Alice");
 
-const incomeOver200k = predicate(
-  "income_over_200k",
+const hasIncomeOver200k = predicate(
+  "has_income_over_200k",
   { person, year: enumeration("2024", "2025") },
   {
     description:
@@ -103,9 +103,9 @@ const expectsSameIncome = predicate(
   },
 );
 
-const qualifiedInvestor = predicate("qualified_investor", { person });
-const identityVerified = predicate("identity_verified", { person });
-const readyForReview = predicate("ready_for_review", { person });
+const isQualifiedInvestor = predicate("is_qualified_investor", { person });
+const hasVerifiedIdentity = predicate("has_verified_identity", { person });
+const isReadyForReview = predicate("is_ready_for_review", { person });
 ```
 
 For predicates exposed to Jev, candidate values must be finite: use enumerations,
@@ -121,18 +121,18 @@ application also requires verified identity before sending an investor for revie
 const investor = variable("investor");
 const kb = new KnowledgeBase();
 
-kb.rule(qualifiedInvestor({ person: investor })).if(
+kb.rule(isQualifiedInvestor({ person: investor })).if(
   and(
-    incomeOver200k({ person: investor, year: "2024" }),
-    incomeOver200k({ person: investor, year: "2025" }),
+    hasIncomeOver200k({ person: investor, year: "2024" }),
+    hasIncomeOver200k({ person: investor, year: "2025" }),
     expectsSameIncome({ person: investor }),
   ),
 );
 
-kb.rule(readyForReview({ person: investor })).if(
+kb.rule(isReadyForReview({ person: investor })).if(
   and(
-    qualifiedInvestor({ person: investor }),
-    identityVerified({ person: investor }),
+    isQualifiedInvestor({ person: investor }),
+    hasVerifiedIdentity({ person: investor }),
   ),
 );
 ```
@@ -144,7 +144,7 @@ goes into the corpus for Jev to assess. Document text is elided below; supply th
 full text of each record in your application.
 
 ```ts
-kb.asserts(identityVerified({ person: "Alice" }), {
+kb.asserts(hasVerifiedIdentity({ person: "Alice" }), {
   source: "onboarding:alice",
 });
 
@@ -163,8 +163,8 @@ remains an imported fact; qualification is derived by the rule. Only
 
 ```ts
 const incomeEvidence = guard(kb)
-  .permit("assert", incomeOver200k)
-  .permit("deny", incomeOver200k)
+  .permit("assert", hasIncomeOver200k)
+  .permit("deny", hasIncomeOver200k)
   .permit("assert", expectsSameIncome)
   .permit("deny", expectsSameIncome);
 
@@ -182,8 +182,8 @@ The output knowledge base combines the imported fact and rules with the admitted
 evidence. The input `kb` is unchanged.
 
 ```ts
-const qualification = query(run.kb, qualifiedInvestor({ person: "Alice" }));
-const reviewReadiness = query(run.kb, readyForReview({ person: "Alice" }));
+const qualification = query(run.kb, isQualifiedInvestor({ person: "Alice" }));
+const reviewReadiness = query(run.kb, isReadyForReview({ person: "Alice" }));
 
 console.log(qualification.value);
 console.log(reviewReadiness.value);
