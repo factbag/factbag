@@ -293,9 +293,9 @@ query(review.kb, isQualifiedInvestor({ person: alice })).value; // "true"
 
 ## Go further
 
-- [Introducing Factbag](https://blog.du-pless.is/introducing-factbag): how and why
+- [Introducing Factbag](https://daniel.du-pless.is/introducing-factbag): how and why
   to use it.
-- [Jev and the Art of Truth Maintenance](https://blog.du-pless.is/jev-and-the-art-of-truth-maintenance):
+- [Jev and the Art of Truth Maintenance](https://daniel.du-pless.is/jev-and-the-art-of-truth-maintenance):
   the thinking behind the project.
 
 Apache-2.0 licensed.
