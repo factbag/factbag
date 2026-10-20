@@ -190,6 +190,58 @@ console.log(reviewReadiness.value);
 Results can be `true`, `false`, `conflicted`, or
 `unknown`, depending on the evidence admitted.
 
+### 8. Inspect the proof tree
+
+Use `explainJudgment()` to follow a conclusion through its rule to the supporting
+evidence and source passages.
+
+```ts
+import { explainJudgment } from "factbag/explain";
+
+const proof = explainJudgment(qualification);
+console.log(JSON.stringify(proof, null, 2));
+```
+
+An abbreviated example with supporting evidence for all three claims:
+
+```json
+{
+  "claim": "is_qualified_investor(alice) = true",
+  "because": "is_qualified_investor(person) if and(...), with person = alice",
+  "given": [
+    {
+      "claim": "and(...) = true",
+      "given": [
+        {
+          "claim": "has_income_over_200k(alice, 2024) = true",
+          "because": {
+            "claim": "has_income_over_200k(alice, 2024) = true",
+            "source": "alice-2024-federal-tax-return#0-1"
+          }
+        },
+        {
+          "claim": "has_income_over_200k(alice, 2025) = true",
+          "because": {
+            "claim": "has_income_over_200k(alice, 2025) = true",
+            "source": "alice-2025-federal-tax-return#0-1"
+          }
+        },
+        {
+          "claim": "expects_same_income(alice) = true",
+          "because": {
+            "claim": "expects_same_income(alice) = true",
+            "source": "alice-2026-employment-confirmation-letter#0-1"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Source IDs identify document passages; their ranges depend on the document text.
+Use `corpus.resolve(source)` to retrieve the passage behind a piece of evidence.
+
 ## Go further
 
 - [Introducing Factbag](https://blog.du-pless.is/introducing-factbag): how and why
