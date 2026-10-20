@@ -45,14 +45,15 @@ route: income above $200,000 in each of the previous two years, with a reasonabl
 expectation of the same income level this year. This example models that one route
 from the accredited-investor example in the blog.
 
-Our structured records establish past income. Jev reads the investor's statement
-about this year's expectations; an explicit rule combines the evidence.
+Jev reads the income documents and the investor's statement about this year's
+expectations. We also import identity verification from an onboarding system.
+Rules determine qualification and whether the investor is ready for review.
 
 The snippets below build on each other in one TypeScript file.
 
 ### 1. Define the claims
 
-Declare the facts we'll combine, and describe the claim Jev will assess.
+Declare the facts we'll combine, and describe the claims Jev will assess.
 
 ```ts
 import { and, enumeration, predicate, variable } from "factbag/dsl";
@@ -63,10 +64,15 @@ import { guard } from "factbag/guards";
 import { classifier } from "factbag/jev/classifier";
 
 const person = enumeration("Alice");
-const incomeOver200k = predicate("income_over_200k", {
-  person,
-  year: Number,
-});
+const incomeOver200k = predicate(
+  "income_over_200k",
+  { person, year: enumeration("2024", "2025") },
+  {
+    description:
+      "The person's total individual annual income exceeded USD 200,000 in the " +
+      "specified year. Joint household income and forecasts do not count.",
+  },
+);
 const expectsSameIncome = predicate(
   "expects_same_income",
   { person },
@@ -77,38 +83,51 @@ const expectsSameIncome = predicate(
   },
 );
 const qualifiedInvestor = predicate("qualified_investor", { person });
+const identityVerified = predicate("identity_verified", { person });
+const readyForReview = predicate("ready_for_review", { person });
 ```
 
 For predicates exposed to Jev, candidate values must be finite: use enumerations,
 booleans, or registered entities rather than open-ended strings or numbers.
-Here, Jev will only assess `expectsSameIncome` for Alice.
+Here, Jev assesses Alice's income for 2024 and 2025 and her expected income for 2026.
 
 ### 2. Write the qualification rule
 
-All three conditions must hold for this route to qualification.
+All three income conditions must hold for this route to qualification. Our
+application also requires verified identity before sending an investor for review.
 
 ```ts
 const investor = variable("investor");
 const kb = new KnowledgeBase();
 kb.rule(qualifiedInvestor({ person: investor })).if(
   and(
-    incomeOver200k({ person: investor, year: 2024 }),
-    incomeOver200k({ person: investor, year: 2025 }),
+    incomeOver200k({ person: investor, year: "2024" }),
+    incomeOver200k({ person: investor, year: "2025" }),
     expectsSameIncome({ person: investor }),
   ),
 );
+kb.rule(readyForReview({ person: investor })).if(
+  and(qualifiedInvestor({ person: investor }), identityVerified({ person: investor })),
+);
 ```
 
-### 3. Add the known facts and the document
+### 3. Import a known fact and add documents
 
-Our application has already checked the amounts in structured income records.
-The statement about future income goes into the corpus for Jev to read.
+Identity verification comes directly from our onboarding system. Income evidence
+goes into the corpus for Jev to assess.
 
 ```ts
-kb.asserts(incomeOver200k({ person: "Alice", year: 2024 }), { source: "tax-record-2024" });
-kb.asserts(incomeOver200k({ person: "Alice", year: 2025 }), { source: "tax-record-2025" });
+kb.asserts(identityVerified({ person: "Alice" }), { source: "onboarding:alice" });
 
 const corpus = new Corpus();
+corpus.add({
+  documentId: "alice-income-2024",
+  text: "Alice's total individual income for the 2024 tax year was USD 250,000.",
+});
+corpus.add({
+  documentId: "alice-income-2025",
+  text: "Alice's total individual income for the 2025 tax year was USD 250,000.",
+});
 corpus.add({
   documentId: "alice-income-statement",
   text:
@@ -117,15 +136,20 @@ corpus.add({
 });
 ```
 
-### 4. Ask Jev to assess the statement
+### 4. Ask Jev to assess the income evidence
 
-Permit Jev to assert or deny the expected-income claim. Only `job.execute()`
-makes a live request; the loop controls pacing.
+Permit Jev to assert or deny the two income predicates. Identity verification
+remains an imported fact; qualification is derived by the rule. Only
+`job.execute()` makes a live request; the loop controls pacing.
 
 ```ts
 const run = classifier(
   corpus,
-  guard(kb).permit("assert", expectsSameIncome).permit("deny", expectsSameIncome),
+  guard(kb)
+    .permit("assert", incomeOver200k)
+    .permit("deny", incomeOver200k)
+    .permit("assert", expectsSameIncome)
+    .permit("deny", expectsSameIncome),
 );
 
 for (const job of run) {
@@ -136,12 +160,13 @@ for (const job of run) {
 
 ### 5. Query the conclusion
 
-The output knowledge base combines the original facts and rule with the admitted
+The output knowledge base combines the imported fact and rules with the admitted
 evidence. The input `kb` is unchanged.
 
 ```ts
 console.log(query(run.kb, qualifiedInvestor({ person: "Alice" })).value);
-// "true" if Jev's supporting assessment meets the admission policy.
+console.log(query(run.kb, readyForReview({ person: "Alice" })).value);
+// Both are "true" if Jev admits supporting evidence for all three income claims.
 ```
 
 Results can be `true`, `false`, `conflicted`, or
