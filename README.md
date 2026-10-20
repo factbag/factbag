@@ -242,6 +242,29 @@ An abbreviated example with supporting evidence for all three claims:
 Source IDs identify document passages; their ranges depend on the document text.
 Use `corpus.resolve(source)` to retrieve the passage behind a piece of evidence.
 
+```ts
+const source = "alice-2024-federal-tax-return#0-1";
+console.log(JSON.stringify(corpus.resolve(source), null, 2));
+```
+
+The result includes the exact passage and its containing document:
+
+```json
+{
+  "chunk": {
+    "id": "alice-2024-federal-tax-return#0-1",
+    "documentId": "alice-2024-federal-tax-return",
+    "range": { "start": 0, "end": 1 },
+    "text": "…"
+  },
+  "document": {
+    "documentId": "alice-2024-federal-tax-return",
+    "text": "…",
+    "metadata": {}
+  }
+}
+```
+
 ## Go further
 
 - [Introducing Factbag](https://blog.du-pless.is/introducing-factbag): how and why
