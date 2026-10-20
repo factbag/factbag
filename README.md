@@ -114,26 +114,16 @@ kb.rule(readyForReview({ person: investor })).if(
 ### 3. Import a known fact and add documents
 
 Identity verification comes directly from our onboarding system. Income evidence
-goes into the corpus for Jev to assess.
+goes into the corpus for Jev to assess. Document text is elided below; supply the
+full text of each record in your application.
 
 ```ts
 kb.asserts(identityVerified({ person: "Alice" }), { source: "onboarding:alice" });
 
 const corpus = new Corpus();
-corpus.add({
-  documentId: "alice-income-2024",
-  text: "Alice's total individual income for the 2024 tax year was USD 250,000.",
-});
-corpus.add({
-  documentId: "alice-income-2025",
-  text: "Alice's total individual income for the 2025 tax year was USD 250,000.",
-});
-corpus.add({
-  documentId: "alice-income-statement",
-  text:
-    "I, Alice, earned $250,000 in both 2024 and 2025. My employment contract " +
-    "continues through 2026 at the same salary, so I expect the same income this year.",
-});
+corpus.add({ documentId: "alice-income-2024", text: "…" });
+corpus.add({ documentId: "alice-income-2025", text: "…" });
+corpus.add({ documentId: "alice-income-statement", text: "…" });
 ```
 
 ### 4. Ask Jev to assess the income evidence
