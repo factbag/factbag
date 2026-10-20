@@ -4,7 +4,7 @@
   "sortPackageJson": false,
   "overrides": [
     {
-      "files": ["README.md"],
+      "files": ["./README.md"],
       "options": { "printWidth": 80 }
     }
   ],
