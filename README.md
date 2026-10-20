@@ -270,6 +270,9 @@ Suppose an original tax return puts Alice below the income threshold, but an
 amended return puts her above it. Jev admits both accounts, leaving qualification
 `conflicted`. In this example, the other income conditions have supporting evidence.
 
+You could pass the conflicting evidence to a human for review, or ask Jev to
+compare the sources using the resolver.
+
 The resolver asks Jev to read the conflicting passages together and assess which
 still stand. Evidence judged superseded is retracted from the resolver's output
 knowledge base.
