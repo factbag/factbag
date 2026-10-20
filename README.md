@@ -168,8 +168,7 @@ const incomeEvidence = guard(kb)
 const run = classifier(corpus, incomeEvidence);
 
 for (const job of run) {
-  const result = await job.execute(); // Makes a live Jev request.
-  console.log(result.assessments);
+  await job.execute(); // Makes a live Jev request.
 }
 ```
 
@@ -182,9 +181,9 @@ evidence.
 const qualification = query(run.kb, isQualifiedInvestor({ person: alice }));
 const reviewReadiness = query(run.kb, isReadyForReview({ person: alice }));
 
-console.log(qualification.value);
-console.log(reviewReadiness.value);
 // Both are "true" if Jev admits supporting evidence for all three income claims.
+qualification.value; // "true"
+reviewReadiness.value; // "true"
 ```
 
 Results can be `true`, `false`, `conflicted`, or
@@ -199,7 +198,7 @@ evidence and source passages.
 import { explainJudgment } from "factbag/explain";
 
 const proof = explainJudgment(qualification);
-console.log(JSON.stringify(proof, null, 2));
+JSON.stringify(proof, null, 2); // JSON shown below.
 ```
 
 An abbreviated example with supporting evidence for all three claims:
@@ -244,7 +243,7 @@ Use `corpus.resolve(source)` to retrieve the passage behind a piece of evidence.
 
 ```ts
 const source = "alice-2024-federal-tax-return#0-1";
-console.log(JSON.stringify(corpus.resolve(source), null, 2));
+corpus.resolve(source); // Object shown below.
 ```
 
 The result includes the exact passage and its containing document:
@@ -267,9 +266,9 @@ The result includes the exact passage and its containing document:
 
 ### 9. Review conflicting evidence (optional)
 
-A tax return and an amended return might give different accounts of Alice's
-income. If Jev admits both support and denial for the same claim, that claim is
-`conflicted`.
+Suppose an original tax return puts Alice below the income threshold, but an
+amended return puts her above it. Jev admits both accounts, leaving qualification
+`conflicted`. In this example, the other income conditions have supporting evidence.
 
 The resolver asks Jev to read the conflicting passages together and assess which
 still stand. Evidence judged superseded is retracted from the resolver's output
@@ -278,21 +277,16 @@ knowledge base.
 ```ts
 import { resolver } from "factbag/jev/resolve";
 
+query(run.kb, isQualifiedInvestor({ person: alice })).value; // "conflicted"
+
 const review = resolver(corpus, run.kb);
 
 for (const job of review) {
-  const result = await job.execute();
-  console.log(result.judgments);
-  console.log(result.retracted);
+  await job.execute();
 }
 
-const reviewedQualification = query(
-  review.kb,
-  isQualifiedInvestor({ person: alice }),
-);
-
-console.log(reviewedQualification.value);
-console.log(JSON.stringify(explainJudgment(reviewedQualification), null, 2));
+// If the resolver retracts the superseded return's denial:
+query(review.kb, isQualifiedInvestor({ person: alice })).value; // "true"
 ```
 
 ## Go further
