@@ -113,22 +113,19 @@ All three income conditions must hold for this route to qualification. Our
 application also requires verified identity before sending an investor for review.
 
 ```ts
-const investor = variable("investor");
+const person = variable("person");
 const kb = new KnowledgeBase();
 
-kb.rule(isQualifiedInvestor({ person: investor })).if(
+kb.rule(isQualifiedInvestor({ person })).if(
   and(
-    hasIncomeOver200k({ person: investor, year: "2024" }),
-    hasIncomeOver200k({ person: investor, year: "2025" }),
-    expectsSameIncome({ person: investor }),
+    hasIncomeOver200k({ person, year: "2024" }),
+    hasIncomeOver200k({ person, year: "2025" }),
+    expectsSameIncome({ person }),
   ),
 );
 
-kb.rule(isReadyForReview({ person: investor })).if(
-  and(
-    isQualifiedInvestor({ person: investor }),
-    hasVerifiedIdentity({ person: investor }),
-  ),
+kb.rule(isReadyForReview({ person })).if(
+  and(isQualifiedInvestor({ person }), hasVerifiedIdentity({ person })),
 );
 ```
 
