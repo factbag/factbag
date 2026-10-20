@@ -10,6 +10,17 @@ class Person {
 const P = variable("P");
 
 describe("KnowledgeBase", () => {
+  for (const operation of ["asserts", "denies"] as const) {
+    it.fails(`${operation} rejects variable-bearing evidence before storing it`, () => {
+      const kb = new KnowledgeBase();
+      const status = predicate("status", { value: String });
+      const pattern = status({ value: variable("Value") });
+
+      expect(() => kb[operation](pattern)).toThrow();
+      expect(kb.literals()).toHaveLength(0);
+    });
+  }
+
   it("throws immediately when an if rule is added after an iff definition", () => {
     const kb = new KnowledgeBase();
     const eligible = predicate("eligible_after_iff", { person: Person });
