@@ -65,11 +65,16 @@ import { Corpus } from "factbag/corpus";
 import { guard } from "factbag/guards";
 import { classifier } from "factbag/jev/classifier";
 
-const person = enumeration("Alice");
+class Person {
+  constructor(
+    readonly id: string,
+    readonly name: string,
+  ) {}
+}
 
 const hasIncomeOver200k = predicate(
   "has_income_over_200k",
-  { person, year: enumeration("2024", "2025") },
+  { person: Person, year: enumeration("2024", "2025") },
   {
     description:
       "The person's total individual annual income exceeded USD 200,000 in the " +
@@ -79,7 +84,7 @@ const hasIncomeOver200k = predicate(
 
 const expectsSameIncome = predicate(
   "expects_same_income",
-  { person },
+  { person: Person },
   {
     description:
       "The person reasonably expects their individual income in 2026 to remain " +
@@ -87,14 +92,20 @@ const expectsSameIncome = predicate(
   },
 );
 
-const isQualifiedInvestor = predicate("is_qualified_investor", { person });
-const hasVerifiedIdentity = predicate("has_verified_identity", { person });
-const isReadyForReview = predicate("is_ready_for_review", { person });
+const isQualifiedInvestor = predicate("is_qualified_investor", {
+  person: Person,
+});
+const hasVerifiedIdentity = predicate("has_verified_identity", {
+  person: Person,
+});
+const isReadyForReview = predicate("is_ready_for_review", { person: Person });
 ```
 
 For predicates exposed to Jev, candidate values must be finite: use enumerations,
 booleans, or registered entities rather than open-ended strings or numbers.
-Here, Jev assesses Alice's income for 2024 and 2025 and her expected income for 2026.
+Registering people in the knowledge base gives Jev its candidate set, including
+their IDs and names. Here, we'll register Alice and assess her income for 2024 and
+2025 and her expected income for 2026.
 
 ### 3. Encode the ruleset
 
@@ -128,7 +139,10 @@ goes into the corpus for Jev to assess. Document text is elided below; supply th
 full text of each record in your application.
 
 ```ts
-kb.asserts(hasVerifiedIdentity({ person: "Alice" }), {
+const alice = new Person("alice", "Alice");
+kb.entities.add(alice);
+
+kb.asserts(hasVerifiedIdentity({ person: alice }), {
   source: "onboarding:alice",
 });
 
@@ -166,8 +180,8 @@ The output knowledge base combines the imported fact and rules with the admitted
 evidence. The input `kb` is unchanged.
 
 ```ts
-const qualification = query(run.kb, isQualifiedInvestor({ person: "Alice" }));
-const reviewReadiness = query(run.kb, isReadyForReview({ person: "Alice" }));
+const qualification = query(run.kb, isQualifiedInvestor({ person: alice }));
+const reviewReadiness = query(run.kb, isReadyForReview({ person: alice }));
 
 console.log(qualification.value);
 console.log(reviewReadiness.value);
