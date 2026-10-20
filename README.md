@@ -145,9 +145,15 @@ kb.asserts(hasVerifiedIdentity({ person: alice }), {
 
 const corpus = new Corpus();
 
-corpus.add({ documentId: "alice-income-2024", text: "…" });
-corpus.add({ documentId: "alice-income-2025", text: "…" });
-corpus.add({ documentId: "alice-income-statement", text: "…" });
+// Tax returns provide evidence of past annual income.
+corpus.add({ documentId: "alice-2024-federal-tax-return", text: "…" });
+corpus.add({ documentId: "alice-2025-federal-tax-return", text: "…" });
+
+// An employer letter supports the expectation of continued income.
+corpus.add({
+  documentId: "alice-2026-employment-confirmation-letter",
+  text: "…",
+});
 ```
 
 ### 5. Set Jev's permissions
