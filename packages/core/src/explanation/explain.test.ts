@@ -25,6 +25,22 @@ const cara = new Person("cara");
 const drew = new Person("drew");
 
 describe("explainJudgment", () => {
+  it.fails("retains counter-evidence when explaining a rule/evidence conflict", () => {
+    const kb = new KnowledgeBase();
+    const eligible = predicate("eligible", { person: String });
+    const licensed = predicate("licensed", { person: String });
+    kb.asserts(licensed({ person: "alice" }), { source: "license-register" });
+    kb.rule(eligible({ person: "alice" })).if(licensed({ person: "alice" }));
+    kb.denies(eligible({ person: "alice" }), { source: "disqualification-notice" });
+    const judgment = query(kb, eligible({ person: "alice" }));
+    expect(judgment.value).toBe("conflicted");
+
+    const explanation = JSON.stringify(explainJudgment(judgment));
+
+    expect(explanation).toContain("license-register");
+    expect(explanation).toContain("disqualification-notice");
+  });
+
   describe("direct atom evidence", () => {
     const activeSanction = predicate("active_sanction", { person: Person });
 
