@@ -40,10 +40,28 @@ export TYPESAFE_API_KEY="your-api-key"
 
 ## From a document to a conclusion
 
-Suppose we're checking whether an investor qualifies through the individual-income
-route: income above $200,000 in each of the previous two years, with a reasonable
-expectation of the same income level this year. This example models that one route
-from the accredited-investor example in the blog.
+### 1. Decide on your ruleset
+
+Start with the criteria your application needs to apply. These might be your own
+business rules or requirements set out in legislation or regulations. Translate
+those criteria into an explicit ruleset: identify each condition, then specify
+how the conditions combine to produce a conclusion.
+
+Here, we're translating the individual-income route in the SEC's
+[accredited-investor definition, 17 CFR § 230.501(a)(6)](<https://www.ecfr.gov/current/title-17/chapter-II/part-230/section-230.501#p-230.501(a)(6)>),
+into three conditions:
+
+- Individual income exceeded $200,000 in the first of the two most recent years.
+- Individual income exceeded $200,000 in the second year.
+- The person reasonably expects to reach the same income level in the current year.
+
+All three must hold. We'll encode that conjunction as a rule, using 2024 and 2025
+as the previous years and 2026 as the current year. This models one route in the
+regulation; the joint-income and other qualification routes would need additional
+rules.
+
+The legal criteria become code we can inspect. Jev's role is to assess the evidence
+for individual conditions; the ruleset determines what follows from them.
 
 Jev reads the income documents and the investor's statement about this year's
 expectations. We also import identity verification from an onboarding system.
@@ -51,7 +69,7 @@ Rules determine qualification and whether the investor is ready for review.
 
 The snippets below build on each other in one TypeScript file.
 
-### 1. Define the claims
+### 2. Define the claims
 
 Declare the facts we'll combine, and describe the claims Jev will assess.
 
@@ -94,7 +112,7 @@ For predicates exposed to Jev, candidate values must be finite: use enumerations
 booleans, or registered entities rather than open-ended strings or numbers.
 Here, Jev assesses Alice's income for 2024 and 2025 and her expected income for 2026.
 
-### 2. Write the qualification rule
+### 3. Encode the ruleset
 
 All three income conditions must hold for this route to qualification. Our
 application also requires verified identity before sending an investor for review.
@@ -119,7 +137,7 @@ kb.rule(readyForReview({ person: investor })).if(
 );
 ```
 
-### 3. Import a known fact and add documents
+### 4. Import a known fact and add documents
 
 Identity verification comes directly from our onboarding system. Income evidence
 goes into the corpus for Jev to assess. Document text is elided below; supply the
@@ -137,7 +155,7 @@ corpus.add({ documentId: "alice-income-2025", text: "…" });
 corpus.add({ documentId: "alice-income-statement", text: "…" });
 ```
 
-### 4. Ask Jev to assess the income evidence
+### 5. Ask Jev to assess the income evidence
 
 Permit Jev to assert or deny the two income predicates. Identity verification
 remains an imported fact; qualification is derived by the rule. Only
@@ -158,7 +176,7 @@ for (const job of run) {
 }
 ```
 
-### 5. Query the conclusion
+### 6. Query the conclusion
 
 The output knowledge base combines the imported fact and rules with the admitted
 evidence. The input `kb` is unchanged.
