@@ -295,11 +295,6 @@ console.log(reviewedQualification.value);
 console.log(JSON.stringify(explainJudgment(reviewedQualification), null, 2));
 ```
 
-Disagreement alone doesn't establish that a source is superseded. A remaining
-conflict can be referred to a person for review, using the proof tree and source
-passages. Conflicting evidence passed to the resolver must have source IDs that
-resolve in the corpus.
-
 ## Go further
 
 - [Introducing Factbag](https://blog.du-pless.is/introducing-factbag): how and why
