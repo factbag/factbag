@@ -2,6 +2,12 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 100,
   "sortPackageJson": false,
+  "overrides": [
+    {
+      "files": ["README.md"],
+      "options": { "printWidth": 80 }
+    }
+  ],
   "ignorePatterns": [
     "**/coverage/**",
     "**/dist/**",

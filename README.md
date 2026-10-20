@@ -64,6 +64,7 @@ import { guard } from "factbag/guards";
 import { classifier } from "factbag/jev/classifier";
 
 const person = enumeration("Alice");
+
 const incomeOver200k = predicate(
   "income_over_200k",
   { person, year: enumeration("2024", "2025") },
@@ -73,6 +74,7 @@ const incomeOver200k = predicate(
       "specified year. Joint household income and forecasts do not count.",
   },
 );
+
 const expectsSameIncome = predicate(
   "expects_same_income",
   { person },
@@ -82,6 +84,7 @@ const expectsSameIncome = predicate(
       "at least at the level earned in each of 2024 and 2025.",
   },
 );
+
 const qualifiedInvestor = predicate("qualified_investor", { person });
 const identityVerified = predicate("identity_verified", { person });
 const readyForReview = predicate("ready_for_review", { person });
@@ -99,6 +102,7 @@ application also requires verified identity before sending an investor for revie
 ```ts
 const investor = variable("investor");
 const kb = new KnowledgeBase();
+
 kb.rule(qualifiedInvestor({ person: investor })).if(
   and(
     incomeOver200k({ person: investor, year: "2024" }),
@@ -106,8 +110,12 @@ kb.rule(qualifiedInvestor({ person: investor })).if(
     expectsSameIncome({ person: investor }),
   ),
 );
+
 kb.rule(readyForReview({ person: investor })).if(
-  and(qualifiedInvestor({ person: investor }), identityVerified({ person: investor })),
+  and(
+    qualifiedInvestor({ person: investor }),
+    identityVerified({ person: investor }),
+  ),
 );
 ```
 
@@ -118,9 +126,12 @@ goes into the corpus for Jev to assess. Document text is elided below; supply th
 full text of each record in your application.
 
 ```ts
-kb.asserts(identityVerified({ person: "Alice" }), { source: "onboarding:alice" });
+kb.asserts(identityVerified({ person: "Alice" }), {
+  source: "onboarding:alice",
+});
 
 const corpus = new Corpus();
+
 corpus.add({ documentId: "alice-income-2024", text: "…" });
 corpus.add({ documentId: "alice-income-2025", text: "…" });
 corpus.add({ documentId: "alice-income-statement", text: "…" });
@@ -133,14 +144,13 @@ remains an imported fact; qualification is derived by the rule. Only
 `job.execute()` makes a live request; the loop controls pacing.
 
 ```ts
-const run = classifier(
-  corpus,
-  guard(kb)
-    .permit("assert", incomeOver200k)
-    .permit("deny", incomeOver200k)
-    .permit("assert", expectsSameIncome)
-    .permit("deny", expectsSameIncome),
-);
+const incomeEvidence = guard(kb)
+  .permit("assert", incomeOver200k)
+  .permit("deny", incomeOver200k)
+  .permit("assert", expectsSameIncome)
+  .permit("deny", expectsSameIncome);
+
+const run = classifier(corpus, incomeEvidence);
 
 for (const job of run) {
   const result = await job.execute(); // Makes a live Jev request.
@@ -154,8 +164,11 @@ The output knowledge base combines the imported fact and rules with the admitted
 evidence. The input `kb` is unchanged.
 
 ```ts
-console.log(query(run.kb, qualifiedInvestor({ person: "Alice" })).value);
-console.log(query(run.kb, readyForReview({ person: "Alice" })).value);
+const qualification = query(run.kb, qualifiedInvestor({ person: "Alice" }));
+const reviewReadiness = query(run.kb, readyForReview({ person: "Alice" }));
+
+console.log(qualification.value);
+console.log(reviewReadiness.value);
 // Both are "true" if Jev admits supporting evidence for all three income claims.
 ```
 
