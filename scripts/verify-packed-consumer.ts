@@ -7,16 +7,19 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-interface PackedRelease {
-  kind: "publish";
+interface PackedArtifact {
   name: string;
   version: string;
-  access: "public";
-  tag: string;
   tarball: {
     path: string;
     integrity: string;
   };
+}
+
+interface PackedRelease extends PackedArtifact {
+  kind: "publish";
+  access: "public";
+  tag: string;
 }
 
 interface PublishPlan {
@@ -47,201 +50,244 @@ interface PackedManifest {
 console.log(`Verifying packed packages on Node ${process.versions.node}`);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const releaseDirectory = path.join(root, ".release");
-const plan = JSON.parse(
-  await readFile(path.join(releaseDirectory, "publish-plan.json"), "utf8"),
-) as PublishPlan;
-const expectedChunks = [["factbag"]];
+const packageDirectory = path.join(root, "packages/factbag");
+const packageManifest = JSON.parse(
+  await readFile(path.join(packageDirectory, "package.json"), "utf8"),
+) as PackedManifest;
+assert.equal(packageManifest.name, "factbag");
+assert.notEqual(packageManifest.private, true);
+const releaseMode = process.argv.includes("--release");
+const releaseDirectory = releaseMode
+  ? path.join(root, ".release")
+  : await mkdtemp(path.join(os.tmpdir(), "factbag-artifact-"));
 
-assert.equal(plan.version, 1, "Unsupported publish-plan format");
-assert.deepEqual(
-  plan.plan.map((chunk) => chunk.map((release) => release.name)),
-  expectedChunks,
-  "Only the canonical factbag package may be published",
-);
+try {
+  let releases: PackedArtifact[];
+  if (releaseMode) {
+    const plan = JSON.parse(
+      await readFile(path.join(releaseDirectory, "publish-plan.json"), "utf8"),
+    ) as PublishPlan;
+    const expectedChunks = [["factbag"]];
 
-const releases = plan.plan.flat();
-const version = releases[0]?.version;
-assert.equal(version, "0.0.0-alpha.0");
-
-for (const release of releases) {
-  assert.equal(release.kind, "publish");
-  assert.equal(release.version, version);
-  assert.equal(release.access, "public");
-  assert.equal(release.tag, "latest");
-
-  const tarball = path.join(releaseDirectory, release.tarball.path);
-  const integrity = `sha256-${createHash("sha256")
-    .update(await readFile(tarball))
-    .digest("base64")}`;
-  assert.equal(integrity, release.tarball.integrity, `${release.name} tarball integrity mismatch`);
-  const files = tar(["-tf", tarball]).trim().split("\n").filter(Boolean);
-  const documentation = new Set([
-    "package/package.json",
-    "package/LICENSE",
-    "package/README.md",
-    "package/CHANGELOG.md",
-  ]);
-
-  for (const requiredFile of documentation) {
-    assert.ok(files.includes(requiredFile), `${release.name} is missing ${requiredFile}`);
-  }
-  for (const file of files) {
-    assert.ok(
-      file.startsWith("package/dist/") || documentation.has(file),
-      `${release.name} contains unexpected file ${file}`,
+    assert.equal(plan.version, 1, "Unsupported publish-plan format");
+    assert.deepEqual(
+      plan.plan.map((chunk) => chunk.map((release) => release.name)),
+      expectedChunks,
+      "Only the canonical factbag package may be published",
     );
-  }
 
-  const manifest = JSON.parse(tar(["-xOf", tarball, "package/package.json"])) as PackedManifest;
-  assert.equal(manifest.name, release.name);
-  assert.equal(manifest.version, release.version);
-  assert.notEqual(manifest.private, true);
-  assert.equal(manifest.publishConfig?.access, "public");
-  assert.equal(manifest.dependencies?.["@typesafe-ai/sdk"], undefined);
-  assert.equal(manifest.optionalDependencies?.["@typesafe-ai/sdk"], undefined);
-  assert.equal(manifest.peerDependencies?.["@typesafe-ai/sdk"], "^0.6.0");
-  assert.equal(manifest.peerDependenciesMeta?.["@typesafe-ai/sdk"]?.optional, true);
-
-  const exportTargets = stringsIn(manifest.exports);
-  assert.ok(exportTargets.length > 0, `${release.name} has no exports`);
-  for (const target of exportTargets) {
-    assert.ok(
-      target.startsWith("./dist/"),
-      `${release.name} export points outside dist: ${target}`,
-    );
-    assert.ok(!target.includes("/src/"), `${release.name} export points to source: ${target}`);
-    assert.ok(
-      files.includes(`package/${target.slice(2)}`),
-      `${release.name} export target is absent from tarball: ${target}`,
-    );
-  }
-
-  for (const dependencies of [
-    manifest.dependencies,
-    manifest.optionalDependencies,
-    manifest.peerDependencies,
-  ]) {
-    for (const [name, range] of Object.entries(dependencies ?? {})) {
-      assert.ok(!name.startsWith("@factbag/"), `Unpublished dependency: ${name}`);
-      assert.ok(!["react", "react-dom", "lucide-react"].includes(name), `UI dependency: ${name}`);
-      assert.ok(
-        !range.startsWith("workspace:"),
-        `${release.name} dependency ${name} uses ${range}`,
-      );
-      assert.ok(!range.startsWith("catalog:"), `${release.name} dependency ${name} uses ${range}`);
+    for (const release of plan.plan.flat()) {
+      assert.equal(release.kind, "publish");
+      assert.equal(release.access, "public");
+      assert.equal(release.tag, "latest");
     }
-  }
-}
-
-const compilerNames = ["typescript6", "typescript"];
-const fixtureDirectory = path.join(root, "tooling/artifact-consumer");
-const devDependencies: Record<string, string> = {};
-for (const name of ["@types/node", ...compilerNames]) {
-  const manifest = JSON.parse(
-    await readFile(path.join(fixtureDirectory, "node_modules", name, "package.json"), "utf8"),
-  ) as CompilerManifest;
-  devDependencies[name] =
-    name === manifest.name ? manifest.version : `npm:${manifest.name}@${manifest.version}`;
-}
-
-const sdkManifest = JSON.parse(
-  await readFile(path.join(fixtureDirectory, "node_modules/@typesafe-ai/sdk/package.json"), "utf8"),
-) as { version: string };
-
-for (const withSdk of [false, true]) {
-  console.log(
-    `Checking ${withSdk ? "Jev with an explicit SDK" : "core, corpus, and guards without the SDK"}`,
-  );
-  const consumerDirectory = await mkdtemp(path.join(os.tmpdir(), "factbag-packed-consumer-"));
-  try {
-    const realConsumerDirectory = await realpath(consumerDirectory);
-    const dependencies = Object.fromEntries(
-      releases.map((release) => [
-        release.name,
-        `file:${path.join(releaseDirectory, release.tarball.path)}`,
-      ]),
-    );
-    if (withSdk) dependencies["@typesafe-ai/sdk"] = sdkManifest.version;
-    await writeFile(
-      path.join(consumerDirectory, "package.json"),
-      `${JSON.stringify(
-        {
-          name: "factbag-packed-consumer",
-          version: "0.0.0",
-          private: true,
-          type: "module",
-          packageManager: "pnpm@11.27.1",
-          dependencies,
-          devDependencies,
+    releases = plan.plan.flat();
+  } else {
+    // CI verifies this checkout even when its version is already on npm.
+    const tarballPath = "factbag.tgz";
+    runPnpm(["pack", "--out", path.join(releaseDirectory, tarballPath)], packageDirectory);
+    releases = [
+      {
+        name: packageManifest.name,
+        version: packageManifest.version,
+        tarball: {
+          path: tarballPath,
+          integrity: `sha256-${createHash("sha256")
+            .update(await readFile(path.join(releaseDirectory, tarballPath)))
+            .digest("base64")}`,
         },
-        null,
-        2,
-      )}\n`,
-    );
-    await writeFile(
-      path.join(consumerDirectory, "pnpm-workspace.yaml"),
-      `packages:\n  - "."\noverrides:\n${Object.entries(dependencies)
-        .map(([name, tarball]) => `  "${name}": "${tarball}"`)
-        .join("\n")}\n`,
-    );
-    await Promise.all(
-      (withSdk
-        ? ["consumer.ts", "runtime.mjs", "base.mjs"]
-        : ["without-sdk.ts", "without-sdk.mjs", "base.mjs"]
-      ).map(async (file) =>
-        writeFile(
-          path.join(consumerDirectory, file),
-          await readFile(path.join(root, "tooling/artifact-consumer", file)),
-        ),
-      ),
-    );
+      },
+    ];
+  }
 
-    const config = JSON.parse(
-      await readFile(path.join(fixtureDirectory, "tsconfig.json"), "utf8"),
-    ) as { include: string[] };
-    config.include = withSdk
-      ? ["consumer.ts", "runtime.mjs"]
-      : ["without-sdk.ts", "without-sdk.mjs"];
-    await writeFile(path.join(consumerDirectory, "tsconfig.json"), JSON.stringify(config));
-    runPnpm(
-      [
-        "install",
-        "--offline",
-        "--ignore-scripts",
-        "--no-frozen-lockfile",
-        "--strict-peer-dependencies",
-      ],
-      consumerDirectory,
-    );
+  for (const release of releases) {
+    assert.equal(release.version, packageManifest.version);
 
-    for (const release of releases) {
-      const installedPackage = await realpath(
-        path.join(consumerDirectory, "node_modules", ...release.name.split("/")),
-      );
+    const tarball = path.join(releaseDirectory, release.tarball.path);
+    const integrity = `sha256-${createHash("sha256")
+      .update(await readFile(tarball))
+      .digest("base64")}`;
+    assert.equal(
+      integrity,
+      release.tarball.integrity,
+      `${release.name} tarball integrity mismatch`,
+    );
+    const files = tar(["-tf", tarball]).trim().split("\n").filter(Boolean);
+    const documentation = new Set([
+      "package/package.json",
+      "package/LICENSE",
+      "package/README.md",
+      "package/CHANGELOG.md",
+    ]);
+
+    for (const requiredFile of documentation) {
+      assert.ok(files.includes(requiredFile), `${release.name} is missing ${requiredFile}`);
+    }
+    for (const file of files) {
       assert.ok(
-        installedPackage.startsWith(`${realConsumerDirectory}${path.sep}`),
-        `${release.name} resolved outside the isolated consumer: ${installedPackage}`,
+        file.startsWith("package/dist/") || documentation.has(file),
+        `${release.name} contains unexpected file ${file}`,
       );
     }
 
-    // Invoke each compiler directly: npm aliases expose the same `tsc` binary name.
-    for (const name of compilerNames) {
-      const directory = path.join(consumerDirectory, "node_modules", name);
-      const manifest = JSON.parse(
-        await readFile(path.join(directory, "package.json"), "utf8"),
-      ) as CompilerManifest;
-      console.log(`Checking packed consumer with TypeScript ${manifest.version}`);
-      run(
-        process.execPath,
-        [path.join(directory, manifest.bin.tsc), "-p", "tsconfig.json"],
+    const manifest = JSON.parse(tar(["-xOf", tarball, "package/package.json"])) as PackedManifest;
+    assert.equal(manifest.name, release.name);
+    assert.equal(manifest.version, release.version);
+    assert.notEqual(manifest.private, true);
+    assert.equal(manifest.publishConfig?.access, "public");
+    assert.equal(manifest.dependencies?.["@typesafe-ai/sdk"], undefined);
+    assert.equal(manifest.optionalDependencies?.["@typesafe-ai/sdk"], undefined);
+    assert.equal(manifest.peerDependencies?.["@typesafe-ai/sdk"], "^0.6.0");
+    assert.equal(manifest.peerDependenciesMeta?.["@typesafe-ai/sdk"]?.optional, true);
+
+    const exportTargets = stringsIn(manifest.exports);
+    assert.ok(exportTargets.length > 0, `${release.name} has no exports`);
+    for (const target of exportTargets) {
+      assert.ok(
+        target.startsWith("./dist/"),
+        `${release.name} export points outside dist: ${target}`,
+      );
+      assert.ok(!target.includes("/src/"), `${release.name} export points to source: ${target}`);
+      assert.ok(
+        files.includes(`package/${target.slice(2)}`),
+        `${release.name} export target is absent from tarball: ${target}`,
+      );
+    }
+
+    for (const dependencies of [
+      manifest.dependencies,
+      manifest.optionalDependencies,
+      manifest.peerDependencies,
+    ]) {
+      for (const [name, range] of Object.entries(dependencies ?? {})) {
+        assert.ok(!name.startsWith("@factbag/"), `Unpublished dependency: ${name}`);
+        assert.ok(!["react", "react-dom", "lucide-react"].includes(name), `UI dependency: ${name}`);
+        assert.ok(
+          !range.startsWith("workspace:"),
+          `${release.name} dependency ${name} uses ${range}`,
+        );
+        assert.ok(
+          !range.startsWith("catalog:"),
+          `${release.name} dependency ${name} uses ${range}`,
+        );
+      }
+    }
+  }
+
+  const compilerNames = ["typescript6", "typescript"];
+  const fixtureDirectory = path.join(root, "tooling/artifact-consumer");
+  const devDependencies: Record<string, string> = {};
+  for (const name of ["@types/node", ...compilerNames]) {
+    const manifest = JSON.parse(
+      await readFile(path.join(fixtureDirectory, "node_modules", name, "package.json"), "utf8"),
+    ) as CompilerManifest;
+    devDependencies[name] =
+      name === manifest.name ? manifest.version : `npm:${manifest.name}@${manifest.version}`;
+  }
+
+  const sdkManifest = JSON.parse(
+    await readFile(
+      path.join(fixtureDirectory, "node_modules/@typesafe-ai/sdk/package.json"),
+      "utf8",
+    ),
+  ) as { version: string };
+
+  for (const withSdk of [false, true]) {
+    console.log(
+      `Checking ${withSdk ? "Jev with an explicit SDK" : "core, corpus, and guards without the SDK"}`,
+    );
+    const consumerDirectory = await mkdtemp(path.join(os.tmpdir(), "factbag-packed-consumer-"));
+    try {
+      const realConsumerDirectory = await realpath(consumerDirectory);
+      const dependencies = Object.fromEntries(
+        releases.map((release) => [
+          release.name,
+          `file:${path.join(releaseDirectory, release.tarball.path)}`,
+        ]),
+      );
+      if (withSdk) dependencies["@typesafe-ai/sdk"] = sdkManifest.version;
+      await writeFile(
+        path.join(consumerDirectory, "package.json"),
+        `${JSON.stringify(
+          {
+            name: "factbag-packed-consumer",
+            version: "0.0.0",
+            private: true,
+            type: "module",
+            packageManager: "pnpm@11.27.1",
+            dependencies,
+            devDependencies,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      await writeFile(
+        path.join(consumerDirectory, "pnpm-workspace.yaml"),
+        `packages:\n  - "."\noverrides:\n${Object.entries(dependencies)
+          .map(([name, tarball]) => `  "${name}": "${tarball}"`)
+          .join("\n")}\n`,
+      );
+      await Promise.all(
+        (withSdk
+          ? ["consumer.ts", "runtime.mjs", "base.mjs"]
+          : ["without-sdk.ts", "without-sdk.mjs", "base.mjs"]
+        ).map(async (file) =>
+          writeFile(
+            path.join(consumerDirectory, file),
+            await readFile(path.join(root, "tooling/artifact-consumer", file)),
+          ),
+        ),
+      );
+
+      const config = JSON.parse(
+        await readFile(path.join(fixtureDirectory, "tsconfig.json"), "utf8"),
+      ) as { include: string[] };
+      config.include = withSdk
+        ? ["consumer.ts", "runtime.mjs"]
+        : ["without-sdk.ts", "without-sdk.mjs"];
+      await writeFile(path.join(consumerDirectory, "tsconfig.json"), JSON.stringify(config));
+      runPnpm(
+        [
+          "install",
+          "--offline",
+          "--ignore-scripts",
+          "--no-frozen-lockfile",
+          "--strict-peer-dependencies",
+        ],
         consumerDirectory,
       );
+
+      for (const release of releases) {
+        const installedPackage = await realpath(
+          path.join(consumerDirectory, "node_modules", ...release.name.split("/")),
+        );
+        assert.ok(
+          installedPackage.startsWith(`${realConsumerDirectory}${path.sep}`),
+          `${release.name} resolved outside the isolated consumer: ${installedPackage}`,
+        );
+      }
+
+      // Invoke each compiler directly: npm aliases expose the same `tsc` binary name.
+      for (const name of compilerNames) {
+        const directory = path.join(consumerDirectory, "node_modules", name);
+        const manifest = JSON.parse(
+          await readFile(path.join(directory, "package.json"), "utf8"),
+        ) as CompilerManifest;
+        console.log(`Checking packed consumer with TypeScript ${manifest.version}`);
+        run(
+          process.execPath,
+          [path.join(directory, manifest.bin.tsc), "-p", "tsconfig.json"],
+          consumerDirectory,
+        );
+      }
+      run(process.execPath, [withSdk ? "runtime.mjs" : "without-sdk.mjs"], consumerDirectory);
+    } finally {
+      await rm(consumerDirectory, { force: true, recursive: true });
     }
-    run(process.execPath, [withSdk ? "runtime.mjs" : "without-sdk.mjs"], consumerDirectory);
-  } finally {
-    await rm(consumerDirectory, { force: true, recursive: true });
   }
+} finally {
+  if (!releaseMode) await rm(releaseDirectory, { force: true, recursive: true });
 }
 
 function tar(arguments_: string[]): string {

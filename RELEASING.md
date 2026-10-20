@@ -4,6 +4,17 @@ Only the `factbag` package is published. The component packages (`@factbag/core`
 
 Releases are published from reviewed tarballs to the `latest` dist-tag. The current line is `0.0.0-alpha.N`: every version is a prerelease and APIs may change between any two releases.
 
+## Artifact Verification
+
+Run `pnpm build && pnpm build:verify` to test the current checkout. This packs
+`factbag` with pnpm into a temporary directory and checks the tarball and isolated
+consumers, regardless of whether its version is already published. CI uses this
+path. It does not create or modify the release publish plan.
+
+`pnpm release:verify` instead checks the Changesets publish plan and its exact
+tarballs in `.release/`, using the same artifact and consumer checks. An empty
+publish plan is an error in this release-only workflow.
+
 ## Release Notes
 
 Add a changeset for every user-visible change:
@@ -17,8 +28,8 @@ Use an empty changeset when a change intentionally requires no release. Changese
 ## Alpha Releases
 
 1. Add and review all required changesets.
-2. Set the next version in `packages/factbag/package.json` and move the changeset text into `packages/factbag/CHANGELOG.md` under that version. Changesets cannot compute `0.0.0-alpha.N` versions outside prerelease mode, so this step is manual while the alpha line lasts. Update the expected version in `scripts/verify-packed-consumer.ts` to match.
-3. Run `pnpm build && pnpm build:verify`. This verifies the artifacts, packs the tarball into `.release/`, and checks the publish plan, tarball contents, and external consumers with and without the optional SDK.
+2. Set the next version in `packages/factbag/package.json` and move the changeset text into `packages/factbag/CHANGELOG.md` under that version. Changesets cannot compute `0.0.0-alpha.N` versions outside prerelease mode, so this step is manual while the alpha line lasts.
+3. Run `pnpm build && pnpm release:verify`. This verifies the artifacts, packs the tarball into `.release/`, and checks the publish plan, tarball contents, and external consumers with and without the optional SDK.
 4. Review `.release/publish-plan.json`. It must contain exactly one `factbag` release under the `latest` tag with a matching tarball integrity.
 5. Open a pull request with the version change and merge it before publishing.
 6. From the merged commit, publish the reviewed tarball:
