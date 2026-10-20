@@ -43,9 +43,7 @@ export TYPESAFE_API_KEY="your-api-key"
 ### 1. Decide on your ruleset
 
 Start with the criteria your application needs to apply. These might be your own
-business rules or requirements set out in legislation or regulations. Translate
-those criteria into an explicit ruleset: identify each condition, then specify
-how the conditions combine to produce a conclusion.
+business rules or requirements set out in legislation or regulations.
 
 Here, we're translating the individual-income route in the SEC's
 [accredited-investor definition, 17 CFR § 230.501(a)(6)](<https://www.ecfr.gov/current/title-17/chapter-II/part-230/section-230.501#p-230.501(a)(6)>),
@@ -54,20 +52,6 @@ into three conditions:
 - Individual income exceeded $200,000 in the first of the two most recent years.
 - Individual income exceeded $200,000 in the second year.
 - The person reasonably expects to reach the same income level in the current year.
-
-All three must hold. We'll encode that conjunction as a rule, using 2024 and 2025
-as the previous years and 2026 as the current year. This models one route in the
-regulation; the joint-income and other qualification routes would need additional
-rules.
-
-The legal criteria become code we can inspect. Jev's role is to assess the evidence
-for individual conditions; the ruleset determines what follows from them.
-
-Jev reads the income documents and the investor's statement about this year's
-expectations. We also import identity verification from an onboarding system.
-Rules determine qualification and whether the investor is ready for review.
-
-The snippets below build on each other in one TypeScript file.
 
 ### 2. Define the claims
 
