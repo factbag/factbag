@@ -126,8 +126,7 @@ kb.rule(isReadyForReview({ person })).if(
 ### 4. Import a known fact and add documents
 
 Identity verification comes directly from our onboarding system. Income evidence
-goes into the corpus for Jev to assess. Document text is elided below; supply the
-full text of each record in your application.
+goes into the corpus for Jev to assess.
 
 ```ts
 const alice = new Person("alice", "Alice");
