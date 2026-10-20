@@ -101,12 +101,6 @@ const hasVerifiedIdentity = predicate("has_verified_identity", {
 const isReadyForReview = predicate("is_ready_for_review", { person: Person });
 ```
 
-For predicates exposed to Jev, candidate values must be finite: use enumerations,
-booleans, or registered entities rather than open-ended strings or numbers.
-Registering people in the knowledge base gives Jev its candidate set, including
-their IDs and names. Here, we'll register Alice and assess her income for 2024 and
-2025 and her expected income for 2026.
-
 ### 3. Encode the ruleset
 
 All three income conditions must hold for this route to qualification. Our
