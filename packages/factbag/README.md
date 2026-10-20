@@ -7,8 +7,8 @@ sources and rules behind a conclusion.
 Factbag includes a document corpus, permission controls, and an integration with
 TypeSafe AI’s Jev model.
 
-Read [Introducing Factbag](https://blog.du-pless.is/introducing-factbag) for how and
-why to use it, or [Jev and the Art of Truth Maintenance](https://blog.du-pless.is/jev-and-the-art-of-truth-maintenance)
+Read [Introducing Factbag](https://daniel.du-pless.is/introducing-factbag) for how and
+why to use it, or [Jev and the Art of Truth Maintenance](https://daniel.du-pless.is/jev-and-the-art-of-truth-maintenance)
 for the thinking behind it.
 
 ## Install
