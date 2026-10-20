@@ -40,49 +40,78 @@ export TYPESAFE_API_KEY="your-api-key"
 
 ## From a document to a conclusion
 
-Suppose a company can enter your review queue once a registry document establishes
-that it is legally active. Jev reads the document; your rule determines what that
-evidence means for the queue.
+Suppose we're checking whether an investor qualifies through the individual-income
+route: income above $200,000 in each of the previous two years, with a reasonable
+expectation of the same income level this year. This example models that one route
+from the accredited-investor example in the blog.
+
+Our structured records establish past income. Jev reads the investor's statement
+about this year's expectations; an explicit rule combines the evidence.
 
 ```ts
-import { enumeration, predicate, variable } from "factbag/dsl";
+import { and, enumeration, predicate, variable } from "factbag/dsl";
 import { KnowledgeBase } from "factbag/kb";
 import { query } from "factbag/query";
 import { Corpus } from "factbag/corpus";
 import { guard } from "factbag/guards";
 import { classifier } from "factbag/jev/classifier";
 
-const company = enumeration("Harbor");
-const active = predicate(
-  "company_active",
-  { company },
+const person = enumeration("Alice");
+const incomeOver200k = predicate("income_over_200k", {
+  person,
+  year: Number,
+});
+const expectsSameIncome = predicate(
+  "expects_same_income",
+  { person },
   {
-    description: "The document establishes that this company is legally active.",
+    description:
+      "The person reasonably expects their individual income in 2026 to remain " +
+      "at least at the level earned in each of 2024 and 2025.",
   },
 );
-const readyForReview = predicate("ready_for_review", { company });
-const candidate = variable("company");
+const qualifiedInvestor = predicate("qualified_investor", { person });
+const investor = variable("investor");
 const kb = new KnowledgeBase();
-kb.rule(readyForReview({ company: candidate })).if(active({ company: candidate }));
+kb.rule(qualifiedInvestor({ person: investor })).if(
+  and(
+    incomeOver200k({ person: investor, year: 2024 }),
+    incomeOver200k({ person: investor, year: 2025 }),
+    expectsSameIncome({ person: investor }),
+  ),
+);
+
+// Our application has already checked the amounts in structured income records.
+kb.asserts(incomeOver200k({ person: "Alice", year: 2024 }), { source: "tax-record-2024" });
+kb.asserts(incomeOver200k({ person: "Alice", year: 2025 }), { source: "tax-record-2025" });
 
 const corpus = new Corpus();
-corpus.add({ documentId: "registry", text: "Harbor is an active company." });
+corpus.add({
+  documentId: "alice-income-statement",
+  text:
+    "I, Alice, earned $250,000 in both 2024 and 2025. My employment contract " +
+    "continues through 2026 at the same salary, so I expect the same income this year.",
+});
 
 // Only this predicate may receive positive or negative evidence from Jev.
-const run = classifier(corpus, guard(kb).permit("assert", active).permit("deny", active));
+const run = classifier(
+  corpus,
+  guard(kb).permit("assert", expectsSameIncome).permit("deny", expectsSameIncome),
+);
 
 for (const job of run) {
   const result = await job.execute(); // Makes a live Jev request.
   console.log(result.assessments);
 }
 
-console.log(query(run.kb, readyForReview({ company: "Harbor" })).value);
+console.log(query(run.kb, qualifiedInvestor({ person: "Alice" })).value);
 // "true" if Jev's supporting assessment meets the admission policy.
 // kb is unchanged; run.kb contains the new evidence.
 ```
 
-Candidate values must be finite: use enumerations, booleans, or registered
-entities rather than open-ended strings. Only `job.execute()` calls Jev; your
+For predicates exposed to Jev, candidate values must be finite: use enumerations,
+booleans, or registered entities rather than open-ended strings or numbers.
+Only `job.execute()` calls Jev; your
 application controls pacing. Results can be `true`, `false`, `conflicted`, or
 `unknown`, depending on the evidence admitted.
 
