@@ -46,6 +46,15 @@ it("terminates when propagating blocking through ownership and control", () => {
   expect(query(kb, blocked({ person: carol })).value).toBe("true");
 });
 
+it.fails("can query a NaN-valued fact after accepting it as evidence", () => {
+  const kb = new KnowledgeBase();
+  const measurement = predicate("measurement", { value: Number });
+  kb.asserts(measurement({ value: NaN }));
+
+  // If NaN becomes invalid input instead, replace this with insertion validation.
+  expect(query(kb, measurement({ value: NaN })).value).toBe("true");
+});
+
 describe("recursive candidate discovery", () => {
   function fixture(reverseRules = false, edgeFirst = false) {
     const kb = new KnowledgeBase();
