@@ -1,0 +1,5 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": { "types": ["node"], "isolatedDeclarations": false },
+  "include": ["src/**/*.ts"]
+}
