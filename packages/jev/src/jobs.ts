@@ -2,7 +2,7 @@ import type { GroundAtom } from "@factbag/core/dsl";
 import type { KnowledgeBase, Literal } from "@factbag/core/kb";
 import type { Chunk } from "@factbag/corpus";
 import type { Client, ClassifierClient } from "./client";
-import type { EvidenceChoice, SupportedPredicate, Tool, ToolResult } from "./types";
+import type { EvidenceChoice, ScalarDomains, SupportedPredicate, Tool, ToolResult } from "./types";
 
 /**
  * Thresholds for admitting signed evidence; an application policy, not a calibration guarantee.
@@ -38,6 +38,11 @@ export type RequestConfig = {
   readonly client?: ClassifierClient;
   /** Defaults to minimumProbability: 0.4 and ambiguityMargin: 0. */
   readonly admission?: AdmissionPolicy;
+  /**
+   * Candidate values for `Date`, `BigInt`, `Number` and `String` fields, such as the
+   * dates a passage mentions. Without an entry, a field of that type is rejected.
+   */
+  readonly domains?: ScalarDomains;
 };
 
 /**

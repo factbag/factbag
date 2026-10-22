@@ -9,11 +9,32 @@ import type { Operation } from "@factbag/guards";
 import type { ChoiceResponse, JsonValue } from "@typesafe-ai/sdk";
 
 /**
- * Field domains accepted after registration. Open-ended scalar constructors are excluded.
+ * Field domains accepted after registration. A scalar constructor is accepted only when the
+ * request config supplies a domain of candidate values for it.
  *
  * @beta
  */
-export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+export type SupportedField =
+  | BooleanConstructor
+  | EnumType
+  | RuntimeConstructor<Entity>
+  | DateConstructor
+  | BigIntConstructor
+  | NumberConstructor
+  | StringConstructor;
+
+/**
+ * Candidate values for scalar fields, by constructor. A field whose constructor has no
+ * entry here, or an empty one, is an unsupported open-ended domain. Values are deduplicated.
+ *
+ * @beta
+ */
+export type ScalarDomains = {
+  readonly Date?: readonly Date[];
+  readonly BigInt?: readonly bigint[];
+  readonly Number?: readonly number[];
+  readonly String?: readonly string[];
+};
 /**
  * A predicate refined during registration to supported finite field domains.
  *

@@ -86,16 +86,27 @@ field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
 
-| Schema field                         | Candidate values                      |
-| ------------------------------------ | ------------------------------------- |
-| `Boolean`                            | `false`, `true`                       |
-| `enumeration("a", "b", ...)`         | Explicit enum members                 |
-| Entity constructor                   | Instances registered in `kb.entities` |
-| `String`, `Number`, `BigInt`, `Date` | Unsupported open-ended domains        |
+| Schema field                         | Candidate values                               |
+| ------------------------------------ | ---------------------------------------------- |
+| `Boolean`                            | `false`, `true`                                |
+| `enumeration("a", "b", ...)`         | Explicit enum members                          |
+| Entity constructor                   | Instances registered in `kb.entities`          |
+| `String`, `Number`, `BigInt`, `Date` | Values supplied in `domains`, else unsupported |
 
 An entity domain must contain registered instances. Existing scalar facts do not
-turn an open-ended schema into an enum. To model a fixed value, declare it explicitly
-with `enumeration(value)` rather than asking the classifier to discover it.
+turn an open-ended schema into an enum. A scalar field is classified over the
+candidate values the request config supplies for its constructor, typically the
+values the passages mention, and is rejected when none are supplied:
+
+```ts
+classifier(corpus, kb, {
+  domains: { Date: [new Date("2014-07-09T00:00:00Z"), new Date("2015-09-14T00:00:00Z")] },
+});
+```
+
+Dates are sent as ISO strings and bigints as decimal strings; evidence carries the
+original values. To model a fixed value, declare it explicitly with
+`enumeration(value)` rather than asking the classifier to discover it.
 
 Entity candidates include their enumerable properties, including `id`, plus `type`
 set to the constructor name. These are JSON snapshots taken at run construction:

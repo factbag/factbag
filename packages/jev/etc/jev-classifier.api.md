@@ -71,10 +71,19 @@ export type Outcome = "ASSERT" | "DENY" | "IRRELEVANT";
 export type RequestConfig = {
     readonly client?: ClassifierClient;
     readonly admission?: AdmissionPolicy;
+    readonly domains?: ScalarDomains;
 };
 
 // @beta
-export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+export type ScalarDomains = {
+    readonly Date?: readonly Date[];
+    readonly BigInt?: readonly bigint[];
+    readonly Number?: readonly number[];
+    readonly String?: readonly string[];
+};
+
+// @beta
+export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity> | DateConstructor | BigIntConstructor | NumberConstructor | StringConstructor;
 
 // @beta
 export type SupportedPredicate = PredicateDeclaration<Readonly<Record<string, SupportedField>>>;

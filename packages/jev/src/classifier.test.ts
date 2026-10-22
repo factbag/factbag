@@ -211,6 +211,70 @@ describe("classifier registration", () => {
     },
   );
 
+  it("enumerates a Date field over the supplied domain and sends ISO strings", async () => {
+    const { kb, corpus } = setup();
+    const alice = new Person("alice");
+    kb.entities.add(alice);
+    const died = predicate(
+      "died",
+      { person: Person, day: Date },
+      { description: "The person died on the day." },
+    );
+    const july = new Date("2014-07-09T00:00:00Z");
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", died), {
+      client,
+      // The duplicate date is one candidate, not two.
+      domains: { Date: [july, new Date("2015-09-14T00:00:00Z"), new Date(july)] },
+    });
+
+    const result = await nextJob(run).execute();
+
+    expect(result.assessments.map(({ atom }) => atom.fields["day"])).toEqual([
+      july,
+      new Date("2015-09-14T00:00:00Z"),
+    ]);
+    const request = client.systemOne.mock.calls[0]?.[0];
+    expect(request?.state).toMatchObject({
+      candidates: [
+        { fields: { person: { type: "Person", id: "alice" }, day: "2014-07-09T00:00:00.000Z" } },
+        { fields: { person: { type: "Person", id: "alice" }, day: "2015-09-14T00:00:00.000Z" } },
+      ],
+    });
+    expect(run.kb.literals().map(({ atom }) => atom.fields["day"])).toEqual([
+      july,
+      new Date("2015-09-14T00:00:00Z"),
+    ]);
+  });
+
+  it("sends bigint candidates as decimal strings and keeps them as bigints in evidence", async () => {
+    const { kb, corpus } = setup();
+    const amount = predicate("amount", { value: BigInt }, { description: "The amount paid." });
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", amount), {
+      client,
+      domains: { BigInt: [42_876n] },
+    });
+
+    const result = await nextJob(run).execute();
+
+    expect(result.assessments.map(({ atom }) => atom.fields["value"])).toEqual([42_876n]);
+    expect(client.systemOne.mock.calls[0]?.[0]?.state).toMatchObject({
+      candidates: [{ fields: { value: "42876" } }],
+    });
+  });
+
+  it("rejects a scalar field whose domain is empty", () => {
+    const { kb, corpus } = setup();
+    const died = predicate("died", { day: Date }, { description: "Someone died on the day." });
+    expect(() =>
+      classifier(corpus, guard(kb).permit("assert", died), {
+        client: clientWith(),
+        domains: { Date: [] },
+      }),
+    ).toThrow(UnsupportedPredicateError);
+  });
+
   it("provides predicate and field diagnostics without guessing matching scalar values", () => {
     const { kb, corpus } = setup();
     const fact = predicate("name", { name: String }, { description: "The legal name." });
