@@ -1,0 +1,230 @@
+{
+  "protocol": "rules",
+  "split": "dev",
+  "model": "jev-1.13.0",
+  "contracts": 61,
+  "failed": [],
+  "metrics": {
+    "judgments": 1037,
+    "correct": 917,
+    "invalid": 0,
+    "accuracy": 0.8842815814850531,
+    "macroF1": 0.841193866213465,
+    "classes": {
+      "Entailment": {
+        "precision": 0.8920863309352518,
+        "recall": 0.9556840077071291,
+        "f1": 0.9227906976744186,
+        "support": 519
+      },
+      "Contradiction": {
+        "precision": 0.6756756756756757,
+        "recall": 0.7894736842105263,
+        "f1": 0.7281553398058251,
+        "support": 95
+      },
+      "NotMentioned": {
+        "precision": 0.9351351351351351,
+        "recall": 0.817966903073286,
+        "f1": 0.8726355611601514,
+        "support": 423
+      }
+    }
+  },
+  "intervals": {
+    "accuracy": [0.863066538090646, 0.9045323047251688],
+    "macroF1": [0.8111760018245876, 0.8697633532399397]
+  },
+  "requests": 2400,
+  "inputTokens": 4690240,
+  "usdPerContract": 0.0032293455737704923,
+  "medianLatencyMs": 816.2713750000003,
+  "wallMs": 26226.091125,
+  "perHypothesis": {
+    "nda-1": {
+      "accuracy": 0.8524590163934426,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 14,
+        "NotMentioned->NotMentioned": 31,
+        "Contradiction->Entailment": 2,
+        "NotMentioned->Contradiction": 1,
+        "Contradiction->Contradiction": 7,
+        "Entailment->Contradiction": 4,
+        "Entailment->NotMentioned": 1,
+        "Contradiction->NotMentioned": 1
+      }
+    },
+    "nda-2": {
+      "accuracy": 0.8524590163934426,
+      "n": 61,
+      "confusion": {
+        "Contradiction->Contradiction": 43,
+        "Entailment->Contradiction": 1,
+        "Entailment->Entailment": 4,
+        "NotMentioned->NotMentioned": 5,
+        "NotMentioned->Contradiction": 6,
+        "Entailment->NotMentioned": 1,
+        "Contradiction->NotMentioned": 1
+      }
+    },
+    "nda-3": {
+      "accuracy": 0.9508196721311475,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 45,
+        "NotMentioned->NotMentioned": 13,
+        "NotMentioned->Entailment": 3
+      }
+    },
+    "nda-4": {
+      "accuracy": 0.8688524590163934,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 49,
+        "NotMentioned->Entailment": 4,
+        "NotMentioned->Contradiction": 1,
+        "NotMentioned->NotMentioned": 3,
+        "Contradiction->Contradiction": 1,
+        "Entailment->NotMentioned": 1,
+        "Contradiction->Entailment": 2
+      }
+    },
+    "nda-5": {
+      "accuracy": 0.9344262295081968,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 53,
+        "Contradiction->Entailment": 1,
+        "NotMentioned->NotMentioned": 4,
+        "Entailment->NotMentioned": 1,
+        "NotMentioned->Contradiction": 1,
+        "Contradiction->NotMentioned": 1
+      }
+    },
+    "nda-7": {
+      "accuracy": 0.8360655737704918,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 36,
+        "Contradiction->Contradiction": 14,
+        "Entailment->Contradiction": 3,
+        "NotMentioned->Contradiction": 4,
+        "NotMentioned->NotMentioned": 1,
+        "NotMentioned->Entailment": 3
+      }
+    },
+    "nda-8": {
+      "accuracy": 1,
+      "n": 61,
+      "confusion": {
+        "NotMentioned->NotMentioned": 16,
+        "Entailment->Entailment": 45
+      }
+    },
+    "nda-10": {
+      "accuracy": 0.8852459016393442,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 28,
+        "NotMentioned->NotMentioned": 26,
+        "NotMentioned->Entailment": 6,
+        "Entailment->NotMentioned": 1
+      }
+    },
+    "nda-11": {
+      "accuracy": 1,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 8,
+        "NotMentioned->NotMentioned": 53
+      }
+    },
+    "nda-12": {
+      "accuracy": 1,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 40,
+        "NotMentioned->NotMentioned": 21
+      }
+    },
+    "nda-13": {
+      "accuracy": 0.9836065573770492,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 47,
+        "NotMentioned->NotMentioned": 13,
+        "NotMentioned->Contradiction": 1
+      }
+    },
+    "nda-15": {
+      "accuracy": 0.9016393442622951,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 37,
+        "NotMentioned->NotMentioned": 18,
+        "NotMentioned->Entailment": 4,
+        "Entailment->NotMentioned": 2
+      }
+    },
+    "nda-16": {
+      "accuracy": 0.8688524590163934,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 20,
+        "NotMentioned->NotMentioned": 33,
+        "Entailment->NotMentioned": 2,
+        "NotMentioned->Entailment": 4,
+        "Contradiction->Entailment": 1,
+        "Contradiction->NotMentioned": 1
+      }
+    },
+    "nda-17": {
+      "accuracy": 0.7049180327868853,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 9,
+        "Contradiction->Entailment": 2,
+        "NotMentioned->Contradiction": 5,
+        "NotMentioned->NotMentioned": 28,
+        "Contradiction->Contradiction": 6,
+        "NotMentioned->Entailment": 11
+      }
+    },
+    "nda-18": {
+      "accuracy": 0.9508196721311475,
+      "n": 61,
+      "confusion": {
+        "NotMentioned->NotMentioned": 47,
+        "NotMentioned->Entailment": 3,
+        "Entailment->Entailment": 11
+      }
+    },
+    "nda-19": {
+      "accuracy": 0.7540983606557377,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 37,
+        "NotMentioned->Entailment": 7,
+        "NotMentioned->NotMentioned": 9,
+        "Entailment->NotMentioned": 4,
+        "NotMentioned->Contradiction": 2,
+        "Entailment->Contradiction": 2
+      }
+    },
+    "nda-20": {
+      "accuracy": 0.6885245901639344,
+      "n": 61,
+      "confusion": {
+        "Entailment->Entailment": 13,
+        "NotMentioned->NotMentioned": 25,
+        "NotMentioned->Entailment": 6,
+        "NotMentioned->Contradiction": 5,
+        "Contradiction->Contradiction": 4,
+        "Contradiction->NotMentioned": 7,
+        "Contradiction->Entailment": 1
+      }
+    }
+  },
+  "ranAt": "2026-10-22T02:15:59.242Z"
+}
