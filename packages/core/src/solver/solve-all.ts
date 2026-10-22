@@ -1006,6 +1006,11 @@ function evaluateExpressionInto(
   bindings: ReadonlyMap<Var, unknown>,
   context: EvaluationContext,
 ): ExpressionResult {
+  const existing = valueForVariable(bindings, variable);
+  if (existing !== UNBOUND) {
+    return constrainBoundVariable(variable, existing, expression, bindings, context);
+  }
+
   if (isArithmeticFormula(expression)) {
     const left = evaluateExpression(expression.args[0], bindings, context);
     const right = evaluateExpression(expression.args[1], left.bindings, context);
@@ -1049,6 +1054,46 @@ function evaluateExpressionInto(
   nextBindings.set(variable, value);
 
   return { value, expression: variable, bindings: nextBindings, judgments: [] };
+}
+
+/**
+ * A `letIn` whose variable is already bound is a constraint, not a rebinding: the
+ * computed value must equal the existing one, exactly as atom matching treats a
+ * repeated variable. Rebinding would let a rule conclude a head atom for a value
+ * the body never produced, so an `or` branch evaluated under another branch's
+ * bindings could report those bindings as true.
+ */
+function constrainBoundVariable(
+  variable: Var,
+  existing: DefinedValue,
+  expression: unknown,
+  bindings: ReadonlyMap<Var, unknown>,
+  context: EvaluationContext,
+): ExpressionResult {
+  const computed = evaluateExpression(expression, bindings, context);
+  assert(
+    isScalarGoalExpression(computed.expression),
+    "A let binding of a bound variable must compare scalar values",
+  );
+  const goal: ComparisonGoal<"eq"> = { kind: "eq", left: variable, right: computed.expression };
+  const value: GoalValue =
+    computed.value === UNBOUND ? "unknown" : compareValues("eq", existing, computed.value);
+  const comparison = primitiveComparisonJudgment(
+    goal,
+    value,
+    bindingsArray(computed.bindings),
+    existing,
+    variable,
+    computed.value,
+    computed.expression,
+  );
+
+  return {
+    value: existing,
+    expression: variable,
+    bindings: computed.bindings,
+    judgments: [...computed.judgments, comparison],
+  };
 }
 
 function evaluateAggregateInto(
@@ -1125,6 +1170,10 @@ function evaluateAggregateInto(
     }
   }
 
+  // An already-bound variable is constrained by the aggregate, not rebound: the
+  // total is computed into a temporary and compared, as constrainBoundVariable does.
+  const existing = valueForVariable(bindings, variable);
+  const target = existing === UNBOUND ? variable : new Var(`$tmp${context.nextTemp++}`);
   const nextBindings = new Map(bindings);
   const values = rows.map((row) => resolveAggregateValue(valueExpression, row.bindings));
   let value: number | bigint | NumericRangeValue;
@@ -1134,29 +1183,29 @@ function evaluateAggregateInto(
     case "sum":
       assert(isNumericGoalExpression(valueExpression), "Sum value must be numeric");
       value = sumValues(values);
-      nextBindings.set(variable, value);
+      nextBindings.set(target, value);
       judgment = primitiveSumJudgment(
         {
           kind: "sum",
-          bind: variable,
+          bind: target,
           value: valueExpression,
           where: whereGoal,
         },
         bindingsArray(nextBindings),
         values,
-        variable,
+        target,
         value,
       );
       break;
     case "count": {
       const range = countRange(possibleRows, isOpenAggregate(whereBody));
       value = exactCountValue(range);
-      nextBindings.set(variable, value);
+      nextBindings.set(target, value);
       judgment = primitiveCountJudgment(
-        { kind: "count", bind: variable, where: whereGoal },
+        { kind: "count", bind: target, where: whereGoal },
         bindingsArray(nextBindings),
         range,
-        variable,
+        target,
         value,
       );
       break;
@@ -1165,9 +1214,31 @@ function evaluateAggregateInto(
       return assertNever(aggregate.kind, "Unhandled aggregate kind");
   }
 
+  if (existing === UNBOUND) {
+    return {
+      kind: "complete",
+      expression: { value, expression: variable, bindings: nextBindings, judgments: [judgment] },
+    };
+  }
+
+  const goal: ComparisonGoal<"eq"> = { kind: "eq", left: variable, right: target };
+  const comparison = primitiveComparisonJudgment(
+    goal,
+    compareValues("eq", existing, value),
+    bindingsArray(nextBindings),
+    existing,
+    variable,
+    value,
+    target,
+  );
   return {
     kind: "complete",
-    expression: { value, expression: variable, bindings: nextBindings, judgments: [judgment] },
+    expression: {
+      value: existing,
+      expression: variable,
+      bindings: nextBindings,
+      judgments: [judgment, comparison],
+    },
   };
 }
 
