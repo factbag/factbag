@@ -559,14 +559,22 @@ function evaluateOrBody(
   );
   const environments = candidateBindings.length === 0 ? [bindings] : candidateBindings;
 
-  return environments.map((environment) => {
-    // A branch is judged in an environment only by results that bind nothing
-    // beyond it. A result that extends the environment belongs to the extended
-    // environment, which is evaluated on its own; counting it here would let the
-    // or claim truth under bindings it does not carry, and a later conjunct
-    // would then range over the unbound variable freely.
+  // A branch is judged in an environment only by results that bind nothing beyond it. A
+  // result that extends the environment belongs to the extended environment, which is
+  // evaluated on its own; counting it here would let the or claim truth under bindings it
+  // does not carry, and a later conjunct would then range over the unbound variable freely.
+  // The extended environments are usually among the candidates already. They are not when
+  // the first pass ran with a variable an earlier failed conjunct left unbound: a branch
+  // then binds less than it does once the variable is bound. Such an extension is queued
+  // and judged in turn, and an environment no branch fits exactly stands for nothing but
+  // its extensions, so it yields no judgment of its own.
+  const queue = [...environments];
+  const seen = new Set(queue.map(bindingsKey));
+  const results: BodyResult[] = [];
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    const environment = next;
     const judgments = args.flatMap((arg) => {
-      const results = evaluateRuleBodyMany(
+      const branch = evaluateRuleBodyMany(
         literals,
         rules,
         arg,
@@ -574,16 +582,29 @@ function evaluateOrBody(
         active,
         context,
         pathCanHaveUnavailableBindings,
-      ).filter((result) => !bindsBeyond(result.bindings, environment));
-      const result = bestResult(results);
+      );
+      for (const result of branch) {
+        if (bindsBeyond(result.bindings, environment)) {
+          const key = bindingsKey(result.bindings);
+          if (!seen.has(key)) {
+            seen.add(key);
+            queue.push(result.bindings);
+          }
+        }
+      }
+      const result = bestResult(
+        branch.filter((candidate) => !bindsBeyond(candidate.bindings, environment)),
+      );
       return result === undefined ? [] : [result.judgment];
     });
-    assert(judgments.length > 0, "Or evaluation produced no judgment for its environment");
+    if (judgments.length === 0) {
+      continue;
+    }
     const judgmentBindings = bindingsArray(environment);
     const reboundJudgments = judgments.map((judgment) => withBindings(judgment, judgmentBindings));
     const goal: OrGoal = { kind: "or", goals: reboundJudgments.map((judgment) => judgment.goal) };
 
-    return {
+    results.push({
       judgment: compoundJudgment(
         goal,
         maxGoalValue(...reboundJudgments.map((judgment) => judgment.value)),
@@ -591,8 +612,9 @@ function evaluateOrBody(
         reboundJudgments,
       ),
       bindings: environment,
-    };
-  });
+    });
+  }
+  return results;
 }
 
 function evaluateAndBody(
@@ -1936,6 +1958,15 @@ function bindsBeyond(
   return false;
 }
 
+/** A key identifying a binding environment by its non-temporary variables' values. */
+function bindingsKey(binding: ReadonlyMap<Var, unknown>): string {
+  return JSON.stringify(
+    bindingsArray(binding)
+      .filter(([variable]) => !isTemporary(variable))
+      .map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
+  );
+}
+
 function uniqueBindings(
   bindings: readonly ReadonlyMap<Var, unknown>[],
 ): readonly ReadonlyMap<Var, unknown>[] {
@@ -1943,11 +1974,7 @@ function uniqueBindings(
   const unique: ReadonlyMap<Var, unknown>[] = [];
 
   for (const binding of bindings) {
-    const key = JSON.stringify(
-      bindingsArray(binding)
-        .filter(([variable]) => !isTemporary(variable))
-        .map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
-    );
+    const key = bindingsKey(binding);
     if (!seen.has(key)) {
       seen.add(key);
       unique.push(binding);
