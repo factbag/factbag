@@ -1,15 +1,37 @@
 /**
- * §152. Dependent defined: the qualifying child tests of subsection (c) and the qualifying
- * relative relationships of subsection (d)(2).
+ * §152. Dependent defined: the qualifying child of subsection (c), the qualifying relative
+ * of subsection (d), the exceptions of subsection (b), and the dependent they define.
  */
-import { and, closedPredicate, gt, gte, lte, not, or, variable } from "@factbag/core/dsl";
-import type { KnowledgeBase } from "@factbag/core/kb";
-import { born, child_of, Person, year_bounds } from "../schema";
 import {
+  and,
+  closedPredicate,
+  gt,
+  gte,
+  lte,
+  not,
+  or,
+  variable,
+  yearsBetween,
+} from "@factbag/core/dsl";
+import type { KnowledgeBase } from "@factbag/core/kb";
+import {
+  born,
+  child_of,
+  deduction_151c,
+  dependent_152,
+  Person,
+  qualifying_child_152c,
+  satisfies_152c2,
+  satisfies_152c3,
+  year_bounds,
+} from "../schema";
+import {
+  abode_over_half,
   child_incl_step,
   cohabited_in,
   descendant_of,
-  has_birth,
+  files_jointly,
+  has_income,
   marriage,
   married_at,
   sibling,
@@ -23,16 +45,58 @@ const S = variable("S");
 const Y = variable("Y");
 const F = variable("F");
 const L = variable("L");
-const U = variable("U");
 const BI = variable("BI");
 const BT = variable("BT");
 const C = variable("C");
 const P = variable("P");
 const W = variable("W");
 const M = variable("M");
+const X = variable("X");
 
 const relation = { individual: Person, taxpayer: Person };
+const relationInYear = { ...relation, year: BigInt };
 
+// --- (b) Exceptions ---
+
+/** (b)(1): the taxpayer is a dependent of some taxpayer for the year, so has no dependents. */
+export const s152_b_1 = closedPredicate("s152_b_1", { taxpayer: Person, year: BigInt });
+/** (b)(2): the individual has made a joint return with their spouse for the year. */
+export const s152_b_2 = closedPredicate("s152_b_2", { individual: Person, year: BigInt });
+
+// --- (c) Qualifying child ---
+
+/** (c)(1): the individual is a qualifying child of the taxpayer for the year. */
+export const s152_c_1 = closedPredicate("s152_c_1", relationInYear);
+/** (c)(1)(B): the same principal place of abode as the taxpayer for more than half the year. */
+export const s152_c_1_B = closedPredicate("s152_c_1_B", relationInYear);
+/** (c)(1)(E): the individual has not filed a joint return with their spouse for the year. */
+export const s152_c_1_E = closedPredicate("s152_c_1_E", { individual: Person, year: BigInt });
+/** (c)(2)(A): the individual is a child of the taxpayer or a descendant of such a child. */
+export const s152_c_2_A = closedPredicate("s152_c_2_A", relation);
+/** (c)(2)(B): the individual is a sibling of the taxpayer or a descendant of such a sibling. */
+export const s152_c_2_B = closedPredicate("s152_c_2_B", relation);
+/** (c)(2): the individual bears one of the relationships to the taxpayer. */
+export const s152_c_2 = closedPredicate("s152_c_2", relation);
+/**
+ * (c)(3): the individual is younger than the taxpayer and under 25 at the close of the
+ * year. Both dates of birth must be stated: a child of unknown age is not a qualifying
+ * child, though they may be a qualifying relative.
+ */
+export const s152_c_3 = closedPredicate("s152_c_3", relationInYear);
+/** A qualifying child of the taxpayer: stated as one, or meeting (c)(1). */
+export const qualifying_child = closedPredicate("qualifying_child", relationInYear);
+/** The individual is a qualifying child of some taxpayer for the year. */
+const qualifying_child_of_any = closedPredicate("qualifying_child_of_any", {
+  individual: Person,
+  year: BigInt,
+});
+
+// --- (d) Qualifying relative ---
+
+/** (d)(1): the individual is a qualifying relative of the taxpayer for the year. */
+export const s152_d_1 = closedPredicate("s152_d_1", relationInYear);
+/** (d)(1)(B): the individual has no income for the year: none stated, or none as stated. */
+export const s152_d_1_B = closedPredicate("s152_d_1_B", { individual: Person, year: BigInt });
 /** (d)(2)(A): a child of the taxpayer, or a descendant of a child. */
 export const s152_d_2_A = closedPredicate("s152_d_2_A", relation);
 /** (d)(2)(B): a brother, sister, stepbrother or stepsister. */
@@ -51,32 +115,105 @@ export const s152_d_2_G = closedPredicate("s152_d_2_G", relation);
  * (d)(2)(H): a member of the taxpayer's household for the year, sharing the taxpayer's
  * principal place of abode, who was not the taxpayer's spouse at any time in the year.
  */
-export const s152_d_2_H = closedPredicate("s152_d_2_H", { ...relation, year: BigInt });
+export const s152_d_2_H = closedPredicate("s152_d_2_H", relationInYear);
 /** (d)(2): any of the relationships (A) to (H), for the year. */
-export const s152_d_2 = closedPredicate("s152_d_2", { ...relation, year: BigInt });
+export const s152_d_2 = closedPredicate("s152_d_2", relationInYear);
+/** Any of the family relationships (A) to (G), which need no year. */
+export const s152_d_2_A_to_G = closedPredicate("s152_d_2_A_to_G", relation);
 /** The individual was the taxpayer's spouse at some time during the year. */
-const spouse_during = closedPredicate("spouse_during", { ...relation, year: BigInt });
+const spouse_during = closedPredicate("spouse_during", relationInYear);
 
-/** (c)(2)(A): the individual is a child of the taxpayer or a descendant of such a child. */
-export const s152_c_2_A = closedPredicate("s152_c_2_A", { individual: Person, taxpayer: Person });
-
-/** (c)(2)(B): the individual is a sibling of the taxpayer or a descendant of such a sibling. */
-export const s152_c_2_B = closedPredicate("s152_c_2_B", { individual: Person, taxpayer: Person });
-
-/** (c)(2): the individual bears one of the relationships to the taxpayer. */
-export const s152_c_2 = closedPredicate("s152_c_2", { individual: Person, taxpayer: Person });
+// --- (a) Dependent ---
 
 /**
- * (c)(3): the individual is younger than the taxpayer and under 25 at the close of the
- * year. SARA treats a descendant with no stated date of birth as meeting the test.
+ * The individual is a dependent of the taxpayer on the strength of the text: stated as a
+ * dependent or qualifying child, named in a stated §151(c) deduction, or a qualifying child
+ * under (c) with both dates of birth given.
  */
-export const s152_c_3 = closedPredicate("s152_c_3", {
-  individual: Person,
+const strong_dependent = closedPredicate("strong_dependent", {
+  dependent: Person,
+  taxpayer: Person,
+  year: BigInt,
+});
+/**
+ * The individual is a dependent of the taxpayer for the year before the exceptions of
+ * subsection (b): a strong dependent, or a qualifying relative under (d).
+ */
+const dependent_base = closedPredicate("dependent_base", {
+  dependent: Person,
+  taxpayer: Person,
+  year: BigInt,
+});
+/**
+ * The person is a strong dependent of some taxpayer for the year. Only these trigger the
+ * (b)(1) exception: a qualifying relative rests on nothing more than an unstated income,
+ * and a parent whose child is their stated dependent would otherwise be the child's
+ * dependent in turn and lose the child.
+ */
+const dependent_of_any = closedPredicate("dependent_of_any", { person: Person, year: BigInt });
+/** The individual is a dependent of the taxpayer for the year, with the (b) exceptions. */
+export const dependent_of = closedPredicate("dependent_of", {
+  dependent: Person,
   taxpayer: Person,
   year: BigInt,
 });
 
 export function defineS152(kb: KnowledgeBase): void {
+  // (c)(2) relationship and (c)(3) age.
+  kb.rule(s152_c_2_A({ individual: I, taxpayer: T })).iff(
+    descendant_of({ descendant: I, ancestor: T }),
+  );
+  kb.rule(s152_c_2_B({ individual: I, taxpayer: T })).iff(
+    or(
+      sibling({ a: I, b: T }),
+      and(sibling({ a: S, b: T }), descendant_of({ descendant: I, ancestor: S })),
+    ),
+  );
+  kb.rule(s152_c_2({ individual: I, taxpayer: T })).iff(
+    or(s152_c_2_A({ individual: I, taxpayer: T }), s152_c_2_B({ individual: I, taxpayer: T })),
+  );
+  kb.rule(s152_c_3({ individual: I, taxpayer: T, year: Y })).iff(
+    and(
+      year_bounds({ year: Y, first: F, last: L }),
+      born({ person: I, day: BI }),
+      born({ person: T, day: BT }),
+      gt(BI, BT),
+      gt(25, yearsBetween(L, BI)),
+    ),
+  );
+  // (c)(1) qualifying child. A stated "satisfies (c)(2)" or "(c)(3)" counts for that test.
+  kb.rule(s152_c_1_B({ individual: I, taxpayer: T, year: Y })).iff(
+    abode_over_half({ a: I, b: T, year: Y }),
+  );
+  kb.rule(s152_c_1_E({ individual: I, year: Y })).iff(not(files_jointly({ person: I, year: Y })));
+  kb.rule(s152_c_1({ individual: I, taxpayer: T, year: Y })).iff(
+    and(
+      or(
+        s152_c_2({ individual: I, taxpayer: T }),
+        satisfies_152c2.undated({ child: I, taxpayer: T }),
+        satisfies_152c2.inYear({ child: I, taxpayer: T, year: Y }),
+      ),
+      s152_c_1_B({ individual: I, taxpayer: T, year: Y }),
+      or(
+        s152_c_3({ individual: I, taxpayer: T, year: Y }),
+        satisfies_152c3.undated({ child: I, taxpayer: T }),
+        satisfies_152c3.inYear({ child: I, taxpayer: T, year: Y }),
+      ),
+      s152_c_1_E({ individual: I, year: Y }),
+    ),
+  );
+  kb.rule(qualifying_child({ individual: I, taxpayer: T, year: Y })).iff(
+    or(
+      qualifying_child_152c.undated({ child: I, taxpayer: T }),
+      qualifying_child_152c.inYear({ child: I, taxpayer: T, year: Y }),
+      s152_c_1({ individual: I, taxpayer: T, year: Y }),
+    ),
+  );
+  kb.rule(qualifying_child_of_any({ individual: I, year: Y })).iff(
+    qualifying_child({ individual: I, taxpayer: X, year: Y }),
+  );
+
+  // (d)(2) relationships.
   kb.rule(s152_d_2_A({ individual: I, taxpayer: T })).iff(
     or(
       child_incl_step({ child: I, parent: T }),
@@ -109,7 +246,7 @@ export function defineS152(kb: KnowledgeBase): void {
   );
   kb.rule(spouse_during({ individual: I, taxpayer: T, year: Y })).iff(
     and(
-      year_bounds({ year: Y, first: F, last: L, under25After: U }),
+      year_bounds({ year: Y, first: F, last: L }),
       or(
         married_at({ a: I, b: T, day: F }),
         married_at({ a: I, b: T, day: L }),
@@ -123,7 +260,7 @@ export function defineS152(kb: KnowledgeBase): void {
       not(spouse_during({ individual: I, taxpayer: T, year: Y })),
     ),
   );
-  kb.rule(s152_d_2({ individual: I, taxpayer: T, year: Y })).iff(
+  kb.rule(s152_d_2_A_to_G({ individual: I, taxpayer: T })).iff(
     or(
       s152_d_2_A({ individual: I, taxpayer: T }),
       s152_d_2_B({ individual: I, taxpayer: T }),
@@ -132,28 +269,50 @@ export function defineS152(kb: KnowledgeBase): void {
       s152_d_2_E({ individual: I, taxpayer: T }),
       s152_d_2_F({ individual: I, taxpayer: T }),
       s152_d_2_G({ individual: I, taxpayer: T }),
+    ),
+  );
+  kb.rule(s152_d_2({ individual: I, taxpayer: T, year: Y })).iff(
+    or(
+      s152_d_2_A_to_G({ individual: I, taxpayer: T }),
       s152_d_2_H({ individual: I, taxpayer: T, year: Y }),
     ),
   );
-  kb.rule(s152_c_2_A({ individual: I, taxpayer: T })).iff(
-    descendant_of({ descendant: I, ancestor: T }),
-  );
-  kb.rule(s152_c_2_B({ individual: I, taxpayer: T })).iff(
-    or(
-      sibling({ a: I, b: T }),
-      and(sibling({ a: S, b: T }), descendant_of({ descendant: I, ancestor: S })),
+  // (d)(1) qualifying relative. Subparagraph (C), support, is not in SARA's statute.
+  kb.rule(s152_d_1_B({ individual: I, year: Y })).iff(not(has_income({ person: I, year: Y })));
+  kb.rule(s152_d_1({ individual: I, taxpayer: T, year: Y })).iff(
+    and(
+      s152_d_1_B({ individual: I, year: Y }),
+      s152_d_2({ individual: I, taxpayer: T, year: Y }),
+      not(qualifying_child_of_any({ individual: I, year: Y })),
     ),
   );
-  kb.rule(s152_c_2({ individual: I, taxpayer: T })).iff(
-    or(s152_c_2_A({ individual: I, taxpayer: T }), s152_c_2_B({ individual: I, taxpayer: T })),
+
+  // (a) dependent, with the (b) exceptions.
+  kb.rule(strong_dependent({ dependent: I, taxpayer: T, year: Y })).iff(
+    or(
+      dependent_152.undated({ dependent: I, taxpayer: T }),
+      dependent_152.inYear({ dependent: I, taxpayer: T, year: Y }),
+      deduction_151c.undated({ taxpayer: T, dependent: I }),
+      deduction_151c.inYear({ taxpayer: T, dependent: I, year: Y }),
+      qualifying_child({ individual: I, taxpayer: T, year: Y }),
+    ),
   );
-  kb.rule(s152_c_3({ individual: I, taxpayer: T, year: Y })).iff(
+  kb.rule(dependent_base({ dependent: I, taxpayer: T, year: Y })).iff(
+    or(
+      strong_dependent({ dependent: I, taxpayer: T, year: Y }),
+      s152_d_1({ individual: I, taxpayer: T, year: Y }),
+    ),
+  );
+  kb.rule(dependent_of_any({ person: I, year: Y })).iff(
+    strong_dependent({ dependent: I, taxpayer: X, year: Y }),
+  );
+  kb.rule(s152_b_1({ taxpayer: T, year: Y })).iff(dependent_of_any({ person: T, year: Y }));
+  kb.rule(s152_b_2({ individual: I, year: Y })).iff(files_jointly({ person: I, year: Y }));
+  kb.rule(dependent_of({ dependent: I, taxpayer: T, year: Y })).iff(
     and(
-      year_bounds({ year: Y, first: F, last: L, under25After: U }),
-      or(
-        and(born({ person: I, day: BI }), born({ person: T, day: BT }), gt(BI, BT), gt(BI, U)),
-        and(not(has_birth({ person: I })), descendant_of({ descendant: I, ancestor: T })),
-      ),
+      dependent_base({ dependent: I, taxpayer: T, year: Y }),
+      not(s152_b_2({ individual: I, year: Y })),
+      not(s152_b_1({ taxpayer: T, year: Y })),
     ),
   );
 }

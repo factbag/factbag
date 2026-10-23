@@ -300,7 +300,8 @@ function dated<const Fields extends StateFields>(
 export const shares_home = dated(
   "shares_home",
   { a: Person, b: Person },
-  "the two people lived in the same home, house or household",
+  "the two people lived in the same home, house or household, or had the same principal " +
+    "place of abode",
   "The order of the two people does not matter. Only people the text itself places in " +
     "the same home count: a spouse, parent or child the text does not put there, or who " +
     "had died or lived elsewhere, is IRRELEVANT.",
@@ -353,11 +354,13 @@ export const exemption_151b = yearly(
 export const qualifying_child_152c = yearly(
   "qualifying_child_152c",
   { child: Person, taxpayer: Person },
-  "the text says the child is a qualifying child of the taxpayer under section 152(c)",
+  "the text says the child is a qualifying child of the taxpayer under section 152(c), or " +
+    "satisfies section 152(c)(1) with respect to the taxpayer",
   "The fields are ordered: 'child' is the qualifying child, 'taxpayer' the person they " +
-    `qualify for. ${STATED_ONLY} In particular, a text saying only that someone satisfies ` +
-    "section 152(c)(2) or 152(c)(3), or is someone's son or daughter, does not say they are " +
-    "a qualifying child: that is IRRELEVANT here.",
+    "qualify for; when the text names no taxpayer, it is the parent or relative the child is " +
+    `introduced through. ${STATED_ONLY} In particular, a text saying only that someone ` +
+    "satisfies section 152(c)(2) or 152(c)(3), or is someone's son or daughter, does not say " +
+    "they are a qualifying child: that is IRRELEVANT here.",
 );
 
 export const dependent_152 = yearly(
@@ -390,10 +393,10 @@ export const satisfies_152c3 = yearly(
 
 export const joint_return = yearly(
   "joint_return",
-  { a: Person, b: Person },
-  "the two people file, or filed, a joint return together",
-  "The order of the two people does not matter. Only the two people the text names as " +
-    "filing together count.",
+  { person: Person },
+  "the person files, or filed, a joint return with their spouse, or files jointly",
+  "The spouse may be named or not. When the text says two people file a joint return " +
+    "together, this holds for each of them. Filing separately is the opposite: DENY.",
 );
 
 export const separate_return = yearly(
@@ -401,6 +404,32 @@ export const separate_return = yearly(
   { person: Person },
   "the person files, or filed, a separate return",
   "When the text says two people file separate returns, this holds for each of them.",
+);
+
+export const married_stated = yearly(
+  "married_stated",
+  { person: Person },
+  "the person is married, as the text states it, naming section 7703 or no spouse",
+  "This is for a marital status the text states outright, such as 'is married under " +
+    "section 7703 for the year' or 'has been married since' a date with no spouse named. " +
+    "When the text names the spouse and the wedding day, the marriage facts carry it and this " +
+    "is IRRELEVANT. 'Is not married' is a DENY.",
+);
+
+export const surviving_spouse_stated = yearly(
+  "surviving_spouse_stated",
+  { person: Person },
+  "the text says the person is a surviving spouse",
+  "Only an outright statement counts, such as 'is a surviving spouse for the year'; do not " +
+    "infer it from a death. 'Is not a surviving spouse' is a DENY.",
+);
+
+export const head_of_household_stated = yearly(
+  "head_of_household_stated",
+  { person: Person },
+  "the text says the person is a head of household",
+  "Only an outright statement counts; do not infer it from who lives where. 'Is not a head " +
+    "of household' is a DENY.",
 );
 
 export const employed = dated(
@@ -521,9 +550,10 @@ function datedPredicates<Fields extends StateFields>(
  * Names the fact vocabulary and its instructions, so a results file says which extraction
  * produced it. Bump it when a predicate or instruction changes. "probe-4-2026-10-22" was
  * the first frozen baseline; "d2-2026-10-22" split step relations out of child_of for
- * §152(d)(2).
+ * §152(d)(2); "hh-2026-10-23" made the joint return a one-person fact and added the stated
+ * marital, surviving-spouse and head-of-household statuses for the household provisions.
  */
-export const EXTRACTION_VERSION = "d2-2026-10-22";
+export const EXTRACTION_VERSION = "hh-2026-10-23";
 
 /** The predicates Jev may assert or deny from a case's text. */
 export const FACT_PREDICATES = [
@@ -549,6 +579,9 @@ export const FACT_PREDICATES = [
   ...yearlyPredicates(satisfies_152c3),
   ...yearlyPredicates(joint_return),
   ...yearlyPredicates(separate_return),
+  ...yearlyPredicates(married_stated),
+  ...yearlyPredicates(surviving_spouse_stated),
+  ...yearlyPredicates(head_of_household_stated),
   ...datedPredicates(employed),
   employed_on,
   agricultural_labor,
@@ -561,18 +594,28 @@ export const FACT_PREDICATES = [
 
 // --- The calendar, asserted as facts so rules can look up a year's bounds ---
 
-/**
- * One row per calendar year: its first and last day, and the latest birthday of someone
- * who is still under 25 at its close, so an age test is a date comparison, not arithmetic.
- */
+/** One row per calendar year: its first and last day. */
 export const year_bounds = closedPredicate(
   "year_bounds",
-  { year: BigInt, first: Date, last: Date, under25After: Date },
+  { year: BigInt, first: Date, last: Date },
   { description: "Calendar bounds of a year. Fixed facts, never classified." },
 );
 
-const FIRST_YEAR = 1850;
-const LAST_YEAR = 2200;
+/**
+ * One row per calendar year for the "more than one-half of the year" and "last 6 months"
+ * tests: the first of July, and half the year's length in whole days, rounded down, so
+ * that a state covering more days than that covers more than half the year.
+ */
+export const year_marks = closedPredicate(
+  "year_marks",
+  { year: BigInt, julyFirst: Date, halfDays: Number },
+  { description: "Calendar marks of a year. Fixed facts, never classified." },
+);
+
+const DAY_MS = 86_400_000;
+
+const FIRST_YEAR = 1900;
+const LAST_YEAR = 2100;
 
 export function yearBoundsFacts(): readonly ReturnType<typeof year_bounds>[] {
   const facts: ReturnType<typeof year_bounds>[] = [];
@@ -582,7 +625,21 @@ export function yearBoundsFacts(): readonly ReturnType<typeof year_bounds>[] {
         year: BigInt(year),
         first: firstDay(year),
         last: lastDay(year),
-        under25After: lastDay(year - 25),
+      }),
+    );
+  }
+  return facts;
+}
+
+export function yearMarksFacts(): readonly ReturnType<typeof year_marks>[] {
+  const facts: ReturnType<typeof year_marks>[] = [];
+  for (let year = FIRST_YEAR; year <= LAST_YEAR; year += 1) {
+    const days = Math.round((lastDay(year).getTime() - firstDay(year).getTime()) / DAY_MS) + 1;
+    facts.push(
+      year_marks({
+        year: BigInt(year),
+        julyFirst: new Date(Date.UTC(year, 6, 1)),
+        halfDays: Math.floor(days / 2),
       }),
     );
   }

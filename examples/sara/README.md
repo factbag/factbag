@@ -60,9 +60,37 @@ hand-written gold in `src/probe-gold.ts`; both read nothing but the train split.
 
 ## Coverage
 
-The statute covers §7703(a)(1) and (a)(2), §2(a)(1)(A), (a)(2)(A), (a)(2)(B), (b)(2)(A),
-(b)(2)(B), (b)(2)(C), §152(c)(2), (c)(2)(A), (c)(2)(B), (c)(3), and §152(d)(2) with all
-eight relationships (A) to (H). The remaining subsections are to be added in the same shape.
+The statute covers §7703(a) and (b), §2(a) and (b), §151(b) and (c), and §152(b), (c) and
+(d), each with its subparagraphs: 28 of the 88 citations in the train split, 56 of its 176
+entailment cases. The remaining subsections, mostly about amounts (§1, §63, §68, §151(d))
+and employment (§3306), are to be added in the same shape, then the numeric cases.
+
+The household provisions rest on a derived-status layer: married under §7703 including the
+living-apart rule of (b); surviving spouse from §2(a); head of household from §2(b); and
+dependent from §152, as a qualifying child or qualifying relative with the exceptions of
+(b). Three readings were settled against the train cases, since the statute alone does not
+fix them: a qualifying child needs both dates of birth; "no income" for a qualifying
+relative is the closed-world absence of any income; and §152(b)(1), which strips a
+dependent of their own dependents, is triggered only by a dependency the text states or a
+qualifying child, never by a derived qualifying relative, as otherwise a parent and the
+child who is their stated dependent would each be the other's dependent. Exact days in the
+text take precedence over a bare year for the same pair, since the classifier tends to
+assert both.
+
+The calendar is two fact tables, a year's first and last day and its first of July and
+half-length in days, and the rules compare dates with `daysBetween` and `yearsBetween`
+from the core DSL: more than half a year in the same home is the clipped stay's days
+exceeding the half-length, and an age is the years between the close of the year and the
+birthday.
+
+Full covered run of 2026-10-23 (extraction `hh-2026-10-23`, Jev's default admission):
+Factbag 56/56 at 47 requests, $0.0082 and a median 1.3 s per case
+(`results/train-2026-10-23T04-31-41-708Z`); direct Jev 46/56 (82.1%, interval [71.4,
+91.1]) at one request, $0.00005 and 107 ms per case
+(`results/baseline-train-2026-10-23T04-32-52-921Z`). The ten disagreements are all
+Factbag right, direct wrong, spread over §151(b), §152(c)(1), (c)(2), (d)(2)(D), §2(a) and
+(b)(2), and §7703(b)(1); no case was answered by direct Jev alone. Fourteen of the 56
+questions needed a reading request; the rest had one possible reading.
 
 §152(d)(2) was the first provision added under a reservation: its train citations (B) and
 (E) were the development cases, (D) and (F) were reserved unread until the rules, the

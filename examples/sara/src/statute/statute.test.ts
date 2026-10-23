@@ -10,14 +10,24 @@ import { day as d } from "../calendar";
 import {
   born,
   child_of,
+  deduction_151c,
+  dependent_152,
   died,
+  gross_income,
+  home_cost_share,
+  joint_return,
   legally_separated,
+  maintains_home,
   married_on,
   married_undated,
   nonresident_alien,
   nonresident_alien_since,
   nonresident_alien_until,
   Person,
+  qualifying_child_152c,
+  satisfies_152c2,
+  satisfies_152c3,
+  separate_return,
   shares_home,
   sibling_of,
   stepchild_of,
@@ -189,8 +199,10 @@ describe("§152(c)", () => {
       child_of({ child: bob, parent: alice }),
     ]);
     expect(ask(older, "152(c)(3)", [bob, alice], 2019)).toBe("false");
+    // Without both dates of birth the age test is not met: see §152(d)(1) for the
+    // qualifying relative such a child may still be.
     const undated = kbWith([child_of({ child: bob, parent: alice })]);
-    expect(ask(undated, "152(c)(3)", [bob, alice], 2019)).toBe("true");
+    expect(ask(undated, "152(c)(3)", [bob, alice], 2019)).toBe("false");
   });
 });
 
@@ -340,5 +352,236 @@ describe("§152(d)(2)", () => {
     expect(ask(spouse, "152(d)(2)(H)", [alice, bob], 2018)).toBe("false");
     expect(ask(spouse, "152(d)(2)", [alice, bob], 2018)).toBe("false");
     expect(ask(friend, "152(d)(2)", [alice, bob], 2018)).toBe("true");
+  });
+});
+
+describe("household and dependents", () => {
+  // s7703_b_*: Alice and Bob married in 2012; their son Charlie, born 2017-09-16, lives in a
+  // home Alice has maintained since then, and Alice takes the §151(c) deduction for him.
+  const aliceHome: readonly GroundAtom[] = [
+    married_on({ a: alice, b: bob, day: d("2012-04-05") }),
+    child_of({ child: charlie, parent: alice }),
+    child_of({ child: charlie, parent: bob }),
+    born({ person: charlie, day: d("2017-09-16") }),
+    shares_home.since({ a: alice, b: charlie, day: d("2017-09-16") }),
+    maintains_home.since({ person: alice, day: d("2017-09-16") }),
+    deduction_151c.inYear({ taxpayer: alice, dependent: charlie, year: 2018n }),
+  ];
+
+  test("§7703(b)(1): married, filing separately, keeping a home for a deductible child", () => {
+    expect(
+      ask(
+        kbWith([...aliceHome, separate_return.undated({ person: alice })]),
+        "7703(b)(1)",
+        [alice],
+        2018,
+      ),
+    ).toBe("true");
+    expect(
+      ask(
+        kbWith([...aliceHome, joint_return.inYear({ person: alice, year: 2018n })]),
+        "7703(b)(1)",
+        [alice],
+        2018,
+      ),
+    ).toBe("false");
+  });
+
+  test("§7703(b)(3): the spouse left before or after the last six months", () => {
+    const left = (until: string): KnowledgeBase =>
+      kbWith([
+        ...aliceHome,
+        shares_home.since({ a: bob, b: alice, day: d("2017-09-16") }),
+        shares_home.until({ a: bob, b: alice, day: d(until) }),
+      ]);
+    expect(ask(left("2018-02-10"), "7703(b)(3)", [alice], 2018)).toBe("true");
+    expect(ask(left("2018-10-10"), "7703(b)(3)", [alice], 2018)).toBe("false");
+    // The classifier also asserts the year alongside the exact days; the days win.
+    const both = kbWith([
+      ...aliceHome,
+      shares_home.since({ a: bob, b: alice, day: d("2017-09-16") }),
+      shares_home.until({ a: bob, b: alice, day: d("2018-02-10") }),
+      shares_home.inYear({ a: alice, b: bob, year: 2018n }),
+    ]);
+    expect(ask(both, "7703(b)(3)", [alice], 2018)).toBe("true");
+  });
+
+  // s2_b_1_*: Alice and Bob married in 1992, Alice died in 2014, Bob keeps the home where he
+  // and Charlie live from 2004 to 2019.
+  const bobHome: readonly GroundAtom[] = [
+    ...marriedIn1992,
+    ...aliceDied2014,
+    maintains_home.inYear({ person: bob, year: 2016n }),
+    maintains_home.inYear({ person: bob, year: 2018n }),
+    shares_home.inYear({ a: bob, b: charlie, year: 2016n }),
+    shares_home.inYear({ a: bob, b: charlie, year: 2018n }),
+  ];
+  const sonCharlie: readonly GroundAtom[] = [
+    child_of({ child: charlie, parent: bob }),
+    deduction_151c.inYear({ taxpayer: bob, dependent: charlie, year: 2016n }),
+    deduction_151c.inYear({ taxpayer: bob, dependent: charlie, year: 2018n }),
+  ];
+  const fatherCharlie: readonly GroundAtom[] = [
+    child_of({ child: bob, parent: charlie }),
+    deduction_151c.inYear({ taxpayer: bob, dependent: charlie, year: 2018n }),
+  ];
+
+  test("§2(b)(1)(A): a qualifying child in a home the taxpayer pays for", () => {
+    const qualifying = [
+      ...bobHome,
+      child_of({ child: charlie, parent: bob }),
+      qualifying_child_152c.inYear({ child: charlie, taxpayer: bob, year: 2018n }),
+    ];
+    expect(ask(kbWith(qualifying), "2(b)(1)(A)", [bob], 2018)).toBe("true");
+    expect(
+      ask(
+        kbWith([...qualifying, home_cost_share({ person: bob, percent: 40 })]),
+        "2(b)(1)(A)",
+        [bob],
+        2018,
+      ),
+    ).toBe("false");
+  });
+
+  test("§2(b)(1)(B): a deductible father, not a deductible son", () => {
+    expect(ask(kbWith([...bobHome, ...fatherCharlie]), "2(b)(1)(B)", [bob], 2018)).toBe("true");
+    expect(ask(kbWith([...bobHome, ...sonCharlie]), "2(b)(1)(B)", [bob], 2018)).toBe("false");
+  });
+
+  test("§2(b)(1): not while a surviving spouse, then yes for a dependent father", () => {
+    expect(ask(kbWith([...bobHome, ...sonCharlie]), "2(a)", [bob], 2016)).toBe("true");
+    expect(ask(kbWith([...bobHome, ...sonCharlie]), "2(b)(1)", [bob], 2016)).toBe("false");
+    expect(ask(kbWith([...bobHome, ...fatherCharlie]), "2(b)(1)", [bob], 2018)).toBe("true");
+    expect(ask(kbWith([...bobHome, ...fatherCharlie]), "2(b)", [bob], 2018)).toBe("true");
+  });
+
+  test("§2(b)(3)(B): a dependent only by sharing the home, not a father", () => {
+    const friend = kbWith([
+      ...bobHome,
+      dependent_152.inYear({ dependent: charlie, taxpayer: bob, year: 2018n }),
+    ]);
+    expect(ask(friend, "2(b)(3)(B)", [bob, charlie], 2018)).toBe("true");
+    expect(ask(friend, "2(b)", [bob], 2018)).toBe("false");
+    expect(ask(kbWith([...bobHome, ...fatherCharlie]), "2(b)(3)(B)", [bob, charlie], 2018)).toBe(
+      "false",
+    );
+  });
+
+  test("§152(b)(1): a dependent has no dependents", () => {
+    const chain = kbWith([
+      child_of({ child: bob, parent: alice }),
+      child_of({ child: charlie, parent: bob }),
+      qualifying_child_152c.inYear({ child: bob, taxpayer: alice, year: 2015n }),
+      qualifying_child_152c.inYear({ child: charlie, taxpayer: bob, year: 2015n }),
+    ]);
+    expect(ask(chain, "152(b)(1)", [bob], 2015)).toBe("true");
+    expect(ask(chain, "152(b)(1)", [alice], 2015)).toBe("false");
+    expect(ask(chain, "151(c)", [bob, charlie], 2015)).toBe("false");
+    expect(ask(chain, "151(c)", [alice, bob], 2015)).toBe("true");
+  });
+
+  test("§152(b)(2): a joint return, not separate returns", () => {
+    const wed = married_on({ a: alice, b: bob, day: d("2015-01-01") });
+    expect(
+      ask(
+        kbWith([wed, joint_return.inYear({ person: alice, year: 2015n })]),
+        "152(b)(2)",
+        [alice],
+        2015,
+      ),
+    ).toBe("true");
+    expect(
+      ask(
+        kbWith([wed, separate_return.inYear({ person: alice, year: 2015n })]),
+        "152(b)(2)",
+        [alice],
+        2015,
+      ),
+    ).toBe("false");
+  });
+
+  // s152_c_1_*: Alice's son Bob lived with her from 2015-09-01 to 2019-11-03.
+  const together = (until: string): readonly GroundAtom[] => [
+    child_of({ child: bob, parent: alice }),
+    shares_home.since({ a: alice, b: bob, day: d("2015-09-01") }),
+    shares_home.until({ a: alice, b: bob, day: d(until) }),
+  ];
+
+  test("§152(c)(1)(B): more than half the year in the same home", () => {
+    const kb = kbWith(together("2019-11-03"));
+    expect(ask(kb, "152(c)(1)(B)", [bob, alice], 2015)).toBe("false");
+    expect(ask(kb, "152(c)(1)(B)", [bob, alice], 2016)).toBe("true");
+    expect(ask(kb, "152(c)(1)(B)", [bob, alice], 2019)).toBe("true");
+    expect(ask(kbWith(together("2019-02-03")), "152(c)(1)(B)", [bob, alice], 2019)).toBe("false");
+    expect(ask(kbWith(together("2019-07-02")), "152(c)(1)(B)", [bob, alice], 2019)).toBe("true");
+    expect(ask(kbWith(together("2019-07-01")), "152(c)(1)(B)", [bob, alice], 2019)).toBe("false");
+  });
+
+  test("§152(c)(1)(E) and (c)(1): a joint return disqualifies", () => {
+    const wed = married_on({ a: bob, b: charlie, day: d("2018-10-23") });
+    const stated = [
+      satisfies_152c2.inYear({ child: bob, taxpayer: alice, year: 2019n }),
+      satisfies_152c3.inYear({ child: bob, taxpayer: alice, year: 2019n }),
+    ];
+    const joint = kbWith([
+      ...together("2019-11-03"),
+      wed,
+      joint_return.inYear({ person: bob, year: 2019n }),
+    ]);
+    expect(ask(joint, "152(c)(1)(E)", [bob], 2019)).toBe("false");
+    expect(ask(joint, "152(c)(1)", [bob, alice], 2019)).toBe("false");
+    const separate = kbWith([
+      ...together("2019-11-03"),
+      wed,
+      separate_return.undated({ person: bob }),
+      ...stated,
+    ]);
+    expect(ask(separate, "152(c)(1)(E)", [bob], 2019)).toBe("true");
+    expect(ask(separate, "152(c)(1)", [bob, alice], 2019)).toBe("true");
+    expect(
+      ask(kbWith([...together("2019-02-03"), wed, ...stated]), "152(c)(1)", [bob, alice], 2019),
+    ).toBe("false");
+  });
+
+  test("§152(d)(1)(B): no income for the year", () => {
+    expect(ask(kbWith([]), "152(d)(1)(B)", [alice], 2015)).toBe("true");
+    expect(
+      ask(
+        kbWith([gross_income({ person: alice, year: 2015n, amount: 2312 })]),
+        "152(d)(1)(B)",
+        [alice],
+        2015,
+      ),
+    ).toBe("false");
+  });
+
+  test("§151(b): a spouse exemption unless a joint return is made", () => {
+    const wed = married_on({ a: alice, b: bob, day: d("2015-02-02") });
+    expect(ask(kbWith([wed]), "151(b)", [alice, bob], 2015)).toBe("true");
+    expect(
+      ask(
+        kbWith([wed, joint_return.inYear({ person: alice, year: 2015n })]),
+        "151(b)",
+        [alice, bob],
+        2015,
+      ),
+    ).toBe("false");
+    expect(
+      ask(
+        kbWith([wed, gross_income({ person: bob, year: 2015n, amount: 100 })]),
+        "151(b)",
+        [alice, bob],
+        2015,
+      ),
+    ).toBe("false");
+  });
+
+  test("§151(c): the stated dependent, not the spouse", () => {
+    const kb = kbWith([
+      married_on({ a: alice, b: charlie, day: d("2015-02-02") }),
+      dependent_152.inYear({ dependent: bob, taxpayer: alice, year: 2015n }),
+    ]);
+    expect(ask(kb, "151(c)", [alice, bob], 2015)).toBe("true");
+    expect(ask(kb, "151(c)", [alice, charlie], 2015)).toBe("false");
   });
 });

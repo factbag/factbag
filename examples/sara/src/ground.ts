@@ -47,7 +47,7 @@ export async function ground(text: string, options: GroundingOptions): Promise<G
   let access = guard(kb);
   const unclassified: string[] = [];
   for (const declaration of FACT_PREDICATES) {
-    if (classifiable(declaration, domains)) {
+    if (classifiable(declaration, domains, people.length)) {
       access = access.permit("assert", declaration).permit("deny", declaration);
     } else {
       unclassified.push(declaration.name);
@@ -106,11 +106,19 @@ function domainsOf(found: Mentions): ScalarDomains {
   };
 }
 
-/** Jev rejects a predicate whose scalar field has no candidates; such facts stay unknown. */
+/**
+ * Jev rejects a predicate with no candidates: one whose scalar field has an empty domain,
+ * or one naming more distinct people than the text does. Such facts stay unknown.
+ */
 function classifiable(
   declaration: (typeof FACT_PREDICATES)[number],
   domains: ScalarDomains,
+  people: number,
 ): boolean {
+  const persons = Object.values(declaration.params).filter((type) => type === Person).length;
+  if (persons > people) {
+    return false;
+  }
   return Object.values(declaration.params).every((type) => {
     const candidates =
       type === Date
