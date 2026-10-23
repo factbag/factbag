@@ -1640,6 +1640,11 @@ const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
   "div",
   "daysBetween",
   "yearsBetween",
+  "min",
+  "max",
+  "roundTo",
+  "floorTo",
+  "ceilTo",
 ];
 
 type ArithmeticFormula = Readonly<{
@@ -1723,6 +1728,11 @@ function calculateValue(
       case "sub":
       case "mul":
       case "div":
+      case "min":
+      case "max":
+      case "roundTo":
+      case "floorTo":
+      case "ceilTo":
         break;
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
@@ -1743,6 +1753,16 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "min":
+        return Math.min(left, right);
+      case "max":
+        return Math.max(left, right);
+      case "roundTo":
+        return scaled(left, right, roundHalfAwayFromZero);
+      case "floorTo":
+        return scaled(left, right, Math.floor);
+      case "ceilTo":
+        return scaled(left, right, Math.ceil);
       case "daysBetween":
       case "yearsBetween":
         break;
@@ -1761,6 +1781,16 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "min":
+        return left < right ? left : right;
+      case "max":
+        return left > right ? left : right;
+      case "roundTo":
+        return scaledBigInt(left, right, "round");
+      case "floorTo":
+        return scaledBigInt(left, right, "floor");
+      case "ceilTo":
+        return scaledBigInt(left, right, "ceil");
       case "daysBetween":
       case "yearsBetween":
         break;
@@ -1770,6 +1800,46 @@ function calculateValue(
   }
 
   throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+}
+
+/** Round halves away from zero, as currency does, rather than toward positive infinity. */
+function roundHalfAwayFromZero(value: number): number {
+  return Math.sign(value) * Math.round(Math.abs(value));
+}
+
+/** Apply a whole-number rounding at a number of decimal places. */
+function scaled(value: number, places: number, round: (value: number) => number): number {
+  assert(Number.isInteger(places), "Decimal places must be a whole number");
+  const factor = 10 ** places;
+  return round(value * factor) / factor;
+}
+
+/**
+ * Round a bigint at a number of decimal places. A bigint is whole, so places of zero or
+ * more leave it unchanged; negative places round to tens, hundreds and so on.
+ */
+function scaledBigInt(value: bigint, places: bigint, mode: "round" | "floor" | "ceil"): bigint {
+  if (places >= 0n) {
+    return value;
+  }
+  const factor = 10n ** -places;
+  const quotient = value / factor;
+  const remainder = value % factor;
+  if (remainder === 0n) {
+    return value;
+  }
+  const towardZero = quotient * factor;
+  const awayFromZero = towardZero + (value < 0n ? -factor : factor);
+  switch (mode) {
+    case "floor":
+      return value < 0n ? awayFromZero : towardZero;
+    case "ceil":
+      return value < 0n ? towardZero : awayFromZero;
+    case "round":
+      return (remainder < 0n ? -remainder : remainder) * 2n >= factor ? awayFromZero : towardZero;
+    default:
+      return assertNever(mode, "Unhandled rounding mode");
+  }
 }
 
 function compareValues(

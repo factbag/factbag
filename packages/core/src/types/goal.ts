@@ -69,9 +69,30 @@ export type DivGoal = ArithmeticGoal<"div">;
 export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
 /** Arithmetic goal binding the whole calendar years from the right date to the left. */
 export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
+/** Arithmetic goal binding the lesser of two expressions. */
+export type MinGoal = ArithmeticGoal<"min">;
+/** Arithmetic goal binding the greater of two expressions. */
+export type MaxGoal = ArithmeticGoal<"max">;
+/** Arithmetic goal binding the left expression rounded to the right's decimal places. */
+export type RoundToGoal = ArithmeticGoal<"roundTo">;
+/** Arithmetic goal binding the left expression rounded down to the right's decimal places. */
+export type FloorToGoal = ArithmeticGoal<"floorTo">;
+/** Arithmetic goal binding the left expression rounded up to the right's decimal places. */
+export type CeilToGoal = ArithmeticGoal<"ceilTo">;
 
 /** The primitive arithmetic operations. */
-export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween";
+export type ArithmeticKind =
+  | "add"
+  | "sub"
+  | "mul"
+  | "div"
+  | "daysBetween"
+  | "yearsBetween"
+  | "min"
+  | "max"
+  | "roundTo"
+  | "floorTo"
+  | "ceilTo";
 
 /** Bind the result of a primitive arithmetic operation. */
 export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
@@ -132,6 +153,11 @@ export type Goal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal
@@ -152,6 +178,11 @@ export type PrimitiveGoal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal

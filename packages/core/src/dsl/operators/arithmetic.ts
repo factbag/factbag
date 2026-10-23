@@ -109,3 +109,63 @@ export function yearsBetween(
 ): Formula<number | bigint, readonly [DateTerm, DateTerm]> {
   return { kind: "yearsBetween", args: [later, earlier] };
 }
+
+/** The lesser of two numeric terms. */
+export function min(
+  left: NumericTerm,
+  right: NumericTerm,
+): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+  return { kind: "min", args: [left, right] };
+}
+
+/** The greater of two numeric terms. */
+export function max(
+  left: NumericTerm,
+  right: NumericTerm,
+): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+  return { kind: "max", args: [left, right] };
+}
+
+/**
+ * The value rounded to a number of decimal places, halves away from zero: `roundTo(x, 0)`
+ * is the nearest whole number, `roundTo(x, 2)` the nearest cent, and `roundTo(x, -3)` the
+ * nearest thousand. A bigint is already whole and is unchanged for places of zero or more.
+ *
+ * @example
+ * ```ts
+ * // Tax is 15% of taxable income, in whole dollars.
+ * kb.rule(tax({ person: P, amount: T })).if(
+ *   and(taxableIncome({ person: P, amount: I }), letIn(T, roundTo(mul(I, 0.15), 0), gte(T, 0))),
+ * );
+ * ```
+ */
+export function roundTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+  return { kind: "roundTo", args: [value, places] };
+}
+
+/** The value rounded down (toward negative infinity) to a number of decimal places. */
+export function floorTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+  return { kind: "floorTo", args: [value, places] };
+}
+
+/**
+ * The value rounded up (toward positive infinity) to a number of decimal places.
+ *
+ * @example
+ * ```ts
+ * // Two percentage points for each $2,500, or fraction thereof, of the excess.
+ * letIn(Points, mul(2, ceilTo(div(Excess, 2500), 0)), lte(Points, 100))
+ * ```
+ */
+export function ceilTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+  return { kind: "ceilTo", args: [value, places] };
+}

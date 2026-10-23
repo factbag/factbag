@@ -193,6 +193,11 @@ function formatGoal(goal: Goal): string {
     case "div":
     case "daysBetween":
     case "yearsBetween":
+    case "min":
+    case "max":
+    case "roundTo":
+    case "floorTo":
+    case "ceilTo":
       return `${goal.bind.name} = ${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
     case "eq":
     case "neq":
