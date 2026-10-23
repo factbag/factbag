@@ -28,10 +28,27 @@ export function ruleEdges(rule: AnyRule): Edge[] {
   return edges;
 }
 
+/** The predicates each predicate's rules refer to directly, as an adjacency map. */
+export function adjacency(
+  edges: readonly Edge[],
+): ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>> {
+  const next = new Map<PredicateDeclaration, Set<PredicateDeclaration>>();
+  for (const edge of edges) {
+    let targets = next.get(edge.from);
+    if (targets === undefined) {
+      targets = new Set();
+      next.set(edge.from, targets);
+    }
+    targets.add(edge.to);
+  }
+  return next;
+}
+
 export function reachablePredicates(
   start: PredicateDeclaration,
   edges: readonly Edge[],
 ): Set<PredicateDeclaration> {
+  const next = adjacency(edges);
   const reachable = new Set<PredicateDeclaration>([start]);
   const stack = [start];
 
@@ -41,16 +58,70 @@ export function reachablePredicates(
       continue;
     }
 
-    for (const edge of edges) {
-      if (edge.from !== current || reachable.has(edge.to)) {
-        continue;
+    for (const target of next.get(current) ?? []) {
+      if (!reachable.has(target)) {
+        reachable.add(target);
+        stack.push(target);
       }
-      reachable.add(edge.to);
-      stack.push(edge.to);
     }
   }
 
   return reachable;
+}
+
+/**
+ * The strongly connected components of the predicate graph, by Tarjan's algorithm: each
+ * predicate maps to the set of predicates it can reach and be reached from, itself
+ * included. Linear in the predicates and edges, where a reachability check per pair is
+ * not.
+ */
+export function stronglyConnectedComponents(
+  edges: readonly Edge[],
+): ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>> {
+  const next = adjacency(edges);
+  const index = new Map<PredicateDeclaration, number>();
+  const lowLink = new Map<PredicateDeclaration, number>();
+  const onStack = new Set<PredicateDeclaration>();
+  const stack: PredicateDeclaration[] = [];
+  const components = new Map<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>();
+  let counter = 0;
+
+  const visit = (predicate: PredicateDeclaration): void => {
+    index.set(predicate, counter);
+    lowLink.set(predicate, counter);
+    counter += 1;
+    stack.push(predicate);
+    onStack.add(predicate);
+    for (const target of next.get(predicate) ?? []) {
+      if (!index.has(target)) {
+        visit(target);
+        lowLink.set(predicate, Math.min(lowLink.get(predicate) ?? 0, lowLink.get(target) ?? 0));
+      } else if (onStack.has(target)) {
+        lowLink.set(predicate, Math.min(lowLink.get(predicate) ?? 0, index.get(target) ?? 0));
+      }
+    }
+    if (lowLink.get(predicate) === index.get(predicate)) {
+      const component = new Set<PredicateDeclaration>();
+      let member: PredicateDeclaration | undefined;
+      do {
+        member = stack.pop();
+        if (member !== undefined) {
+          onStack.delete(member);
+          component.add(member);
+        }
+      } while (member !== undefined && member !== predicate);
+      for (const found of component) {
+        components.set(found, component);
+      }
+    }
+  };
+
+  for (const predicate of next.keys()) {
+    if (!index.has(predicate)) {
+      visit(predicate);
+    }
+  }
+  return components;
 }
 
 export function isNegativeLiteral(value: unknown): value is AnyLiteral & { sign: "-" } {

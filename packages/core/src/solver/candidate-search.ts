@@ -3,7 +3,7 @@ import type { Atom, GroundAtom } from "../types/atom";
 import type { PredicateDeclaration } from "../types/predicate";
 import type { AnyRule } from "../types/rule";
 import { isVar, type Var } from "../types/variable";
-import { reachablePredicates, ruleEdges } from "./query-validation/utils";
+import { ruleEdges, stronglyConnectedComponents } from "./query-validation/utils";
 
 type CandidateTable = {
   atoms: Map<string, GroundAtom>;
@@ -22,17 +22,16 @@ export class CandidateSearch {
   private readonly tables = new Map<PredicateDeclaration, Map<string, CandidateTable>>();
 
   constructor(rules: readonly AnyRule[]) {
-    const edges = rules.flatMap(ruleEdges);
+    // Predicates that reach one another share a group: a strongly connected component.
+    const components = stronglyConnectedComponents(rules.flatMap(ruleEdges));
     for (const rule of rules) {
       const predicate = rule.head.atom.predicate;
       if (this.groups.has(predicate)) {
         continue;
       }
       const group: CandidateGroup = { tables: new Set(), evaluating: false, changed: false };
-      for (const dependency of reachablePredicates(predicate, edges)) {
-        if (reachablePredicates(dependency, edges).has(predicate)) {
-          this.groups.set(dependency, group);
-        }
+      for (const member of components.get(predicate) ?? [predicate]) {
+        this.groups.set(member, group);
       }
     }
   }
