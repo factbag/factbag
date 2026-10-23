@@ -22,6 +22,23 @@ describe("mentions", () => {
     expect(found.years).toEqual([]);
   });
 
+  test("gives a day without a year the one year the text names, and reads amounts", () => {
+    const found = mentions(
+      "Alice has employed Bob and Cameron for agricultural labor during the year 2017:\n" +
+        "- Jan 24: B and C\n- Oct 10, 2017: B\nAlice paid each $1,250 and furnished 40% of " +
+        "the costs; Bob earned $300000.",
+    );
+    expect(found.dates.map(iso)).toEqual(["2017-01-24", "2017-10-10"]);
+    expect(found.years).toEqual([2017]);
+    expect(found.amounts).toEqual([40, 1250, 300000]);
+  });
+
+  test("leaves a day without a year out when the text names several years", () => {
+    const found = mentions("From 2004 to 2019 Bob worked. On Sep 9th Alice paid Bob.");
+    expect(found.dates).toEqual([]);
+    expect(found.years).toEqual([2004, 2019]);
+  });
+
   test("reads the year a question asks about", () => {
     expect(mentions("Section 2(a)(1)(A) applies to Bob in 2015.").years).toEqual([2015]);
     expect(mentions("Section 7703(a)(2) applies to Alice for the year 2012.").people).toEqual([

@@ -15,18 +15,17 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { query } from "@factbag/core/query";
-import type { ClassifierClient } from "@factbag/jev/classifier";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { loadCases } from "./data";
 import type { Case } from "./data";
 import { ground, renderFields } from "./ground";
+import { meter, metered, USD_PER_INPUT_TOKEN } from "./meter";
+import type { Meter } from "./meter";
 import { summarise } from "./metrics";
 import type { Outcome } from "./metrics";
 import { pool } from "./pool";
 import { citationOf, provisionFor, readQuestion } from "./question";
-
-/** Jev list price: USD 0.042 per million input tokens, output free. */
-const USD_PER_INPUT_TOKEN = 0.042 / 1_000_000;
+import { EXTRACTION_VERSION } from "./schema";
 
 const envFile = fileURLToPath(new URL("../../../.env", import.meta.url));
 if (existsSync(envFile)) {
@@ -54,21 +53,6 @@ if ((process.env["TYPESAFE_API_KEY"] ?? "") === "") {
   throw new Error("Set TYPESAFE_API_KEY in your shell or the repo's .env");
 }
 
-type Meter = { requests: number; inputTokens: number; outputTokens: number };
-
-/** Wrap the SDK so every request's usage lands in the meter. */
-function metered(sdk: TypeSafeClient, meter: Meter): ClassifierClient {
-  return {
-    async systemOne(request, options) {
-      const result = await sdk.systemOne(request, options);
-      meter.requests += 1;
-      meter.inputTokens += result.usage.input_tokens;
-      meter.outputTokens += result.usage.output_tokens;
-      return result;
-    },
-  };
-}
-
 type Record_ = Readonly<{
   id: string;
   citation: string | undefined;
@@ -83,6 +67,8 @@ type Record_ = Readonly<{
     predicate: string;
     fields: Readonly<Record<string, string>>;
   }>[];
+  /** The question reading's probability: 1 when only one reading was possible. */
+  reading?: number;
   requests: number;
   inputTokens: number;
   latencyMs: number;
@@ -126,8 +112,8 @@ process.stdout.write(
 );
 const startedAt = performance.now();
 await pool(runnable, Number(args.concurrency), async (item) => {
-  const meter: Meter = { requests: 0, inputTokens: 0, outputTokens: 0 };
-  const client = metered(sdk, meter);
+  const usage: Meter = meter();
+  const client = metered(sdk, usage);
   const began = performance.now();
   try {
     const provision = provisionFor(item.question);
@@ -163,15 +149,16 @@ await pool(runnable, Number(args.concurrency), async (item) => {
           }),
       people: grounding.people.map((person) => person.id),
       facts,
-      requests: meter.requests,
-      inputTokens: meter.inputTokens,
+      reading: reading.probability,
+      requests: usage.requests,
+      inputTokens: usage.inputTokens,
       latencyMs: performance.now() - began,
     };
     records.push(record);
     const mark = predicted === record.gold ? "ok " : "BAD";
     process.stdout.write(
       `  ${mark} ${item.id}: ${value} (${record.predicted ?? "none"} / ${record.gold}), ` +
-        `${meter.requests} req, ${meter.inputTokens} tok\n`,
+        `${usage.requests} req, ${usage.inputTokens} tok\n`,
     );
   } catch (error) {
     records.push({
@@ -180,8 +167,8 @@ await pool(runnable, Number(args.concurrency), async (item) => {
       gold: goldOf(item),
       predicted: undefined,
       value: `error: ${error instanceof Error ? error.message : String(error)}`,
-      requests: meter.requests,
-      inputTokens: meter.inputTokens,
+      requests: usage.requests,
+      inputTokens: usage.inputTokens,
       latencyMs: performance.now() - began,
     });
     process.stdout.write(`  ERR ${item.id}: ${String(error)}\n`);
@@ -208,6 +195,8 @@ for (const record of records) {
 const summary = {
   split,
   model: args.model,
+  extraction: EXTRACTION_VERSION,
+  admission: "jev default: minimumProbability 0.4, ambiguityMargin 0",
   citations: wanted ?? "all",
   run,
   withSkipped,

@@ -7,8 +7,14 @@ import type { AnyLiteral, KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import { classifier } from "@factbag/jev/classifier";
-import type { AdmissionPolicy, Assessment, ClassifierClient } from "@factbag/jev/classifier";
+import type {
+  AdmissionPolicy,
+  Assessment,
+  ClassifierClient,
+  ScalarDomains,
+} from "@factbag/jev/classifier";
 import { mentions } from "./mentions";
+import type { Mentions } from "./mentions";
 import { pool } from "./pool";
 import { FACT_PREDICATES, Person } from "./schema";
 import { statuteKB } from "./statute";
@@ -23,6 +29,9 @@ export type GroundingOptions = Readonly<{
 export type Grounding = Readonly<{
   kb: KnowledgeBase;
   people: readonly Person[];
+  domains: ScalarDomains;
+  /** Fact predicates left out because the text offers no candidates for one of their fields. */
+  unclassified: readonly string[];
   /** Every admitted literal, for the results file. */
   literals: readonly AnyLiteral[];
   assessments: readonly Assessment[];
@@ -32,18 +41,24 @@ export type Grounding = Readonly<{
 export async function ground(text: string, options: GroundingOptions): Promise<Grounding> {
   const found = mentions(text);
   const people = found.people.map((name) => new Person(name));
+  const domains = domainsOf(found);
   const kb = statuteKB();
   kb.entities.add(...people);
   let access = guard(kb);
+  const unclassified: string[] = [];
   for (const declaration of FACT_PREDICATES) {
-    access = access.permit("assert", declaration).permit("deny", declaration);
+    if (classifiable(declaration, domains)) {
+      access = access.permit("assert", declaration).permit("deny", declaration);
+    } else {
+      unclassified.push(declaration.name);
+    }
   }
   const corpus = new Corpus();
   corpus.add({ documentId: "text", text });
   const run = classifier(corpus, access, {
     client: options.client,
     ...(options.admission === undefined ? {} : { admission: options.admission }),
-    domains: { Date: found.dates },
+    domains,
   });
   const jobs = [...run];
   const assessments: Assessment[] = [];
@@ -54,10 +69,61 @@ export async function ground(text: string, options: GroundingOptions): Promise<G
   return {
     kb: run.kb,
     people,
+    domains,
+    unclassified,
     literals: run.kb.literals((literal) => facts.has(literal.atom.predicate.name)),
     assessments,
     requests: jobs.length,
   };
+}
+
+/** The longest run of consecutive years a text may be taken to speak about. */
+const MAX_YEAR_SPAN = 40;
+
+/**
+ * Candidate values for the scalar fields: the days the text writes out; every year from
+ * the earliest it names to the latest, so "from 2015 to 2019" covers 2016; and the amounts.
+ * A year's bounds are deliberately not offered as days: offered them, the model marks the
+ * start and end of every year in a range as starts and ends of the state.
+ */
+function domainsOf(found: Mentions): ScalarDomains {
+  const years: bigint[] = [];
+  if (found.years.length > 0) {
+    const earliest = found.years[0] ?? 0;
+    const latest = found.years.at(-1) ?? 0;
+    if (latest - earliest < MAX_YEAR_SPAN) {
+      for (let year = earliest; year <= latest; year += 1) {
+        years.push(BigInt(year));
+      }
+    } else {
+      years.push(...found.years.map(BigInt));
+    }
+  }
+  return {
+    Date: [...found.dates],
+    BigInt: years,
+    Number: [...found.amounts],
+  };
+}
+
+/** Jev rejects a predicate whose scalar field has no candidates; such facts stay unknown. */
+function classifiable(
+  declaration: (typeof FACT_PREDICATES)[number],
+  domains: ScalarDomains,
+): boolean {
+  return Object.values(declaration.params).every((type) => {
+    const candidates =
+      type === Date
+        ? domains.Date
+        : type === BigInt
+          ? domains.BigInt
+          : type === Number
+            ? domains.Number
+            : type === String
+              ? domains.String
+              : undefined;
+    return candidates === undefined || candidates.length > 0;
+  });
 }
 
 /** Render an atom's fields for logs and results: names, ISO days, decimal years. */

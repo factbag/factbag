@@ -18,7 +18,9 @@ import {
   nonresident_alien_since,
   nonresident_alien_until,
   Person,
+  shares_home,
   sibling_of,
+  stepchild_of,
 } from "../schema";
 import { PROVISIONS, provisionAtom, statuteKB } from "./index";
 
@@ -189,5 +191,154 @@ describe("§152(c)", () => {
     expect(ask(older, "152(c)(3)", [bob, alice], 2019)).toBe("false");
     const undated = kbWith([child_of({ child: bob, parent: alice })]);
     expect(ask(undated, "152(c)(3)", [bob, alice], 2019)).toBe("true");
+  });
+});
+
+describe("§152(d)(2)", () => {
+  const dan = new Person("Dan");
+  const withDan = (facts: readonly GroundAtom[]): KnowledgeBase => {
+    const kb = kbWith(facts);
+    kb.entities.add(dan);
+    return kb;
+  };
+
+  test("(A): a child, a stepchild, or a grandchild of the taxpayer", () => {
+    expect(
+      ask(kbWith([child_of({ child: alice, parent: bob })]), "152(d)(2)(A)", [alice, bob]),
+    ).toBe("true");
+    expect(
+      ask(kbWith([stepchild_of({ child: alice, stepparent: bob })]), "152(d)(2)(A)", [alice, bob]),
+    ).toBe("true");
+    expect(
+      ask(
+        kbWith([
+          child_of({ child: charlie, parent: bob }),
+          child_of({ child: alice, parent: charlie }),
+        ]),
+        "152(d)(2)(A)",
+        [alice, bob],
+      ),
+    ).toBe("true");
+    expect(
+      ask(kbWith([child_of({ child: bob, parent: alice })]), "152(d)(2)(A)", [alice, bob]),
+    ).toBe("false");
+  });
+
+  test("(B): Bob is Alice's brother, in either order; a son is not a brother", () => {
+    expect(ask(kbWith([sibling_of({ a: bob, b: alice })]), "152(d)(2)(B)", [alice, bob])).toBe(
+      "true",
+    );
+    expect(
+      ask(kbWith([child_of({ child: bob, parent: alice })]), "152(d)(2)(B)", [alice, bob]),
+    ).toBe("false");
+  });
+
+  test("(C): a parent or grandparent, but not a stepparent", () => {
+    expect(
+      ask(kbWith([child_of({ child: bob, parent: alice })]), "152(d)(2)(C)", [alice, bob]),
+    ).toBe("true");
+    expect(
+      ask(
+        kbWith([
+          child_of({ child: bob, parent: charlie }),
+          child_of({ child: charlie, parent: alice }),
+        ]),
+        "152(d)(2)(C)",
+        [alice, bob],
+      ),
+    ).toBe("true");
+    expect(
+      ask(kbWith([stepchild_of({ child: bob, stepparent: alice })]), "152(d)(2)(C)", [alice, bob]),
+    ).toBe("false");
+  });
+
+  test("(D): a stepparent, stated or the spouse of a parent, but not a parent", () => {
+    expect(
+      ask(kbWith([stepchild_of({ child: bob, stepparent: alice })]), "152(d)(2)(D)", [alice, bob]),
+    ).toBe("true");
+    expect(
+      ask(kbWith([child_of({ child: bob, parent: alice })]), "152(d)(2)(D)", [alice, bob]),
+    ).toBe("false");
+    // s152_d_2_D_pos: Charlie is Bob's father and Alice married Charlie.
+    const stepmother = kbWith([
+      child_of({ child: bob, parent: charlie }),
+      married_on({ a: alice, b: charlie, day: d("2018-08-08") }),
+    ]);
+    expect(ask(stepmother, "152(d)(2)(D)", [alice, bob])).toBe("true");
+    expect(ask(stepmother, "152(d)(2)(A)", [bob, alice])).toBe("true");
+    // Both parents married to each other: neither is a stepparent.
+    const parents = kbWith([
+      child_of({ child: bob, parent: charlie }),
+      child_of({ child: bob, parent: alice }),
+      married_on({ a: alice, b: charlie, day: d("1990-08-08") }),
+    ]);
+    expect(ask(parents, "152(d)(2)(D)", [alice, bob])).toBe("false");
+  });
+
+  test("(E): Alice is the daughter of Charlie, Bob's brother; an aunt does not qualify", () => {
+    const niece = kbWith([
+      child_of({ child: alice, parent: charlie }),
+      sibling_of({ a: bob, b: charlie }),
+    ]);
+    expect(ask(niece, "152(d)(2)(E)", [alice, bob])).toBe("true");
+    const aunt = kbWith([
+      child_of({ child: bob, parent: charlie }),
+      sibling_of({ a: alice, b: charlie }),
+    ]);
+    expect(ask(aunt, "152(d)(2)(E)", [alice, bob])).toBe("false");
+    expect(ask(aunt, "152(d)(2)(F)", [alice, bob])).toBe("true");
+  });
+
+  test("(F): a sibling of a parent, but not of a stepparent", () => {
+    expect(
+      ask(
+        kbWith([
+          stepchild_of({ child: bob, stepparent: charlie }),
+          sibling_of({ a: alice, b: charlie }),
+        ]),
+        "152(d)(2)(F)",
+        [alice, bob],
+      ),
+    ).toBe("false");
+  });
+
+  test("(G): in-laws through a marriage", () => {
+    const sonInLaw = kbWith([
+      married_on({ a: alice, b: charlie, day: d("2010-05-01") }),
+      child_of({ child: charlie, parent: bob }),
+    ]);
+    expect(ask(sonInLaw, "152(d)(2)(G)", [alice, bob])).toBe("true");
+    const motherInLaw = kbWith([
+      married_on({ a: bob, b: charlie, day: d("2010-05-01") }),
+      child_of({ child: charlie, parent: alice }),
+    ]);
+    expect(ask(motherInLaw, "152(d)(2)(G)", [alice, bob])).toBe("true");
+    const sisterInLaw = withDan([
+      married_on({ a: bob, b: dan, day: d("2010-05-01") }),
+      sibling_of({ a: alice, b: dan }),
+    ]);
+    expect(ask(sisterInLaw, "152(d)(2)(G)", [alice, bob])).toBe("true");
+    expect(ask(kbWith([sibling_of({ a: alice, b: bob })]), "152(d)(2)(G)", [alice, bob])).toBe(
+      "false",
+    );
+  });
+
+  test("(H): a household member for the year who was not the spouse", () => {
+    const friend = kbWith([shares_home.inYear({ a: alice, b: bob, year: 2018n })]);
+    expect(ask(friend, "152(d)(2)(H)", [alice, bob], 2018)).toBe("true");
+    expect(ask(friend, "152(d)(2)(H)", [alice, bob], 2019)).toBe("false");
+    const dated = kbWith([
+      shares_home.since({ a: bob, b: alice, day: d("2017-09-16") }),
+      shares_home.until({ a: bob, b: alice, day: d("2018-02-10") }),
+    ]);
+    expect(ask(dated, "152(d)(2)(H)", [alice, bob], 2018)).toBe("true");
+    expect(ask(dated, "152(d)(2)(H)", [alice, bob], 2019)).toBe("false");
+    const spouse = kbWith([
+      shares_home.undated({ a: alice, b: bob }),
+      married_on({ a: alice, b: bob, day: d("2010-05-01") }),
+    ]);
+    expect(ask(spouse, "152(d)(2)(H)", [alice, bob], 2018)).toBe("false");
+    expect(ask(spouse, "152(d)(2)", [alice, bob], 2018)).toBe("false");
+    expect(ask(friend, "152(d)(2)", [alice, bob], 2018)).toBe("true");
   });
 });

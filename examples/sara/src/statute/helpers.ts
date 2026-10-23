@@ -10,6 +10,7 @@
 import { and, closedPredicate, gt, gte, letIn, lte, not, or, variable } from "@factbag/core/dsl";
 import type { KnowledgeBase } from "@factbag/core/kb";
 import { NEG_INF } from "../calendar";
+import { year_bounds } from "../schema";
 import {
   born,
   child_of,
@@ -21,7 +22,9 @@ import {
   nonresident_alien_since,
   nonresident_alien_until,
   Person,
+  shares_home,
   sibling_of,
+  stepchild_of,
 } from "../schema";
 
 const A = variable("A");
@@ -35,6 +38,8 @@ const L = variable("L");
 const M = variable("M");
 const M1 = variable("M1");
 const M2 = variable("M2");
+const Y = variable("Y");
+const U = variable("U");
 
 /** The two people married on `start`; an undated marriage starts at the sentinel −∞. */
 export const marriage = closedPredicate("marriage", { a: Person, b: Person, start: Date });
@@ -71,6 +76,42 @@ const has_nra_until = closedPredicate("has_nra_until", { person: Person });
 export const has_birth = closedPredicate("has_birth", { person: Person });
 /** Sibling in either order. */
 export const sibling = closedPredicate("sibling", { a: Person, b: Person });
+/** The two were married to each other at some time, in either order. */
+export const spouses = closedPredicate("spouses", { a: Person, b: Person });
+/**
+ * Stepparent: stated as such, or the spouse of a parent who is not a parent. The statute
+ * names the relation and SARA builds it from a marriage, so both readings are needed.
+ */
+export const stepparent_of = closedPredicate("stepparent_of", {
+  stepparent: Person,
+  child: Person,
+});
+/** Child in the sense of §152(f)(1): son, daughter, adopted child or stepchild. */
+export const child_incl_step = closedPredicate("child_incl_step", {
+  child: Person,
+  parent: Person,
+});
+/** The two shared a home at some time in the year: undated, per-year, or dated facts. */
+export const cohabited_in = closedPredicate("cohabited_in", {
+  a: Person,
+  b: Person,
+  year: BigInt,
+});
+const cohabitation_since = closedPredicate("cohabitation_since", {
+  a: Person,
+  b: Person,
+  day: Date,
+});
+const cohabitation_until = closedPredicate("cohabitation_until", {
+  a: Person,
+  b: Person,
+  day: Date,
+});
+const cohabitation_ended_before = closedPredicate("cohabitation_ended_before", {
+  a: Person,
+  b: Person,
+  day: Date,
+});
 /** Child, grandchild or great-grandchild: a fixed-depth descendant. */
 export const descendant_of = closedPredicate("descendant_of", {
   descendant: Person,
@@ -134,6 +175,45 @@ export function defineHelpers(kb: KnowledgeBase): void {
   );
   kb.rule(has_birth({ person: P })).iff(born({ person: P, day: D }));
   kb.rule(sibling({ a: A, b: B })).iff(or(sibling_of({ a: A, b: B }), sibling_of({ a: B, b: A })));
+  kb.rule(spouses({ a: A, b: B })).iff(marriage({ a: A, b: B, start: S }));
+  kb.rule(stepparent_of({ stepparent: A, child: B })).iff(
+    or(
+      stepchild_of({ child: B, stepparent: A }),
+      and(
+        child_of({ child: B, parent: P }),
+        spouses({ a: A, b: P }),
+        not(child_of({ child: B, parent: A })),
+      ),
+    ),
+  );
+  kb.rule(child_incl_step({ child: A, parent: B })).iff(
+    or(child_of({ child: A, parent: B }), stepparent_of({ stepparent: B, child: A })),
+  );
+  kb.rule(cohabitation_since({ a: A, b: B, day: D })).iff(
+    or(shares_home.since({ a: A, b: B, day: D }), shares_home.since({ a: B, b: A, day: D })),
+  );
+  kb.rule(cohabitation_until({ a: A, b: B, day: D })).iff(
+    or(shares_home.until({ a: A, b: B, day: D }), shares_home.until({ a: B, b: A, day: D })),
+  );
+  kb.rule(cohabitation_ended_before({ a: A, b: B, day: D })).iff(
+    and(cohabitation_until({ a: A, b: B, day: E }), gt(D, E)),
+  );
+  kb.rule(cohabited_in({ a: A, b: B, year: Y })).iff(
+    and(
+      year_bounds({ year: Y, first: F, last: L, under25After: U }),
+      or(
+        shares_home.undated({ a: A, b: B }),
+        shares_home.undated({ a: B, b: A }),
+        shares_home.inYear({ a: A, b: B, year: Y }),
+        shares_home.inYear({ a: B, b: A, year: Y }),
+        and(
+          cohabitation_since({ a: A, b: B, day: S }),
+          lte(S, L),
+          not(cohabitation_ended_before({ a: A, b: B, day: F })),
+        ),
+      ),
+    ),
+  );
   kb.rule(descendant_of({ descendant: A, ancestor: B })).iff(
     or(
       child_of({ child: A, parent: B }),

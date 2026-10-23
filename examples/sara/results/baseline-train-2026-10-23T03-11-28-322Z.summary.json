@@ -1,0 +1,42 @@
+{
+  "kind": "direct-baseline",
+  "promptVersion": "direct-1",
+  "split": "train",
+  "model": "jev-1.13.0",
+  "selection": "covered citations",
+  "run": {
+    "cases": 20,
+    "correct": 16,
+    "unanswered": 0,
+    "accuracy": 0.8,
+    "interval": [
+      0.6,
+      0.95
+    ]
+  },
+  "requests": 20,
+  "inputTokens": 25631,
+  "usdPerCase": 0.000053825100000000014,
+  "meanLatencyMs": 80.09308965,
+  "wallMs": 432.544042,
+  "comparison": {
+    "file": "results/train-2026-10-23T03-11-00-990Z.jsonl",
+    "cases": 20,
+    "bothCorrect": 16,
+    "factbagOnly": [
+      "s152_c_2_neg",
+      "s2_a_1_A_neg",
+      "s2_a_2_B_neg",
+      "s2_b_2_C_neg"
+    ],
+    "directOnly": [],
+    "neither": [],
+    "factbag": {
+      "correct": 20,
+      "requests": 740,
+      "inputTokens": 1271512,
+      "meanLatencyMs": 838.1503978999999
+    }
+  },
+  "ranAt": "2026-10-23T03:11:28.322Z"
+}
