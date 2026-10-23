@@ -199,10 +199,22 @@ describe("§152(c)", () => {
       child_of({ child: bob, parent: alice }),
     ]);
     expect(ask(older, "152(c)(3)", [bob, alice], 2019)).toBe("false");
-    // Without both dates of birth the age test is not met: see §152(d)(1) for the
+    // Without the child's date of birth the age test is not met: see §152(d)(1) for the
     // qualifying relative such a child may still be.
     const undated = kbWith([child_of({ child: bob, parent: alice })]);
     expect(ask(undated, "152(c)(3)", [bob, alice], 2019)).toBe("false");
+    // Without the taxpayer's, a descendant is taken to be the younger, as the reference
+    // formalization does; a sibling is not.
+    const childOnly = kbWith([
+      child_of({ child: bob, parent: alice }),
+      born({ person: bob, day: d("2014-01-31") }),
+    ]);
+    expect(ask(childOnly, "152(c)(3)", [bob, alice], 2019)).toBe("true");
+    const siblingOnly = kbWith([
+      sibling_of({ a: alice, b: bob }),
+      born({ person: bob, day: d("2014-01-31") }),
+    ]);
+    expect(ask(siblingOnly, "152(c)(3)", [bob, alice], 2019)).toBe("false");
   });
 });
 
@@ -459,6 +471,7 @@ describe("household and dependents", () => {
     const friend = kbWith([
       ...bobHome,
       dependent_152.inYear({ dependent: charlie, taxpayer: bob, year: 2018n }),
+      gross_income({ person: bob, year: 2018n, amount: 300_000 }),
     ]);
     expect(ask(friend, "2(b)(3)(B)", [bob, charlie], 2018)).toBe("true");
     expect(ask(friend, "2(b)", [bob], 2018)).toBe("false");
@@ -468,16 +481,48 @@ describe("household and dependents", () => {
   });
 
   test("§152(b)(1): a dependent has no dependents", () => {
-    const chain = kbWith([
+    // s152_b_1_*: Alice's son Bob and Bob's son Charlie each satisfy §152(c)(1). The
+    // reference formalization's facts for the case are these two statements alone.
+    const stated = [
+      qualifying_child_152c.inYear({ child: bob, taxpayer: alice, year: 2015n }),
+      qualifying_child_152c.inYear({ child: charlie, taxpayer: bob, year: 2015n }),
+    ];
+    const chain = kbWith(stated);
+    expect(ask(chain, "152(b)(1)", [bob], 2015)).toBe("true");
+    expect(ask(chain, "152(b)(1)", [alice], 2015)).toBe("false");
+    expect(ask(chain, "151(c)", [bob, charlie], 2015)).toBe("false");
+    expect(ask(chain, "151(c)", [alice, bob], 2015)).toBe("true");
+  });
+
+  test("§152(b)(1): the parent and child cycle the text's relations create", () => {
+    // With the sons' relations the text states, and no income stated for anyone, Alice
+    // is a qualifying relative of Bob and of Charlie under (d)(2)(C): she is their mother
+    // and grandmother, has no income, and is nobody's qualifying child. Each of Alice and
+    // Bob then defeats the other under (b)(1), and neither is a dependent. This is what the
+    // reference formalization answers on the same facts, and it disagrees with the case's
+    // label for Bob, which rests on the relations being left out of its facts.
+    const related = kbWith([
       child_of({ child: bob, parent: alice }),
       child_of({ child: charlie, parent: bob }),
       qualifying_child_152c.inYear({ child: bob, taxpayer: alice, year: 2015n }),
       qualifying_child_152c.inYear({ child: charlie, taxpayer: bob, year: 2015n }),
     ]);
-    expect(ask(chain, "152(b)(1)", [bob], 2015)).toBe("true");
-    expect(ask(chain, "152(b)(1)", [alice], 2015)).toBe("false");
-    expect(ask(chain, "151(c)", [bob, charlie], 2015)).toBe("false");
-    expect(ask(chain, "151(c)", [alice, bob], 2015)).toBe("true");
+    expect(ask(related, "152(d)(1)", [alice, bob], 2015)).toBe("true");
+    expect(ask(related, "152(b)(1)", [bob], 2015)).toBe("false");
+    expect(ask(related, "152(b)(1)", [alice], 2015)).toBe("false");
+    expect(ask(related, "151(c)", [alice, bob], 2015)).toBe("false");
+    // Income for Alice removes her from (d)(1)(B), and the case's answers return.
+    const earning = kbWith([
+      child_of({ child: bob, parent: alice }),
+      child_of({ child: charlie, parent: bob }),
+      qualifying_child_152c.inYear({ child: bob, taxpayer: alice, year: 2015n }),
+      qualifying_child_152c.inYear({ child: charlie, taxpayer: bob, year: 2015n }),
+      gross_income({ person: alice, year: 2015n, amount: 50_000 }),
+    ]);
+    expect(ask(earning, "152(b)(1)", [bob], 2015)).toBe("true");
+    expect(ask(earning, "152(b)(1)", [alice], 2015)).toBe("false");
+    expect(ask(earning, "151(c)", [alice, bob], 2015)).toBe("true");
+    expect(ask(earning, "151(c)", [bob, charlie], 2015)).toBe("false");
   });
 
   test("§152(b)(2): a joint return, not separate returns", () => {
@@ -544,6 +589,9 @@ describe("household and dependents", () => {
   });
 
   test("§152(d)(1)(B): no income for the year", () => {
+    // s152_d_1_B_pos says Alice "did not have any income"; its facts, like those of every
+    // case where someone has no income, simply state none. Absence is zero, as in the
+    // reference formalization, which sums the income it finds.
     expect(ask(kbWith([]), "152(d)(1)(B)", [alice], 2015)).toBe("true");
     expect(
       ask(
@@ -553,6 +601,39 @@ describe("household and dependents", () => {
         2015,
       ),
     ).toBe("false");
+    // Income in another year is not income in this one.
+    expect(
+      ask(
+        kbWith([gross_income({ person: alice, year: 2014n, amount: 2312 })]),
+        "152(d)(1)(B)",
+        [alice],
+        2015,
+      ),
+    ).toBe("true");
+    // An explicit denial of an amount is not income either, and does not conflict with
+    // absence; a denial alongside a stated amount is a conflict the query reports.
+    const denied = kbWith([]);
+    denied.denies(gross_income({ person: alice, year: 2015n, amount: 2312 }));
+    expect(ask(denied, "152(d)(1)(B)", [alice], 2015)).toBe("true");
+    const contradicted = kbWith([gross_income({ person: alice, year: 2015n, amount: 2312 })]);
+    contradicted.denies(gross_income({ person: alice, year: 2015n, amount: 2312 }));
+    expect(ask(contradicted, "152(d)(1)(B)", [alice], 2015)).toBe("conflicted");
+  });
+
+  test("§152(d)(1): an income-less parent is the qualifying relative of a child", () => {
+    // Nothing in SARA's §152(d) asks who supports whom, so a parent with no stated income
+    // qualifies under (d)(2)(C) for a child who is not a qualifying child of anyone else.
+    const pair = [child_of({ child: bob, parent: alice })];
+    expect(ask(kbWith(pair), "152(d)(1)", [alice, bob], 2015)).toBe("true");
+    expect(ask(kbWith(pair), "152(d)(1)", [bob, alice], 2015)).toBe("true");
+    const earning = [...pair, gross_income({ person: alice, year: 2015n, amount: 50_000 })];
+    expect(ask(kbWith(earning), "152(d)(1)", [alice, bob], 2015)).toBe("false");
+    expect(ask(kbWith(earning), "152(d)(1)", [bob, alice], 2015)).toBe("true");
+    // Mutual qualification leaves neither a dependent; one income settles it.
+    expect(ask(kbWith(pair), "151(c)", [alice, bob], 2015)).toBe("false");
+    expect(ask(kbWith(pair), "151(c)", [bob, alice], 2015)).toBe("false");
+    expect(ask(kbWith(earning), "151(c)", [alice, bob], 2015)).toBe("true");
+    expect(ask(kbWith(earning), "151(c)", [bob, alice], 2015)).toBe("false");
   });
 
   test("§151(b): a spouse exemption unless a joint return is made", () => {

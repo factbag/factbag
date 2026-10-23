@@ -71,7 +71,10 @@ type Record_ = Readonly<{
   reading?: number;
   requests: number;
   inputTokens: number;
+  /** End to end: grounding, question reading and the query. */
   latencyMs: number;
+  /** The query alone. */
+  solverMs?: number;
 }>;
 
 const sdk = new TypeSafeClient({ defaultModel: args.model, timeout: 300_000 });
@@ -129,8 +132,11 @@ await pool(runnable, Number(args.concurrency), async (item) => {
     }));
     let value = reading.reason ?? "";
     let predicted: string | undefined;
+    let solverMs: number | undefined;
     if (reading.atom !== undefined) {
+      const queried = performance.now();
       value = query(grounding.kb, reading.atom).value;
+      solverMs = performance.now() - queried;
       predicted = value === "true" ? "Entailment" : value === "false" ? "Contradiction" : undefined;
     }
     const record: Record_ = {
@@ -153,6 +159,7 @@ await pool(runnable, Number(args.concurrency), async (item) => {
       requests: usage.requests,
       inputTokens: usage.inputTokens,
       latencyMs: performance.now() - began,
+      ...(solverMs === undefined ? {} : { solverMs }),
     };
     records.push(record);
     const mark = predicted === record.gold ? "ok " : "BAD";
@@ -207,6 +214,10 @@ const summary = {
   requests,
   inputTokens,
   usdPerCase: records.length === 0 ? 0 : (inputTokens * USD_PER_INPUT_TOKEN) / records.length,
+  latencyMs: spread(records.map((record) => record.latencyMs)),
+  solverMs: spread(
+    records.flatMap((record) => (record.solverMs === undefined ? [] : [record.solverMs])),
+  ),
   wallMs,
   ranAt: new Date().toISOString(),
 };
@@ -221,8 +232,24 @@ process.stdout.write(
     `[${(run.interval[0] * 100).toFixed(1)}, ${(run.interval[1] * 100).toFixed(1)}]), ` +
     `${run.unanswered} unanswered; with skipped: ${(withSkipped.accuracy * 100).toFixed(1)}%\n` +
     `${requests} requests, ${inputTokens} input tokens, $${summary.usdPerCase.toFixed(5)}/case, ` +
-    `${(wallMs / 1000).toFixed(0)}s\nWrote ${base}.summary.json\n`,
+    `median ${summary.latencyMs?.median ?? 0} ms/case end to end, ` +
+    `${summary.solverMs?.median ?? 0} ms in the solver, ${(wallMs / 1000).toFixed(0)}s\n` +
+    `Wrote ${base}.summary.json\n`,
 );
+
+/** Median and maximum of a sample, rounded to whole milliseconds. */
+function spread(values: readonly number[]): { median: number; max: number } | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 1
+      ? (sorted[middle] ?? 0)
+      : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+  return { median: Math.round(median), max: Math.round(sorted[sorted.length - 1] ?? 0) };
+}
 
 function goldOf(item: Case): string {
   return item.answer.kind === "entailment" ? item.answer.label : String(item.answer.amount);

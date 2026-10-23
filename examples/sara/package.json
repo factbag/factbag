@@ -9,6 +9,7 @@
   "scripts": {
     "eval": "tsx src/run.ts",
     "baseline": "tsx src/baseline.ts",
+    "replay": "tsx src/replay.ts",
     "probe": "tsx src/probe.ts",
     "score-probe": "tsx src/score-probe.ts",
     "test": "vitest run",

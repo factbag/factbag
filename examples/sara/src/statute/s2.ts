@@ -136,7 +136,6 @@ export function defineS2(kb: KnowledgeBase): void {
       maintains_household({ person: T, year: Y }),
       child_incl_step({ child: I, parent: T }),
       cohabited_in({ a: T, b: I, year: Y }),
-      dependent_of({ dependent: I, taxpayer: T, year: Y }),
       s151_c({ taxpayer: T, dependent: I, year: Y }),
     ),
   );
@@ -231,11 +230,8 @@ export function defineS2(kb: KnowledgeBase): void {
           qualifying_child({ individual: I, taxpayer: T, year: Y }),
           not(married_joint_filer({ individual: I, year: Y })),
         ),
-        // (ii) Any other dependent with a §151 deduction.
-        and(
-          dependent_of({ dependent: I, taxpayer: T, year: Y }),
-          s151_c({ taxpayer: T, dependent: I, year: Y }),
-        ),
+        // (ii) Any other dependent with a §151 deduction, which a stated deduction gives.
+        s151_c({ taxpayer: T, dependent: I, year: Y }),
       ),
     ),
   );

@@ -39,6 +39,7 @@ pnpm --filter @factbag/sara-eval test
 pnpm --filter @factbag/sara-eval eval --split train --data /path/to/sara
 pnpm --filter @factbag/sara-eval eval --split train --citation "2(a)(1)(A),7703(a)(2)"
 pnpm --filter @factbag/sara-eval baseline --data /path/to/sara --compare results/train-<stamp>.jsonl
+pnpm --filter @factbag/sara-eval replay --facts results/train-<stamp>.jsonl
 pnpm --filter @factbag/sara-eval probe --longest 10 --data /path/to/sara
 ```
 
@@ -68,14 +69,39 @@ and employment (§3306), are to be added in the same shape, then the numeric cas
 The household provisions rest on a derived-status layer: married under §7703 including the
 living-apart rule of (b); surviving spouse from §2(a); head of household from §2(b); and
 dependent from §152, as a qualifying child or qualifying relative with the exceptions of
-(b). Three readings were settled against the train cases, since the statute alone does not
-fix them: a qualifying child needs both dates of birth; "no income" for a qualifying
-relative is the closed-world absence of any income; and §152(b)(1), which strips a
-dependent of their own dependents, is triggered only by a dependency the text states or a
-qualifying child, never by a derived qualifying relative, as otherwise a parent and the
-child who is their stated dependent would each be the other's dependent. Exact days in the
-text take precedence over a bare year for the same pair, since the classifier tends to
-assert both.
+(b). The rules are authored from the statute text; where the text leaves a reading open,
+the reference formalization that ships with SARA (`statutes/prolog/`, read but never run,
+with the held-out cases' facts and answers left unread) settles it, and the train cases'
+own fact encodings show how the authors meant their sentences. Three readings were checked
+this way:
+
+- _Dates of birth, §152(c)(3)._ The reference needs the child's date of birth, or it cannot
+  be under 25; when the taxpayer's is missing it takes a descendant of the taxpayer to be
+  the younger. The rules do the same: a child of unknown age is not a qualifying child
+  (though they may be a qualifying relative), and a parent of unknown age is older than
+  their child.
+- _No income, §152(d)(1)(B)._ The reference sums the income it finds, so none stated is
+  none; the case that says "did not have any income" states no income facts, exactly like
+  the cases that say nothing. Absence is zero.
+- _Dependents' dependents, §152(b)(1)._ The reference tests whether the taxpayer is
+  someone's dependent as a qualifying child or a qualifying relative, derived or not, and
+  when it does so it does not test in turn whether that someone is a dependent: the
+  recursion stops one level down. The rules do the same, which also keeps them stratified
+  (the solver rejects recursion through negation). A pair who each qualify as the other's
+  dependent, such as a child and a parent with no stated income, therefore leaves neither a
+  dependent, as it does in the reference. An earlier shortcut that let only stated
+  dependencies and qualifying children trigger (b)(1) is gone.
+
+One train case disagrees with these semantics: `s152_b_1_pos`, "Alice has a son, Bob, who
+satisfies section 152(c)(1)…", expects Bob to be a dependent. Its reference facts hold the
+two stated qualifying-child relations and nothing else; the text's "has a son" relations,
+which the extraction asserts, make Alice, with no stated income, a qualifying relative of
+her son and grandson under (d)(2)(C), so Alice and Bob each defeat the other under (b)(1).
+The reference gives the same answer on those facts. The case is kept as a known failure
+rather than special-cased; §7703(b)(1) follows the reference in reading the deductible
+child as a qualifying child, and a stated §151(c) deduction satisfies §151(c) directly
+without defining a §152 dependency, as in the reference. Exact days in the text take
+precedence over a bare year for the same pair, since the classifier tends to assert both.
 
 The calendar is two fact tables, a year's first and last day and its first of July and
 half-length in days, and the rules compare dates with `daysBetween` and `yearsBetween`
@@ -91,6 +117,13 @@ Factbag 56/56 at 47 requests, $0.0082 and a median 1.3 s per case
 Factbag right, direct wrong, spread over §151(b), §152(c)(1), (c)(2), (d)(2)(D), §2(a) and
 (b)(2), and §7703(b)(1); no case was answered by direct Jev alone. Fourteen of the 56
 questions needed a reading request; the rest had one possible reading.
+
+Replaying that run's saved facts and question readings under the reference-checked rules
+(`pnpm --filter @factbag/sara-eval replay --facts results/train-2026-10-23T04-31-41-708Z.jsonl`,
+no requests) gives 55/56: only `s152_b_1_pos` changes, as described above
+(`results/replay-2026-10-23T14-15-54-569Z`). The solver's share of a case is a median 27 ms
+and at most 110 ms, against the 1.3 s median end to end; the rest is the classifier.
+A fresh extraction run on these rules is pending the TypeSafe account's credits.
 
 §152(d)(2) was the first provision added under a reservation: its train citations (B) and
 (E) were the development cases, (D) and (F) were reserved unread until the rules, the

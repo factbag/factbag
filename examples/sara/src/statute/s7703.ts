@@ -12,6 +12,7 @@ import {
   spouse_at_close,
 } from "./helpers";
 import { s151_c } from "./s151";
+import { qualifying_child } from "./s152";
 
 const T = variable("T");
 const S = variable("S");
@@ -88,7 +89,12 @@ export function defineS7703(kb: KnowledgeBase): void {
       maintained_home_in({ person: T, year: Y }),
       child_incl_step({ child: C, parent: T }),
       abode_over_half({ a: T, b: C, year: Y }),
-      s151_c({ taxpayer: T, dependent: C, year: Y }),
+      // The reference formalization reads the deductible child as a qualifying child and
+      // does not consult §151; the statute's deduction is accepted too.
+      or(
+        s151_c({ taxpayer: T, dependent: C, year: Y }),
+        qualifying_child({ individual: C, taxpayer: T, year: Y }),
+      ),
     ),
   );
   kb.rule(s7703_b_2({ taxpayer: T, year: Y })).iff(maintains_household({ person: T, year: Y }));
