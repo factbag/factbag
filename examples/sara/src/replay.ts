@@ -10,12 +10,13 @@ import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import type { GroundAtom, PredicateDeclaration } from "@factbag/core/dsl";
-import { query } from "@factbag/core/query";
+import { query, queryAll } from "@factbag/core/query";
+import { variable } from "@factbag/core/dsl";
 import { day } from "./calendar";
 import { summarise } from "./metrics";
 import type { Outcome } from "./metrics";
 import { EXTRACTION_VERSION, FACT_PREDICATES, Person } from "./schema";
-import { PROVISIONS, statuteKB } from "./statute";
+import { PROVISIONS, statuteKB, TAX_QUESTION } from "./statute";
 
 const { values: args } = parseArgs({
   options: {
@@ -35,6 +36,7 @@ type SavedRecord = Readonly<{
   predicted: string | undefined;
   value: string;
   atom?: Readonly<{ predicate: string; fields: Record<string, string> }>;
+  open?: true;
   people?: readonly string[];
   facts?: readonly SavedFact[];
 }>;
@@ -43,7 +45,7 @@ const byName = new Map<string, PredicateDeclaration>();
 for (const declaration of FACT_PREDICATES) {
   byName.set(declaration.name, declaration);
 }
-for (const provision of PROVISIONS) {
+for (const provision of [...PROVISIONS, TAX_QUESTION]) {
   for (const declaration of [provision.predicate, provision.valued]) {
     if (declaration !== undefined) {
       byName.set(declaration.name, declaration);
@@ -149,10 +151,23 @@ for (const record of records) {
   }
   const atom = toAtom(record.atom.predicate, record.atom.fields, people);
   const began = performance.now();
-  const value = query(kb, atom).value;
+  let value: string;
+  let predicted: string | undefined;
+  if (record.open === true) {
+    const amounts = queryAll(kb, {
+      ...atom,
+      fields: { ...atom.fields, amount: variable("Amount") },
+    })
+      .filter((judgment) => judgment.value === "true")
+      .map((judgment) => judgment.goal.atom.fields["amount"])
+      .filter((amount): amount is number => typeof amount === "number");
+    value = amounts.length === 0 ? "no amount" : amounts.map(String).join(" | ");
+    predicted = amounts.length === 1 ? String(amounts[0]) : undefined;
+  } else {
+    value = query(kb, atom).value;
+    predicted = value === "true" ? "Entailment" : value === "false" ? "Contradiction" : undefined;
+  }
   const solverMs = performance.now() - began;
-  const predicted =
-    value === "true" ? "Entailment" : value === "false" ? "Contradiction" : undefined;
   replayed.push({
     id: record.id,
     citation: record.citation,

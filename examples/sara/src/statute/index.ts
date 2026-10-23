@@ -3,11 +3,13 @@
  * predicate that decides it. Each registry entry says which people the question names, in
  * order, and whether it names a taxable year.
  */
-import type { GroundAtom, PredicateDeclaration } from "@factbag/core/dsl";
+import { variable } from "@factbag/core/dsl";
+import type { Atom, PredicateDeclaration, Var } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { yearBoundsFacts, yearMarksFacts } from "../schema";
 import type { Person } from "../schema";
 import { defineHelpers } from "./helpers";
+import { defineTax, tax_owed } from "./tax";
 import {
   defineS1,
   s1_a,
@@ -202,6 +204,8 @@ export type Provision = Readonly<{
    * without an amount cannot be read.
    */
   valued?: PredicateDeclaration;
+  /** The question asks for the amount rather than naming it: the valued form is queried open. */
+  open?: true;
   /** The person fields, in the order the question names people. */
   people: readonly string[];
   /** Whether the predicate takes the taxable year named in the question. */
@@ -867,6 +871,21 @@ export const PROVISIONS: readonly Provision[] = [
   },
 ];
 
+/** The amount an open question asks for. */
+const AMOUNT = variable("Amount");
+
+/** The numeric question, "How much tax does X have to pay in Y?", as a provision. */
+export const TAX_QUESTION: Provision = {
+  citation: "tax",
+  valued: tax_owed,
+  people: ["taxpayer"],
+  year: true,
+  open: true,
+  description:
+    "How much tax the taxpayer has to pay for the year: the income tax of section 1 plus the " +
+    "unemployment tax of section 3301.",
+};
+
 /**
  * The ground atom a question about a provision resolves to: the valued form when the
  * question names an amount and the provision has one, else the yes-or-no form.
@@ -876,20 +895,21 @@ export function provisionAtom(
   people: readonly Person[],
   year: bigint | undefined,
   amount?: number,
-): GroundAtom {
+): Atom {
   if (people.length !== provision.people.length) {
     throw new Error(`Section ${provision.citation} names ${provision.people.length} people`);
   }
   if (provision.year !== (year !== undefined)) {
     throw new Error(`Section ${provision.citation} ${provision.year ? "needs" : "takes no"} year`);
   }
-  const predicate = amount === undefined ? provision.predicate : provision.valued;
+  const open = amount === undefined && provision.open === true;
+  const predicate = amount === undefined && !open ? provision.predicate : provision.valued;
   if (predicate === undefined) {
     throw new Error(
       `Section ${provision.citation} ${amount === undefined ? "needs" : "takes no"} amount`,
     );
   }
-  const fields: Record<string, Person | bigint | number> = {};
+  const fields: Record<string, Person | bigint | number | Var> = {};
   for (const [index, name] of provision.people.entries()) {
     const person = people[index];
     if (person !== undefined) {
@@ -901,6 +921,8 @@ export function provisionAtom(
   }
   if (amount !== undefined) {
     fields["amount"] = amount;
+  } else if (open) {
+    fields["amount"] = AMOUNT;
   }
   return { predicate, fields };
 }
@@ -923,5 +945,6 @@ export function statuteKB(): KnowledgeBase {
   defineS63(kb);
   defineS1(kb);
   defineS3306(kb);
+  defineTax(kb);
   return kb;
 }

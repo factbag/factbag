@@ -1,5 +1,5 @@
 /** §7703. Determination of marital status. */
-import { and, closedPredicate, lte, not, or, variable } from "@factbag/core/dsl";
+import { add, and, closedPredicate, gte, letIn, lte, not, or, variable } from "@factbag/core/dsl";
 import type { KnowledgeBase } from "@factbag/core/kb";
 import { legally_separated, married_stated, Person, year_bounds, year_marks } from "../schema";
 import {
@@ -8,6 +8,7 @@ import {
   cohabited_during,
   files_jointly,
   files_separately,
+  gross_income_of,
   maintained_home_in,
   maintains_household,
   spouse_at_close,
@@ -25,6 +26,9 @@ const D = variable("D");
 const K = variable("K");
 const J = variable("J");
 const H = variable("H");
+const A = variable("A");
+const G = variable("G");
+const G2 = variable("G2");
 
 /**
  * (a)(1): the taxpayer and spouse are married as of the close of the taxable year, or, if
@@ -70,6 +74,19 @@ export const married_separate = closedPredicate("married_separate", {
   taxpayer: Person,
   year: BigInt,
 });
+/** The named spouse the taxpayer makes a joint return with for the year. */
+export const joint_spouse = closedPredicate("joint_spouse", {
+  taxpayer: Person,
+  spouse: Person,
+  year: BigInt,
+});
+const has_joint_spouse = closedPredicate("has_joint_spouse", { taxpayer: Person, year: BigInt });
+/**
+ * Adjusted gross income for the return: the taxpayer's gross income, plus the spouse's
+ * when they make a joint return, as the reference formalization sums them. SARA has no
+ * adjustments, so gross income stands for adjusted gross income.
+ */
+export const agi = closedPredicate("agi", { taxpayer: Person, year: BigInt, amount: Number });
 
 export function defineS7703(kb: KnowledgeBase): void {
   kb.rule(s7703_a_1({ taxpayer: T, spouse: S, year: Y })).iff(
@@ -128,5 +145,29 @@ export function defineS7703(kb: KnowledgeBase): void {
   );
   kb.rule(married_separate({ taxpayer: T, year: Y })).iff(
     and(married_7703({ taxpayer: T, year: Y }), not(files_jointly({ person: T, year: Y }))),
+  );
+  kb.rule(joint_spouse({ taxpayer: T, spouse: S, year: Y })).iff(
+    and(
+      married_7703({ taxpayer: T, year: Y }),
+      files_jointly({ person: T, year: Y }),
+      spouse_at_close({ taxpayer: T, spouse: S, year: Y }),
+    ),
+  );
+  kb.rule(has_joint_spouse({ taxpayer: T, year: Y })).iff(
+    joint_spouse({ taxpayer: T, spouse: S, year: Y }),
+  );
+  kb.rule(agi({ taxpayer: T, year: Y, amount: A })).iff(
+    or(
+      and(
+        joint_spouse({ taxpayer: T, spouse: S, year: Y }),
+        gross_income_of({ person: T, year: Y, amount: G }),
+        gross_income_of({ person: S, year: Y, amount: G2 }),
+        letIn(A, add(G, G2), gte(A, 0)),
+      ),
+      and(
+        not(has_joint_spouse({ taxpayer: T, year: Y })),
+        gross_income_of({ person: T, year: Y, amount: A }),
+      ),
+    ),
   );
 }

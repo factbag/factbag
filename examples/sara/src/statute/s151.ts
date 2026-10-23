@@ -27,7 +27,6 @@ import type { KnowledgeBase } from "@factbag/core/kb";
 import { deduction_151c, exemption_151b, Person } from "../schema";
 import {
   files_jointly,
-  gross_income_of,
   has_income,
   has_stated,
   spouse_at_close,
@@ -36,7 +35,7 @@ import {
 } from "./helpers";
 import { dependent_of } from "./s152";
 import { applicable_amount } from "./s68";
-import { married_separate } from "./s7703";
+import { agi, married_separate } from "./s7703";
 
 const T = variable("T");
 const S = variable("S");
@@ -152,7 +151,7 @@ export function defineS151(kb: KnowledgeBase): void {
   );
   kb.rule(s151_d_3_B({ taxpayer: T, year: Y, amount: P })).iff(
     and(
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       applicable_amount({ taxpayer: T, year: Y, amount: AA }),
       phaseout_step({ taxpayer: T, year: Y, amount: ST }),
       letIn(E, max(sub(G, AA), 0), letIn(P, min(mul(2, ceilTo(div(E, ST), 0)), 100), gte(P, 0))),
@@ -160,7 +159,7 @@ export function defineS151(kb: KnowledgeBase): void {
   );
   kb.rule(s151_d_3_A({ taxpayer: T, year: Y, amount: A })).iff(
     and(
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       applicable_amount({ taxpayer: T, year: Y, amount: AA }),
       gt(G, AA),
       s151_d_3_B({ taxpayer: T, year: Y, amount: P }),
@@ -186,7 +185,7 @@ export function defineS151(kb: KnowledgeBase): void {
             or(
               s151_d_3_A({ taxpayer: T, year: Y, amount: A }),
               and(
-                gross_income_of({ person: T, year: Y, amount: G }),
+                agi({ taxpayer: T, year: Y, amount: G }),
                 applicable_amount({ taxpayer: T, year: Y, amount: AA }),
                 lte(G, AA),
                 letIn(A, 2000, gte(A, 0)),

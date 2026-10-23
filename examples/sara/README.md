@@ -38,13 +38,15 @@ are read; SARA's own Prolog facts and goals are never used.
 pnpm --filter @factbag/sara-eval test
 pnpm --filter @factbag/sara-eval eval --split train --data /path/to/sara
 pnpm --filter @factbag/sara-eval eval --split train --citation "2(a)(1)(A),7703(a)(2)"
+pnpm --filter @factbag/sara-eval eval --split train --numeric --data /path/to/sara
 pnpm --filter @factbag/sara-eval baseline --data /path/to/sara --compare results/train-<stamp>.jsonl
 pnpm --filter @factbag/sara-eval replay --facts results/train-<stamp>.jsonl
 pnpm --filter @factbag/sara-eval probe --longest 10 --data /path/to/sara
 ```
 
-Cases whose citation the statute does not yet cover, and the numeric cases, are listed in
-the summary and cost no requests. Per-case records, including every admitted fact and the
+Cases whose citation the statute does not cover are listed in the summary and cost no
+requests; `--numeric` and `--entailment` run one kind of case only. Per-case records,
+including every admitted fact and the
 query atom, go to a JSONL file under `results/` beside a summary. The test split is not
 run until a configuration is frozen; descriptions and rules are tuned on train only.
 
@@ -63,7 +65,22 @@ hand-written gold in `src/probe-gold.ts`; both read nothing but the train split.
 
 The statute covers every section SARA has: §7703, §2, §151, §152, §63, §68, §1, §3306 and
 §3301, each with its subparagraphs: all 85 citations in the train split's entailment
-cases, all 176 cases. The numeric cases come next.
+cases, all 176 cases, and the 80 numeric cases, which ask how much tax a person has to
+pay in a year.
+
+A numeric question is read like a value question with the amount left open: the query
+`tax_owed(taxpayer, year, Amount)` is solved for every amount it supports, and the case
+is answered when exactly one is. The tax owed is the income tax of §1 on taxable income
+under §63, with the exemptions of §151 and the limitation of §68, plus the unemployment
+tax of §3301; a joint return sums the spouses' incomes and exemptions, as the reference
+formalization does. The answer is scored by exact match, with the distance to the gold
+amount recorded and the counts within a dollar and within one percent reported beside it,
+since SARA's own tolerance for numeric answers is not documented here. Ten numeric train
+cases are statute tests (their texts written down as facts); the solver answers the
+eight-person one, `tax_case_10`, in about a quarter of a second. Two things the texts do
+that the vocabulary cannot yet represent: a relative the text leaves unnamed ("have a
+son, born…") is not an entity, and "lived at Alice's place" is taken by the tests, but
+may not be by the classifier, as Alice maintaining the household.
 
 Questions come in two forms. A yes-or-no question asks whether a provision applies to the
 people it names; a value question names an amount ("is equal to $4,000", "have to pay

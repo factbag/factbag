@@ -59,7 +59,8 @@ import {
   termination_payment,
   works_for_institution,
 } from "../schema";
-import { PROVISIONS, provisionAtom, statuteKB } from "./index";
+import { PROVISIONS, provisionAtom, statuteKB, TAX_QUESTION } from "./index";
+import { queryAll } from "@factbag/core/query";
 
 const alice = new Person("Alice");
 const bob = new Person("Bob");
@@ -1370,5 +1371,168 @@ describe("employment: §3306 and §3301", () => {
     expect(ask(kb, "3301", [alice], 2017, 612)).toBe("true");
     expect(ask(kb, "3301", [alice], 2017, 732)).toBe("false");
     expect(ask(kbWith([]), "3301", [alice], 2017, 0)).toBe("false");
+  });
+});
+
+describe("tax owed: the numeric cases", () => {
+  // Each test's facts are a numeric train case's text written down; see the case ids. An
+  // unnamed relative in a text is given a name here, since the vocabulary ranges over the
+  // people the text names.
+  const owed = (kb: KnowledgeBase, person: Person, year: number): readonly unknown[] =>
+    queryAll(kb, provisionAtom(TAX_QUESTION, [person], BigInt(year)))
+      .filter((judgment) => judgment.value === "true")
+      .map((judgment) => judgment.goal.atom.fields["amount"]);
+  const income = (person: Person, year: number, amount: number): GroundAtom =>
+    gross_income({ person, year: BigInt(year), amount });
+
+  test("tax_case_1: too little income to owe anything", () => {
+    const kb = kbWith([
+      income(alice, 2019, 1200),
+      income(alice, 2019, 5320),
+      works_for_institution.inYear({ person: alice, kind: "penal institution", year: 2019n }),
+      committed_to_penal_institution.since({ person: alice, day: d("2015-01-24") }),
+      committed_to_penal_institution.until({ person: alice, day: d("2019-05-05") }),
+    ]);
+    expect(owed(kb, alice, 2019)).toEqual([0]);
+  });
+
+  test("tax_case_2: a joint return with one spouse's qualifying child", () => {
+    const kb = kbWith([
+      married_on({ a: alice, b: bob, day: d("1992-02-03") }),
+      child_of({ child: charlie, parent: alice }),
+      child_of({ child: charlie, parent: bob }),
+      born({ person: charlie, day: d("2000-10-09") }),
+      died({ person: alice, day: d("2014-07-09") }),
+      maintains_home.inYear({ person: bob, year: 2013n }),
+      home_cost_share({ person: bob, percent: 40 }),
+      shares_home.inYear({ a: bob, b: charlie, year: 2013n }),
+      joint_return.inYear({ person: alice, year: 2013n }),
+      joint_return.inYear({ person: bob, year: 2013n }),
+      income(alice, 2013, 65_400),
+      income(bob, 2013, 56_400),
+    ]);
+    expect(owed(kb, alice, 2013)).toEqual([26_567]);
+  });
+
+  test("tax_case_10: a surviving spouse who is also an agricultural employer", () => {
+    const harold = new Person("Harold");
+    const son = new Person("Son");
+    const hands = ["Bob", "Cameron", "Dan", "Emily", "Fred", "George"].map((n) => new Person(n));
+    const kb = kbWith([
+      married_on({ a: alice, b: harold, day: d("1992-09-03") }),
+      child_of({ child: son, parent: alice }),
+      child_of({ child: son, parent: harold }),
+      born({ person: son, day: d("2000-01-25") }),
+      died({ person: harold, day: d("2016-02-28") }),
+      maintains_home.since({ person: alice, day: d("1993-01-01") }),
+      shares_home.since({ a: alice, b: son, day: d("1993-01-01") }),
+      income(alice, 2017, 236_422),
+      ...hands.flatMap((hand) => [
+        employed.since({ employer: alice, employee: hand, day: d("2017-09-09") }),
+        employed.until({ employer: alice, employee: hand, day: d("2017-10-01") }),
+        agricultural_labor({ employer: alice, employee: hand }),
+        paid({ payer: alice, payee: hand, amount: 5012 }),
+      ]),
+    ]);
+    kb.entities.add(harold, son, ...hands);
+    expect(ask(kb, "2(a)", [alice], 2017)).toBe("true");
+    expect(ask(kb, "3301", [alice], 2017, 1804)).toBe("true");
+    expect(owed(kb, alice, 2017)).toEqual([68_844]);
+  });
+
+  test("tax_case_100: a joint return in an early year", () => {
+    const kb = kbWith([
+      income(alice, 2006, 97_407),
+      income(bob, 2006, 136_370),
+      married_on({ a: alice, b: bob, day: d("2006-02-03") }),
+      joint_return.inYear({ person: alice, year: 2006n }),
+      joint_return.inYear({ person: bob, year: 2006n }),
+    ]);
+    expect(owed(kb, bob, 2006)).toEqual([66_088]);
+  });
+
+  test("tax_case_14: married filing separately, paying a spouse for farm work", () => {
+    const kb = kbWith([
+      income(alice, 2017, 44_215),
+      married_on({ a: alice, b: bob, day: d("2017-10-10") }),
+      separate_return.undated({ person: alice }),
+      separate_return.undated({ person: bob }),
+      employed.since({ employer: alice, employee: bob, day: d("2017-02-01") }),
+      employed.until({ employer: alice, employee: bob, day: d("2017-09-02") }),
+      agricultural_labor({ employer: alice, employee: bob }),
+      paid({ payer: alice, payee: bob, amount: 3200 }),
+      income(bob, 2017, 3200),
+    ]);
+    expect(owed(kb, alice, 2017)).toEqual([8582]);
+  });
+
+  test("tax_case_15 and 16: a spouse exemption, with and without the aged additions", () => {
+    const base: readonly GroundAtom[] = [
+      married_on({ a: alice, b: bob, day: d("2017-02-03") }),
+      separate_return.inYear({ person: alice, year: 2017n }),
+      separate_return.inYear({ person: bob, year: 2017n }),
+      shares_home.inYear({ a: alice, b: bob, year: 2017n }),
+    ];
+    const aged = kbWith([
+      ...base,
+      income(alice, 2017, 36_266),
+      born({ person: alice, day: d("1950-03-02") }),
+      born({ person: bob, day: d("1951-03-03") }),
+    ]);
+    expect(owed(aged, alice, 2017)).toEqual([5460]);
+    const young = kbWith([...base, income(alice, 2017, 33_200)]);
+    expect(owed(young, alice, 2017)).toEqual([4938]);
+  });
+
+  test("tax_case_17 and 24: surviving spouses with a child at home", () => {
+    const bobWidowed = kbWith([
+      married_on({ a: alice, b: bob, day: d("1992-02-03") }),
+      child_of({ child: charlie, parent: alice }),
+      child_of({ child: charlie, parent: bob }),
+      born({ person: charlie, day: d("2000-10-09") }),
+      died({ person: alice, day: d("2014-07-09") }),
+      maintains_home.inYear({ person: bob, year: 2015n }),
+      shares_home.inYear({ a: bob, b: charlie, year: 2015n }),
+      income(bob, 2015, 40_059),
+    ]);
+    expect(owed(bobWidowed, bob, 2015)).toEqual([4509]);
+    const aliceWidowed = kbWith([
+      married_on({ a: alice, b: bob, day: d("1994-11-23") }),
+      child_of({ child: charlie, parent: alice }),
+      child_of({ child: charlie, parent: bob }),
+      born({ person: charlie, day: d("2000-07-05") }),
+      died({ person: bob, day: d("2015-03-15") }),
+      maintains_home.inYear({ person: alice, year: 2017n }),
+      shares_home.inYear({ a: alice, b: charlie, year: 2017n }),
+      income(alice, 2017, 95_129),
+    ]);
+    expect(owed(aliceWidowed, alice, 2017)).toEqual([19_039]);
+  });
+
+  test("tax_case_18: a dependent father and uncle", () => {
+    const kb = kbWith([
+      child_of({ child: alice, parent: charlie }),
+      sibling_of({ a: bob, b: charlie }),
+      income(alice, 2015, 87_319),
+    ]);
+    expect(owed(kb, alice, 2015)).toEqual([19_801]);
+  });
+
+  test("tax_case_22 and 27: a head of household with a child, or a parent", () => {
+    const child = kbWith([
+      child_of({ child: bob, parent: alice }),
+      born({ person: bob, day: d("2014-01-31") }),
+      shares_home.since({ a: alice, b: bob, day: d("2014-01-31") }),
+      maintains_home.since({ person: alice, day: d("2014-01-31") }),
+      income(alice, 2017, 22_895),
+    ]);
+    expect(owed(child, alice, 2017)).toEqual([2174]);
+    const father = kbWith([
+      child_of({ child: alice, parent: bob }),
+      shares_home.inYear({ a: alice, b: bob, year: 2017n }),
+      maintains_home.inYear({ person: alice, year: 2017n }),
+      income(alice, 2017, 33_200),
+    ]);
+    expect(owed(father, alice, 2017)).toEqual([3720]);
   });
 });

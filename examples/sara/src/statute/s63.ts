@@ -37,7 +37,7 @@ import {
 import { s151_a, s151_b, s151_d_2 } from "./s151";
 import { head_of_household, surviving_spouse } from "./s2";
 import { itemized_after_68 } from "./s68";
-import { married_7703, married_separate } from "./s7703";
+import { agi, joint_spouse, married_7703, married_separate } from "./s7703";
 
 const T = variable("T");
 const S = variable("S");
@@ -55,6 +55,7 @@ const L = variable("L");
 const D = variable("D");
 const K = variable("K");
 const SD = variable("SD");
+const X2 = variable("X2");
 
 const taxpayerYear = { taxpayer: Person, year: BigInt };
 const valued = { ...taxpayerYear, amount: Number };
@@ -139,6 +140,9 @@ export const s63_c = closedPredicate("s63_c", valued);
 export const s63_d = closedPredicate("s63_d", taxpayerYear);
 /** (d)(2): the taxpayer's stated deduction is one for personal exemptions under §151. */
 export const s63_d_2 = closedPredicate("s63_d_2", taxpayerYear);
+/** The §151 deductions on the return: the taxpayer's, plus the spouse's on a joint return. */
+const s151_return = closedPredicate("s151_return", valued);
+const has_joint_spouse_63 = closedPredicate("has_joint_spouse_63", taxpayerYear);
 /** (a): gross income less itemized deductions (after §68) and the §151 exemptions. */
 export const s63_a = closedPredicate("s63_a", valued);
 /** (b): for one who does not itemize, gross income less the standard deduction and §151. */
@@ -377,20 +381,37 @@ export function defineS63(kb: KnowledgeBase): void {
       has_stated({ person: T, year: Y, kind: "exemption_151c" }),
     ),
   );
+  kb.rule(has_joint_spouse_63({ taxpayer: T, year: Y })).iff(
+    joint_spouse({ taxpayer: T, spouse: S, year: Y }),
+  );
+  kb.rule(s151_return({ taxpayer: T, year: Y, amount: A })).iff(
+    or(
+      and(
+        joint_spouse({ taxpayer: T, spouse: S, year: Y }),
+        s151_a({ taxpayer: T, year: Y, amount: X }),
+        s151_a({ taxpayer: S, year: Y, amount: X2 }),
+        letIn(A, add(X, X2), gte(A, 0)),
+      ),
+      and(
+        not(has_joint_spouse_63({ taxpayer: T, year: Y })),
+        s151_a({ taxpayer: T, year: Y, amount: A }),
+      ),
+    ),
+  );
   kb.rule(s63_a({ taxpayer: T, year: Y, amount: A })).iff(
     and(
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       itemized_after_68({ taxpayer: T, year: Y, amount: I }),
-      s151_a({ taxpayer: T, year: Y, amount: X }),
+      s151_return({ taxpayer: T, year: Y, amount: X }),
       letIn(A, max(sub(G, add(I, X)), 0), gte(A, 0)),
     ),
   );
   kb.rule(s63_b({ taxpayer: T, year: Y, amount: A })).iff(
     and(
       not(itemizes({ person: T, year: Y })),
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       s63_c({ taxpayer: T, year: Y, amount: SD }),
-      s151_a({ taxpayer: T, year: Y, amount: X }),
+      s151_return({ taxpayer: T, year: Y, amount: X }),
       letIn(A, max(sub(G, add(SD, X)), 0), gte(A, 0)),
     ),
   );

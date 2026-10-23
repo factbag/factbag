@@ -6,15 +6,17 @@
  *        [--limit N] [--concurrency N] [--model jev-1.13.0] [--data DIR] [--out DIR]
  *
  * Data: DIR is the extracted SARA directory holding cases/ and splits/; defaults to
- * $FACTBAG_DATA_DIR/sara. Cases whose citation the statute does not yet cover, and the
- * numeric cases, are listed in the summary and cost no requests. Per-case records go to a
- * JSONL file beside the summary.
+ * $FACTBAG_DATA_DIR/sara. Cases whose citation the statute does not yet cover are listed
+ * in the summary and cost no requests. A numeric case asks how much tax a person owes: the
+ * open query over the tax owed answers it, and it is scored by exact match, with the
+ * distance to the gold amount recorded. Per-case records go to a JSONL file beside the
+ * summary. Pass --numeric to run only the numeric cases, --entailment only the others.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { query } from "@factbag/core/query";
+import { query, queryAll } from "@factbag/core/query";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { loadCases } from "./data";
 import type { Case } from "./data";
@@ -25,6 +27,7 @@ import { summarise } from "./metrics";
 import type { Outcome } from "./metrics";
 import { pool } from "./pool";
 import { citationOf, provisionFor, readQuestion } from "./question";
+import { TAX_QUESTION } from "./statute";
 import { EXTRACTION_VERSION } from "./schema";
 
 const envFile = fileURLToPath(new URL("../../../.env", import.meta.url));
@@ -41,6 +44,8 @@ const { values: args } = parseArgs({
     model: { type: "string", default: "jev-1.13.0" },
     data: { type: "string" },
     out: { type: "string", default: fileURLToPath(new URL("../results", import.meta.url)) },
+    numeric: { type: "boolean", default: false },
+    entailment: { type: "boolean", default: false },
   },
 });
 
@@ -69,6 +74,10 @@ type Record_ = Readonly<{
   }>[];
   /** The question reading's probability: 1 when only one reading was possible. */
   reading?: number;
+  /** For a numeric case: the question is open over the amount. */
+  open?: true;
+  /** For a numeric case: how far the answer is from the gold amount, when there is one. */
+  error?: number;
   requests: number;
   inputTokens: number;
   /** End to end: grounding, question reading and the query. */
@@ -89,10 +98,14 @@ const skipped: Record_[] = [];
 for (const item of selected) {
   const reason =
     item.answer.kind === "numeric"
-      ? "numeric"
-      : provisionFor(item.question) === undefined
-        ? "unsupported citation"
-        : undefined;
+      ? args.entailment
+        ? "numeric, not run"
+        : undefined
+      : args.numeric
+        ? "entailment, not run"
+        : provisionFor(item.question) === undefined
+          ? "unsupported citation"
+          : undefined;
   if (reason !== undefined) {
     skipped.push({
       id: item.id,
@@ -107,7 +120,11 @@ for (const item of selected) {
   }
 }
 const runnable = selected
-  .filter((item) => item.answer.kind === "entailment" && provisionFor(item.question) !== undefined)
+  .filter((item) =>
+    item.answer.kind === "numeric"
+      ? !args.entailment
+      : !args.numeric && provisionFor(item.question) !== undefined,
+  )
   .slice(0, args.limit === undefined ? undefined : Number(args.limit));
 
 process.stdout.write(
@@ -119,7 +136,8 @@ await pool(runnable, Number(args.concurrency), async (item) => {
   const client = metered(sdk, usage);
   const began = performance.now();
   try {
-    const provision = provisionFor(item.question);
+    const numeric = item.answer.kind === "numeric";
+    const provision = numeric ? TAX_QUESTION : provisionFor(item.question);
     if (provision === undefined) {
       throw new Error("unreachable: provision checked above");
     }
@@ -133,7 +151,21 @@ await pool(runnable, Number(args.concurrency), async (item) => {
     let value = reading.reason ?? "";
     let predicted: string | undefined;
     let solverMs: number | undefined;
-    if (reading.atom !== undefined) {
+    let error: number | undefined;
+    if (reading.atom !== undefined && numeric) {
+      const queried = performance.now();
+      const amounts = queryAll(grounding.kb, reading.atom)
+        .filter((judgment) => judgment.value === "true")
+        .map((judgment) => judgment.goal.atom.fields["amount"])
+        .filter((amount): amount is number => typeof amount === "number");
+      solverMs = performance.now() - queried;
+      value = amounts.length === 0 ? "no amount" : amounts.map(String).join(" | ");
+      const [only] = amounts;
+      if (amounts.length === 1 && only !== undefined) {
+        predicted = String(only);
+        error = Math.abs(only - item.answer.amount);
+      }
+    } else if (reading.atom !== undefined) {
       const queried = performance.now();
       value = query(grounding.kb, reading.atom).value;
       solverMs = performance.now() - queried;
@@ -150,9 +182,17 @@ await pool(runnable, Number(args.concurrency), async (item) => {
         : {
             atom: {
               predicate: reading.atom.predicate.name,
-              fields: renderFields(reading.atom.fields),
+              fields: renderFields(
+                Object.fromEntries(
+                  Object.entries(reading.atom.fields).filter(
+                    ([name]) => !numeric || name !== "amount",
+                  ),
+                ),
+              ),
             },
           }),
+      ...(numeric ? { open: true as const } : {}),
+      ...(error === undefined ? {} : { error }),
       people: grounding.people.map((person) => person.id),
       facts,
       reading: reading.probability,
@@ -185,6 +225,21 @@ const wallMs = performance.now() - startedAt;
 
 const outcomes: Outcome[] = records.map(({ id, gold, predicted }) => ({ id, gold, predicted }));
 const run = summarise(outcomes);
+const numericRecords = records.filter((record) => record.open === true);
+const entailmentRecords = records.filter((record) => record.open !== true);
+const numeric = summarise(
+  numericRecords.map(({ id, gold, predicted }) => ({ id, gold, predicted })),
+);
+const entailment = summarise(
+  entailmentRecords.map(({ id, gold, predicted }) => ({ id, gold, predicted })),
+);
+/** Numeric answers within a dollar of gold, and within one percent of it. */
+const numericNear = {
+  withinOneDollar: numericRecords.filter((record) => (record.error ?? Infinity) <= 1).length,
+  withinOnePercent: numericRecords.filter(
+    (record) => (record.error ?? Infinity) <= Math.abs(Number(record.gold)) * 0.01,
+  ).length,
+};
 const withSkipped = summarise([
   ...outcomes,
   ...skipped.map(({ id, gold, predicted }) => ({ id, gold, predicted })),
@@ -206,6 +261,9 @@ const summary = {
   admission: "jev default: minimumProbability 0.4, ambiguityMargin 0",
   citations: wanted ?? "all",
   run,
+  entailment,
+  numeric,
+  numericNear,
   withSkipped,
   skipped: Object.fromEntries(
     skipped.map((record) => [record.id, `${record.value} (${record.citation ?? "none"})`]),
@@ -228,7 +286,9 @@ const base = join(args.out, `${split}-${stamp}`);
 writeFileSync(`${base}.summary.json`, `${JSON.stringify(summary, null, 2)}\n`);
 writeFileSync(`${base}.jsonl`, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
 process.stdout.write(
-  `\n${run.correct}/${run.cases} correct (${(run.accuracy * 100).toFixed(1)}% ` +
+  `\nentailment ${entailment.correct}/${entailment.cases}, numeric ${numeric.correct}/${numeric.cases} ` +
+    `exact (${numericNear.withinOneDollar} within $1, ${numericNear.withinOnePercent} within 1%)\n` +
+    `${run.correct}/${run.cases} correct (${(run.accuracy * 100).toFixed(1)}% ` +
     `[${(run.interval[0] * 100).toFixed(1)}, ${(run.interval[1] * 100).toFixed(1)}]), ` +
     `${run.unanswered} unanswered; with skipped: ${(withSkipped.accuracy * 100).toFixed(1)}%\n` +
     `${requests} requests, ${inputTokens} input tokens, $${summary.usdPerCase.toFixed(5)}/case, ` +

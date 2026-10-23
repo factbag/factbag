@@ -17,9 +17,9 @@ import {
 } from "@factbag/core/dsl";
 import type { KnowledgeBase } from "@factbag/core/kb";
 import { Person } from "../schema";
-import { files_jointly, gross_income_of, has_stated, itemized_total, stated } from "./helpers";
+import { files_jointly, has_stated, itemized_total, stated } from "./helpers";
 import { head_of_household, surviving_spouse } from "./s2";
-import { married_7703, married_separate } from "./s7703";
+import { agi, married_7703, married_separate } from "./s7703";
 
 const T = variable("T");
 const Y = variable("Y");
@@ -105,14 +105,14 @@ export function defineS68(kb: KnowledgeBase): void {
   );
   kb.rule(s68_applies({ taxpayer: T, year: Y })).iff(
     and(
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       applicable_amount({ taxpayer: T, year: Y, amount: A }),
       gt(G, A),
     ),
   );
   kb.rule(s68_a_1({ taxpayer: T, year: Y, amount: R })).iff(
     and(
-      gross_income_of({ person: T, year: Y, amount: G }),
+      agi({ taxpayer: T, year: Y, amount: G }),
       applicable_amount({ taxpayer: T, year: Y, amount: A }),
       gt(G, A),
       letIn(R, div(roundTo(mul(3, sub(G, A)), -2), 100), gte(R, 0)),

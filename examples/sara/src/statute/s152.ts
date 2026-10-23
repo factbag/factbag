@@ -286,10 +286,12 @@ export function defineS152(kb: KnowledgeBase): void {
   );
   // (d)(1) qualifying relative. Subparagraph (C), support, is not in SARA's statute.
   kb.rule(s152_d_1_B({ individual: I, year: Y })).iff(not(has_income({ person: I, year: Y })));
+  // The relationship comes first: it binds the individual when the taxpayer's relatives
+  // are being enumerated, which the income and qualifying-child tests then check.
   kb.rule(s152_d_1({ individual: I, taxpayer: T, year: Y })).iff(
     and(
-      s152_d_1_B({ individual: I, year: Y }),
       s152_d_2({ individual: I, taxpayer: T, year: Y }),
+      s152_d_1_B({ individual: I, year: Y }),
       not(qualifying_child_of_any({ individual: I, year: Y })),
     ),
   );
