@@ -126,22 +126,18 @@ class ProgramIndex {
 
   /**
    * Whether the ground atom key names a predicate the given one can reach. A key begins
-   * with the predicate's name and a colon; a name that is a prefix of another may match
-   * more keys than it should, which keeps an irrelevant active atom in a cache key and
-   * costs a reuse, never a wrong judgment.
+   * with the predicate's name and a colon; two predicates sharing a name would make an
+   * irrelevant active atom count as relevant, which keeps it in a cache key and costs a
+   * reuse, never a wrong judgment.
    */
   reachesKey(predicate: PredicateDeclaration, key: string): boolean {
-    let prefixes = this.reachableNames.get(predicate);
-    if (prefixes === undefined) {
-      prefixes = new Set([...this.reaches(predicate)].map((reached) => `${reached.name}:`));
-      this.reachableNames.set(predicate, prefixes);
+    let names = this.reachableNames.get(predicate);
+    if (names === undefined) {
+      names = new Set([...this.reaches(predicate)].map((reached) => reached.name));
+      this.reachableNames.set(predicate, names);
     }
-    for (const prefix of prefixes) {
-      if (key.startsWith(prefix)) {
-        return true;
-      }
-    }
-    return false;
+    const colon = key.indexOf(":");
+    return names.has(colon === -1 ? key : key.slice(0, colon));
   }
 }
 
@@ -2241,7 +2237,11 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
       pathCanHaveUnavailableBindings,
     );
     for (const body of bodies) {
-      if (!canGroundAtom(ruleHead, body.bindings)) {
+      // A body already false cannot support the head: its falsity rests on atoms outside
+      // the component being discovered, which are settled, since atoms inside it are
+      // unknown placeholders here. Keeping it would multiply the candidates of every
+      // or-branch and arithmetic result through all that depends on them.
+      if (body.judgment.value === "false" || !canGroundAtom(ruleHead, body.bindings)) {
         continue;
       }
 

@@ -91,11 +91,10 @@ describe("let bindings of bound variables", () => {
 
   it("keeps or branches from reporting each other's bindings", () => {
     const kb = setup();
+    // The other branch's amount is not even a candidate: its branch is false before the
+    // head is discovered, and a ground query for it says so.
     const results = queryAll(kb, lesser({ who: alice, amount: M }));
-    expect(results.map((j) => [j.value, j.goal.atom.fields.amount])).toEqual([
-      ["false", 351n],
-      ["true", 98n],
-    ]);
+    expect(results.map((j) => [j.value, j.goal.atom.fields.amount])).toEqual([["true", 98n]]);
     expect(query(kb, lesser({ who: alice, amount: 351n })).value).toBe("false");
   });
 

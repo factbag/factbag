@@ -20,6 +20,8 @@ type CandidateGroup = {
 export class CandidateSearch {
   private readonly groups = new Map<PredicateDeclaration, CandidateGroup>();
   private readonly tables = new Map<PredicateDeclaration, Map<string, CandidateTable>>();
+  /** How many groups are mid fixed point: usually none, so reuse checks return at once. */
+  private evaluatingGroups = 0;
 
   constructor(rules: readonly AnyRule[]) {
     // Predicates that reach one another share a group: a strongly connected component.
@@ -67,6 +69,7 @@ export class CandidateSearch {
 
     if (!group.evaluating) {
       group.evaluating = true;
+      this.evaluatingGroups += 1;
       try {
         do {
           group.changed = false;
@@ -76,6 +79,7 @@ export class CandidateSearch {
         } while (group.changed);
       } finally {
         group.evaluating = false;
+        this.evaluatingGroups -= 1;
       }
     }
 
@@ -88,6 +92,9 @@ export class CandidateSearch {
    * that a ground judgment depending on one of them might see a partial candidate table.
    */
   evaluatingAmong(predicates: Iterable<PredicateDeclaration>): boolean {
+    if (this.evaluatingGroups === 0) {
+      return false;
+    }
     for (const predicate of predicates) {
       if (this.groups.get(predicate)?.evaluating === true) {
         return true;

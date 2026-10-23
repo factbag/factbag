@@ -36,10 +36,11 @@ describe("or judged per environment", () => {
     kb.rule(t({})).iff(and(or(p({ x: X }), r({})), s({ x: X })));
     kb.rule(u({ x: X })).iff(and(or(p({ x: X }), r({})), s({ x: X })));
     expect(query(kb, t({})).value).toBe("false");
-    expect(queryAll(kb, u({ x: X })).map((j) => [j.goal.atom.fields.x, j.value])).toEqual([
-      [x1, "false"],
-      [x3, "false"],
-    ]);
+    // Neither thing is even a candidate, each failing one conjunct before discovery
+    // finishes; asked directly, each is false.
+    expect(queryAll(kb, u({ x: X }))).toEqual([]);
+    expect(query(kb, u({ x: x1 })).value).toBe("false");
+    expect(query(kb, u({ x: x3 })).value).toBe("false");
   });
 
   it("still finds the truth under the branch that binds", () => {
