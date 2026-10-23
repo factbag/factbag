@@ -84,6 +84,19 @@ export class CandidateSearch {
     return [...table.atoms.values()];
   }
 
+  /**
+   * Whether any of the predicates is in a group whose fixed point is being computed, so
+   * that a ground judgment depending on one of them might see a partial candidate table.
+   */
+  evaluatingAmong(predicates: Iterable<PredicateDeclaration>): boolean {
+    for (const predicate of predicates) {
+      if (this.groups.get(predicate)?.evaluating === true) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   sameComponent(left: PredicateDeclaration, right: PredicateDeclaration): boolean {
     return (
       left === right || (this.groups.has(left) && this.groups.get(left) === this.groups.get(right))

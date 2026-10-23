@@ -48,6 +48,8 @@ import {
 } from "./goal-value";
 import { groundAtom, matchPattern, matchRuleForAtom } from "./matching";
 import { CandidateSearch } from "./candidate-search";
+import { reachablePredicates, ruleEdges } from "./query-validation/utils";
+import type { Edge } from "./query-validation/utils";
 
 const UNBOUND: unique symbol = Symbol("factbag.unbound");
 type Unbound = typeof UNBOUND;
@@ -69,7 +71,78 @@ type CountUncertainty =
 type SearchContext = {
   candidates: CandidateSearch;
   judgments: Map<PredicateDeclaration, Map<string, QueryJudgment>>;
+  index: ProgramIndex;
 };
+
+/**
+ * The program indexed for one query: its literals and rules by predicate, and the
+ * predicates each predicate depends on, directly or through other rules.
+ */
+class ProgramIndex {
+  private readonly literalsByPredicate = new Map<PredicateDeclaration, AnyLiteral[]>();
+  private readonly rulesByPredicate = new Map<PredicateDeclaration, AnyRule[]>();
+  private readonly edges: readonly Edge[];
+  private readonly reachable = new Map<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>();
+  private readonly reachableNames = new Map<PredicateDeclaration, ReadonlySet<string>>();
+
+  constructor(literals: readonly AnyLiteral[], rules: readonly AnyRule[]) {
+    for (const literal of literals) {
+      const group = this.literalsByPredicate.get(literal.atom.predicate);
+      if (group === undefined) {
+        this.literalsByPredicate.set(literal.atom.predicate, [literal]);
+      } else {
+        group.push(literal);
+      }
+    }
+    for (const rule of rules) {
+      const group = this.rulesByPredicate.get(rule.head.atom.predicate);
+      if (group === undefined) {
+        this.rulesByPredicate.set(rule.head.atom.predicate, [rule]);
+      } else {
+        group.push(rule);
+      }
+    }
+    this.edges = rules.flatMap(ruleEdges);
+  }
+
+  literalsFor(predicate: PredicateDeclaration): readonly AnyLiteral[] {
+    return this.literalsByPredicate.get(predicate) ?? [];
+  }
+
+  rulesFor(predicate: PredicateDeclaration): readonly AnyRule[] {
+    return this.rulesByPredicate.get(predicate) ?? [];
+  }
+
+  /** The predicate and every predicate its rules reach. */
+  reaches(predicate: PredicateDeclaration): ReadonlySet<PredicateDeclaration> {
+    let reachable = this.reachable.get(predicate);
+    if (reachable === undefined) {
+      reachable = reachablePredicates(predicate, this.edges);
+      this.reachable.set(predicate, reachable);
+    }
+    return reachable;
+  }
+
+  /**
+   * Whether the ground atom key names a predicate the given one can reach. A key begins
+   * with the predicate's name and a colon; a name that is a prefix of another may match
+   * more keys than it should, which keeps an irrelevant active atom in a cache key and
+   * costs a reuse, never a wrong judgment.
+   */
+  reachesKey(predicate: PredicateDeclaration, key: string): boolean {
+    let prefixes = this.reachableNames.get(predicate);
+    if (prefixes === undefined) {
+      prefixes = new Set([...this.reaches(predicate)].map((reached) => `${reached.name}:`));
+      this.reachableNames.set(predicate, prefixes);
+    }
+    for (const prefix of prefixes) {
+      if (key.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
 
 export function solveQueryAll<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
@@ -80,6 +153,7 @@ export function solveQueryAll<Schema extends PredicateSchema>(
   const result = solveQueryAllInternal(literals, rules, atom, new Set(), {
     candidates: new CandidateSearch(rules),
     judgments: new Map(),
+    index: new ProgramIndex(literals, rules),
   });
 
   const stack: unknown[] = [result];
@@ -134,9 +208,9 @@ function solveGroundAtom<Schema extends PredicateSchema>(
   active: ReadonlySet<string>,
   search: SearchContext,
 ): QueryJudgment<Schema> {
-  // Discovery can temporarily expose partial candidate tables. Only reuse
-  // completed ground judgments outside that fixed-point computation.
-  if (search.candidates.isEvaluating) {
+  // Discovery can temporarily expose partial candidate tables. A ground judgment is
+  // reused only if no predicate it can depend on is in that fixed-point computation.
+  if (search.candidates.evaluatingAmong(search.index.reaches(atom.predicate))) {
     return evaluateGroundAtom(literals, rules, atom, active, search);
   }
 
@@ -145,7 +219,12 @@ function solveGroundAtom<Schema extends PredicateSchema>(
     judgments = new Map();
     search.judgments.set(atom.predicate, judgments);
   }
-  const key = JSON.stringify([groundAtomKey(atom), [...active].sort()]);
+  // The active atoms matter to the judgment only where the evaluation could reach them
+  // again, so the key carries just those the atom's predicate can depend on.
+  const relevantActive = [...active].filter((entry) =>
+    search.index.reachesKey(atom.predicate, entry),
+  );
+  const key = JSON.stringify([groundAtomKey(atom), relevantActive.sort()]);
   const cached = judgments.get(key);
   if (cached !== undefined && judgmentMatchesAtom(cached, atom)) {
     return cached;
@@ -173,8 +252,8 @@ function evaluateGroundAtom<Schema extends PredicateSchema>(
   const goal: GroundAtomGoal<Schema> = { kind: "atom", atom };
   const bindings: Bindings = [];
   const atomKey = groundAtomKey(atom);
-  const positiveLiterals = matchingLiterals(literals, atom, "+");
-  const negativeLiterals = matchingLiterals(literals, atom, "-");
+  const positiveLiterals = matchingLiterals(search.index.literalsFor(atom.predicate), atom, "+");
+  const negativeLiterals = matchingLiterals(search.index.literalsFor(atom.predicate), atom, "-");
   const values: GoalValue[] = [];
   const positive: RuleSupport<Schema>[] = [];
   const negative: RuleSupport<Schema>[] = [];
@@ -192,7 +271,7 @@ function evaluateGroundAtom<Schema extends PredicateSchema>(
     const nextActive = new Set(active);
     nextActive.add(atomKey);
 
-    for (const rule of rules) {
+    for (const rule of search.index.rulesFor(atom.predicate)) {
       const match = matchRuleForAtom(rule, atom);
       if (match === undefined) {
         continue;
@@ -2018,7 +2097,7 @@ function candidateGroundAtoms<Schema extends PredicateSchema>(
   pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   return search.candidates
-    .candidates(atom, matchingGroundAtoms(literals, atom), () =>
+    .candidates(atom, matchingGroundAtoms(search.index.literalsFor(atom.predicate), atom), () =>
       deriveCandidateAtoms(literals, rules, atom, active, search, pathCanHaveUnavailableBindings),
     )
     .filter((candidate): candidate is GroundAtom<Schema> =>
@@ -2041,7 +2120,7 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
   pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   const atoms: GroundAtom<Schema>[] = [];
-  for (const rule of rules) {
+  for (const rule of search.index.rulesFor(atom.predicate)) {
     const ruleHead = atomForPredicate(rule.head.atom, atom.predicate);
     if (ruleHead === undefined) {
       continue;
