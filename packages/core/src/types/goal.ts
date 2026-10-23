@@ -65,9 +65,16 @@ export type SubGoal = ArithmeticGoal<"sub">;
 export type MulGoal = ArithmeticGoal<"mul">;
 /** Arithmetic goal binding the quotient of two expressions. */
 export type DivGoal = ArithmeticGoal<"div">;
+/** Arithmetic goal binding the whole calendar days from the right date to the left. */
+export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
+/** Arithmetic goal binding the whole calendar years from the right date to the left. */
+export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
+
+/** The primitive arithmetic operations. */
+export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween";
 
 /** Bind the result of a primitive arithmetic operation. */
-export type ArithmeticGoal<Kind extends "add" | "sub" | "mul" | "div"> = Readonly<{
+export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
   readonly kind: Kind;
   readonly bind: Var;
   readonly left: GoalExpression<Scalar>;
@@ -123,6 +130,8 @@ export type Goal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | DaysBetweenGoal
+  | YearsBetweenGoal
   | EqGoal
   | NeqGoal
   | LtGoal
@@ -141,6 +150,8 @@ export type PrimitiveGoal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | DaysBetweenGoal
+  | YearsBetweenGoal
   | EqGoal
   | NeqGoal
   | LtGoal

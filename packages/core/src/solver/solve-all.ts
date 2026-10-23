@@ -7,10 +7,12 @@ import {
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
+import { daysBetween, yearsBetween } from "./calendar";
 import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
   ArithmeticGoal,
+  ArithmeticKind,
   CountGoal,
   ComparisonGoal,
   ExistsGoal,
@@ -1397,7 +1399,7 @@ function primitiveCountJudgment(
 }
 
 function primitiveArithmeticJudgment(
-  goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">,
+  goal: ArithmeticGoal<ArithmeticKind>,
   bindings: Bindings,
   left: unknown,
   leftExpression: GoalExpression,
@@ -1539,8 +1541,17 @@ function primitiveRangeForExact(value: unknown): Partial<PrimitiveEvaluation> {
 }
 
 // Type guards. Formula guards use `is<Kind>Formula`; structural shape guards use `is<Shape>Like`.
+const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
+  "add",
+  "sub",
+  "mul",
+  "div",
+  "daysBetween",
+  "yearsBetween",
+];
+
 type ArithmeticFormula = Readonly<{
-  kind: "add" | "sub" | "mul" | "div";
+  kind: ArithmeticKind;
   args: readonly [unknown, unknown];
 }>;
 
@@ -1563,7 +1574,9 @@ type AggregateFormula = Readonly<{
 
 function isArithmeticFormula(value: unknown): value is ArithmeticFormula {
   return (
-    isFormula(value) && ["add", "sub", "mul", "div"].includes(value.kind) && value.args.length === 2
+    isFormula(value) &&
+    (ARITHMETIC_KINDS as readonly string[]).includes(value.kind) &&
+    value.args.length === 2
   );
 }
 
@@ -1599,26 +1612,33 @@ function isLiteralLike(value: unknown): value is AnyLiteral {
 }
 
 function calculateValue(
-  kind: "add" | "sub" | "mul" | "div",
+  kind: ArithmeticKind,
   left: SolverValue,
   right: SolverValue,
-  goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">,
+  goal: ArithmeticGoal<ArithmeticKind>,
 ): SolverValue {
   if (left === UNBOUND || right === UNBOUND) {
     return UNBOUND;
   }
 
-  if (left instanceof Date && typeof right === "number") {
+  if (left instanceof Date && right instanceof Date) {
     switch (kind) {
-      case "sub":
-        return new Date(left.getTime() - right);
+      case "daysBetween":
+        return daysBetween(left, right);
+      case "yearsBetween":
+        return yearsBetween(left, right);
       case "add":
+      case "sub":
       case "mul":
       case "div":
         break;
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
     }
+  }
+
+  if (left instanceof Date && typeof right === "number" && kind === "sub") {
+    return new Date(left.getTime() - right);
   }
 
   if (typeof left === "number" && typeof right === "number") {
@@ -1631,6 +1651,9 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "daysBetween":
+      case "yearsBetween":
+        break;
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
     }
@@ -1646,6 +1669,9 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "daysBetween":
+      case "yearsBetween":
+        break;
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
     }
