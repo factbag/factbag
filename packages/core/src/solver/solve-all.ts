@@ -560,7 +560,12 @@ function evaluateOrBody(
   const environments = candidateBindings.length === 0 ? [bindings] : candidateBindings;
 
   return environments.map((environment) => {
-    const judgments = args.map((arg) => {
+    // A branch is judged in an environment only by results that bind nothing
+    // beyond it. A result that extends the environment belongs to the extended
+    // environment, which is evaluated on its own; counting it here would let the
+    // or claim truth under bindings it does not carry, and a later conjunct
+    // would then range over the unbound variable freely.
+    const judgments = args.flatMap((arg) => {
       const results = evaluateRuleBodyMany(
         literals,
         rules,
@@ -569,12 +574,11 @@ function evaluateOrBody(
         active,
         context,
         pathCanHaveUnavailableBindings,
-      );
-      assert(results.length > 0, "Or branch evaluation produced no results");
+      ).filter((result) => result.bindings.size === environment.size);
       const result = bestResult(results);
-      assert(result !== undefined, "Or branch evaluation produced no best result");
-      return result.judgment;
+      return result === undefined ? [] : [result.judgment];
     });
+    assert(judgments.length > 0, "Or evaluation produced no judgment for its environment");
     const judgmentBindings = bindingsArray(environment);
     const reboundJudgments = judgments.map((judgment) => withBindings(judgment, judgmentBindings));
     const goal: OrGoal = { kind: "or", goals: reboundJudgments.map((judgment) => judgment.goal) };
