@@ -61,10 +61,9 @@ hand-written gold in `src/probe-gold.ts`; both read nothing but the train split.
 
 ## Coverage
 
-The statute covers §7703(a) and (b), §2(a) and (b), §151, §152(b), (c) and (d), §63, §68
-and §1, each with its subparagraphs: 65 of the 85 citations in the train split's
-entailment cases, 136 of its 176 cases. What remains is employment, §3306 and §3301 (20
-citations, 40 cases), and then the numeric cases.
+The statute covers every section SARA has: §7703, §2, §151, §152, §63, §68, §1, §3306 and
+§3301, each with its subparagraphs: all 85 citations in the train split's entailment
+cases, all 176 cases. The numeric cases come next.
 
 Questions come in two forms. A yes-or-no question asks whether a provision applies to the
 people it names; a value question names an amount ("is equal to $4,000", "have to pay
@@ -74,6 +73,17 @@ the valued form when the question names an amount. The amount sits in the query 
 the solver's constraint on an already bound `letIn` variable does the comparison; the
 rules round as the reference does, to whole dollars with halves away from zero, and the
 percentage rules keep to whole-number arithmetic so that a half never meets a float.
+
+Employment, §3306 and §3301, is the text's facts about pairs of people: who employed whom
+and for what kind of work (agricultural labor, domestic service, or neither), where, what
+was paid, when and in what medium, payments into plans and on termination, and the few
+states of a person that take service out of employment (a student at the employing
+school, a hospital's patient, a person committed to a penal institution, a relative). An
+undated payment is dated to the end of the work, as the reference formalization dates it.
+The ten-days-in-ten-weeks tests count Monday-start weeks from a fixed Monday with
+`floorTo(div(daysBetween(day, monday), 7), 0)`, so no week table is needed; and the
+preceding year is reached by arithmetic rather than by enumerating the calendar, which
+had cost half a second a query.
 
 The amounts rest on stated figures where the text gives them and on the derivations
 otherwise: an amount the text states by naming its section (an exemption under §151(c),
@@ -142,8 +152,8 @@ no requests) gives 55/56: only `s152_b_1_pos` changes, as described above
 (`results/replay-2026-10-23T14-15-54-569Z`). The solver's share of a case is a median 27 ms
 and at most 110 ms, against the 1.3 s median end to end; the rest is the classifier.
 A fresh extraction run on these rules, and the first run of the amounts family, wait on
-the TypeSafe account's credits; the amounts family is so far exercised by the statute
-tests, whose facts are the train texts written down (49 tests, under 6 s).
+the TypeSafe account's credits; the amounts and employment families are so far exercised by the
+statute tests, whose facts are the train texts written down (57 tests, under 7 s).
 
 §152(d)(2) was the first provision added under a reservation: its train citations (B) and
 (E) were the development cases, (D) and (F) were reserved unread until the rules, the

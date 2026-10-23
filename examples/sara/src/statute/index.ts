@@ -86,6 +86,51 @@ import {
   s68_f,
 } from "./s68";
 import {
+  defineS3306,
+  s3301,
+  s3306_a,
+  s3306_a_1,
+  s3306_a_1_A,
+  s3306_a_1_B,
+  s3306_a_2,
+  s3306_a_2_A,
+  s3306_a_2_B,
+  s3306_a_3,
+  s3306_b,
+  s3306_b_2,
+  s3306_b_2_A,
+  s3306_b_2_C,
+  s3306_b_7,
+  s3306_b_10,
+  s3306_b_10_A,
+  s3306_b_10_B,
+  s3306_b_11,
+  s3306_b_15,
+  s3306_c,
+  s3306_c_1,
+  s3306_c_1_A,
+  s3306_c_1_A_i,
+  s3306_c_1_A_ii,
+  s3306_c_1_B,
+  s3306_c_2,
+  s3306_c_5,
+  s3306_c_5_A,
+  s3306_c_5_B,
+  s3306_c_6,
+  s3306_c_7,
+  s3306_c_10,
+  s3306_c_10_A,
+  s3306_c_10_A_i,
+  s3306_c_10_A_ii,
+  s3306_c_10_B,
+  s3306_c_11,
+  s3306_c_13,
+  s3306_c_16,
+  s3306_c_21,
+  s3306_c_A,
+  s3306_c_B,
+} from "./s3306";
+import {
   defineS151,
   exemption_amount,
   s151_a,
@@ -180,6 +225,10 @@ export const ROLE_MEANINGS: Readonly<Record<string, string>> = {
   a: "one of the two people the provision is applied to",
   b: "the other of the two people",
   dependent: "the dependent the exemption or deduction is for",
+  employer: "the employer: the person who employed the other, or paid for their work",
+  employee: "the employee: the person who did the work for the employer",
+  payer: "the person who made the payment",
+  payee: "the person the payment was made to, or for",
 };
 
 const TAXPAYER_YEAR = ["taxpayer"] as const;
@@ -223,6 +272,85 @@ function both(
     description:
       `Whether section ${citation} applies to the taxpayer for the taxable year, or, when ` +
       `the question names an amount, whether ${subject} under it is that amount.`,
+  };
+}
+
+/** A §3306(a) provision: whether the person is an employer for the year. */
+function employer(citation: string, predicate: PredicateDeclaration, subject: string): Provision {
+  return {
+    citation,
+    predicate,
+    people: ["employer"],
+    year: true,
+    description:
+      `Whether section ${citation} makes the employer an employer for the calendar year: ` +
+      `${subject}. The question reads 'X is an employer' or 'makes X an employer': X is the employer.`,
+  };
+}
+
+/** A §3306(c) provision about one person employing another. */
+function employing(
+  citation: string,
+  predicate: PredicateDeclaration,
+  subject: string,
+  year = true,
+): Provision {
+  return {
+    citation,
+    predicate,
+    people: ["employer", "employee"],
+    year,
+    description:
+      `Whether section ${citation} applies to the employer employing the employee` +
+      `${year ? " for the calendar year" : ""}: ${subject}. The question reads 'X employing Y': ` +
+      "X is the employer and Y is the employee.",
+  };
+}
+
+/** A §3306(c) provision about one person's employment situation. */
+function situation(citation: string, predicate: PredicateDeclaration, subject: string): Provision {
+  return {
+    citation,
+    predicate,
+    people: ["employee"],
+    year: true,
+    description:
+      `Whether section ${citation} applies to the employee's employment situation in the ` +
+      `calendar year: ${subject}. The question reads "X's employment situation": X is the employee.`,
+  };
+}
+
+/** A §3306(b) provision about a payment one person made to another. */
+function paymentTo(
+  citation: string,
+  predicate: PredicateDeclaration,
+  subject: string,
+  year = true,
+): Provision {
+  return {
+    citation,
+    predicate,
+    people: ["payer", "payee"],
+    year,
+    description:
+      `Whether section ${citation} applies to the payment the payer made to the payee` +
+      `${year ? " for the calendar year" : ""}: ${subject}. The question reads 'the payment X made ` +
+      "to Y' or 'paid by X to Y': X is the payer and Y is the payee. When the question names a " +
+      "fund or plan rather than a person as what was paid to, the payee is the person the fund " +
+      "is for.",
+  };
+}
+
+/** A §3306(b)(10) provision about a payment of a named amount. */
+function paymentOf(citation: string, valued: PredicateDeclaration, subject: string): Provision {
+  return {
+    citation,
+    valued,
+    people: ["payer"],
+    year: true,
+    description:
+      `Whether section ${citation} applies to the payment of the amount the question names ` +
+      `that the payer made in the calendar year: ${subject}.`,
   };
 }
 
@@ -618,6 +746,125 @@ export const PROVISIONS: readonly Provision[] = [
     [s1_d_i, s1_d_ii, s1_d_iii, s1_d_iv, s1_d_v],
     "a married individual filing separately",
   ),
+
+  // --- §3306 and §3301: employment ---
+  employer(
+    "3306(a)(1)(A)",
+    s3306_a_1_A,
+    "paid $1,500 or more of wages in the year or the year before",
+  ),
+  employer("3306(a)(1)(B)", s3306_a_1_B, "employed someone on ten days in ten different weeks"),
+  employer("3306(a)(1)", s3306_a_1, "an employer in general"),
+  employer("3306(a)(2)(A)", s3306_a_2_A, "paid $20,000 or more of wages for agricultural labor"),
+  employer(
+    "3306(a)(2)(B)",
+    s3306_a_2_B,
+    "employed five or more in agricultural labor on ten days in ten different weeks",
+  ),
+  employer("3306(a)(2)", s3306_a_2, "an employer of agricultural labor"),
+  employer("3306(a)(3)", s3306_a_3, "paid $1,000 or more in cash for domestic service"),
+  employer("3306(a)", s3306_a, "an employer"),
+  paymentTo("3306(b)", s3306_b, "the payment is wages: remuneration for employment, not excluded"),
+  paymentTo(
+    "3306(b)(2)(A)",
+    s3306_b_2_A,
+    "a payment under a plan on account of sickness or accident disability",
+  ),
+  paymentTo("3306(b)(2)(C)", s3306_b_2_C, "a payment under a plan on account of death"),
+  paymentTo(
+    "3306(b)(2)",
+    s3306_b_2,
+    "a payment under a plan on account of sickness, disability or death",
+  ),
+  paymentTo(
+    "3306(b)(7)",
+    s3306_b_7,
+    "remuneration in kind for service outside the employer's trade or business",
+    false,
+  ),
+  paymentOf(
+    "3306(b)(10)(A)",
+    s3306_b_10_A,
+    "paid upon or after termination because of death or retirement for disability",
+  ),
+  paymentOf(
+    "3306(b)(10)(B)",
+    s3306_b_10_B,
+    "paid under a plan established by the employer for employees generally",
+  ),
+  paymentOf("3306(b)(10)", s3306_b_10, "a termination payment under an employer's plan"),
+  paymentTo("3306(b)(11)", s3306_b_11, "remuneration for agricultural labor paid in kind"),
+  paymentTo(
+    "3306(b)(15)",
+    s3306_b_15,
+    "a payment to a survivor of a former employee after the year of the death",
+  ),
+  employing("3306(c)(A)", s3306_c_A, "service performed within the United States", false),
+  employing("3306(c)(B)", s3306_c_B, "service abroad by a citizen for an American employer", false),
+  employing(
+    "3306(c)(1)(A)(i)",
+    s3306_c_1_A_i,
+    "the employer paid $20,000 or more in cash for agricultural labor",
+  ),
+  employing(
+    "3306(c)(1)(A)(ii)",
+    s3306_c_1_A_ii,
+    "the employer had five or more in agricultural labor on ten days in ten weeks",
+  ),
+  employing("3306(c)(1)(A)", s3306_c_1_A, "the employer meets (i) or (ii)"),
+  employing(
+    "3306(c)(1)(B)",
+    s3306_c_1_B,
+    "the labor is not by an alien admitted for agricultural labor",
+    false,
+  ),
+  employing("3306(c)(1)", s3306_c_1, "agricultural labor that is not employment"),
+  employing("3306(c)(2)", s3306_c_2, "domestic service that is not employment"),
+  employing(
+    "3306(c)(5)(A)",
+    s3306_c_5_A,
+    "service in the employ of a son, daughter or spouse",
+    false,
+  ),
+  employing("3306(c)(5)(B)", s3306_c_5_B, "service by a child under 21 in the employ of a parent"),
+  employing("3306(c)(5)", s3306_c_5, "service for a close relative that is not employment"),
+  employing("3306(c)", s3306_c, "the service is employment"),
+  situation("3306(c)(6)", s3306_c_6, "service in the employ of the United States Government"),
+  situation("3306(c)(7)", s3306_c_7, "service in the employ of a State or its subdivision"),
+  situation(
+    "3306(c)(10)(A)(i)",
+    s3306_c_10_A_i,
+    "service for a school by a student enrolled and attending there",
+  ),
+  situation(
+    "3306(c)(10)(A)(ii)",
+    s3306_c_10_A_ii,
+    "service for a school by the spouse of such a student",
+  ),
+  situation(
+    "3306(c)(10)(A)",
+    s3306_c_10_A,
+    "service for a school by a student or a student's spouse",
+  ),
+  situation("3306(c)(10)(B)", s3306_c_10_B, "service for a hospital by a patient of it"),
+  situation(
+    "3306(c)(10)",
+    s3306_c_10,
+    "service for a school or hospital by a student, spouse or patient",
+  ),
+  situation("3306(c)(11)", s3306_c_11, "service in the employ of a foreign government"),
+  situation("3306(c)(13)", s3306_c_13, "service as a student nurse"),
+  situation("3306(c)(16)", s3306_c_16, "service in the employ of an international organization"),
+  situation("3306(c)(21)", s3306_c_21, "service by a person committed to a penal institution"),
+  {
+    citation: "3301",
+    valued: s3301,
+    people: ["employer"],
+    year: true,
+    description:
+      "Whether the tax under section 3301 on the employer for the calendar year is the amount " +
+      "the question names: 6 percent of the wages paid with respect to employment.",
+  },
 ];
 
 /**
@@ -675,5 +922,6 @@ export function statuteKB(): KnowledgeBase {
   defineS68(kb);
   defineS63(kb);
   defineS1(kb);
+  defineS3306(kb);
   return kb;
 }

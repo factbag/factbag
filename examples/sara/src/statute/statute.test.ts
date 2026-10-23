@@ -9,16 +9,25 @@ import { describe, expect, test } from "vitest";
 import { day as d } from "../calendar";
 import {
   additional_amount_63f,
+  agricultural_labor,
   blind,
   born,
   child_of,
+  committed_to_penal_institution,
   deduction_151c,
   dependent_152,
   died,
+  domestic_service,
+  employed,
+  employed_on,
+  enrolled_at_nursing_school,
+  enrolled_at_school,
   exemption_151b,
   gross_income,
+  has_disability_plan,
   head_of_household_stated,
   home_cost_share,
+  hospital_patient,
   joint_return,
   legally_separated,
   maintains_home,
@@ -28,17 +37,27 @@ import {
   nonresident_alien,
   nonresident_alien_since,
   nonresident_alien_until,
+  paid,
+  paid_in,
+  paid_in_kind,
+  paid_into_plan,
+  paid_on,
+  paid_under_employer_plan,
   Person,
   qualifying_child_152c,
   satisfies_152c2,
   satisfies_152c3,
   separate_return,
+  service_abroad,
+  service_outside_business,
   shares_home,
   sibling_of,
   stated_amount,
   stepchild_of,
   surviving_spouse_stated,
   taxable_income,
+  termination_payment,
+  works_for_institution,
 } from "../schema";
 import { PROVISIONS, provisionAtom, statuteKB } from "./index";
 
@@ -1025,5 +1044,331 @@ describe("amounts: §151(d), §68, §63 and §1", () => {
     expect(ask(separate(554_313), "1(d)(v)", [alice], 2017, 207_772)).toBe("true");
     expect(ask(separate(554_313), "1(d)(v)", [alice], 2017, 20_772)).toBe("false");
     expect(ask(separate(554_313), "1", [alice], 2017, 207_772)).toBe("true");
+  });
+});
+
+describe("employment: §3306 and §3301", () => {
+  // s3306_a_1_A_*, s3306_a_1_*: Alice paid Bob $3,200 for work from 2017-02-01 to
+  // 2017-09-02; Bob paid Alice $4,500 for work from 2017-04-01 to 2018-09-02.
+  const aliceToBob: readonly GroundAtom[] = [
+    employed.since({ employer: alice, employee: bob, day: d("2017-02-01") }),
+    employed.until({ employer: alice, employee: bob, day: d("2017-09-02") }),
+    paid({ payer: alice, payee: bob, amount: 3200 }),
+  ];
+  const bobToAlice: readonly GroundAtom[] = [
+    employed.since({ employer: bob, employee: alice, day: d("2017-04-01") }),
+    employed.until({ employer: bob, employee: alice, day: d("2018-09-02") }),
+    paid({ payer: bob, payee: alice, amount: 4500 }),
+  ];
+
+  test("§3306(a)(1)(A) and (a)(1): $1,500 of wages in the year or the year before", () => {
+    const kb = kbWith([...aliceToBob, ...bobToAlice]);
+    expect(ask(kb, "3306(a)(1)(A)", [alice], 2017)).toBe("true");
+    expect(ask(kb, "3306(a)(1)(A)", [alice], 2018)).toBe("true");
+    expect(ask(kb, "3306(a)(1)(A)", [alice], 2019)).toBe("false");
+    // An undated payment is made when the work ends: Bob's in 2018.
+    expect(ask(kb, "3306(a)(1)", [bob], 2018)).toBe("true");
+    expect(ask(kb, "3306(a)(1)", [bob], 2017)).toBe("false");
+    // Domestic service does not count under (a)(1).
+    const domestic = kbWith([
+      ...aliceToBob,
+      domestic_service({ employer: alice, employee: bob }),
+      ...bobToAlice,
+      paid_in({ payer: bob, payee: alice, amount: 4500, year: 2018n }),
+    ]);
+    expect(ask(domestic, "3306(a)(1)", [alice], 2018)).toBe("false");
+    expect(ask(domestic, "3306(a)(1)", [bob], 2018)).toBe("true");
+    expect(ask(domestic, "3306(a)(3)", [alice], 2018)).toBe("true");
+    expect(ask(domestic, "3306(a)", [alice], 2018)).toBe("true");
+  });
+
+  test("§3306(a)(2)(A): $20,000 of agricultural wages", () => {
+    // s3306_a_2_A_*
+    const dan = new Person("Dan");
+    const hands = [bob, charlie, dan];
+    const kb = kbWith([
+      ...hands.flatMap((hand, index) => [
+        employed.since({ employer: alice, employee: hand, day: d("2017-02-01") }),
+        employed.until({ employer: alice, employee: hand, day: d("2017-09-02") }),
+        agricultural_labor({ employer: alice, employee: hand }),
+        paid({ payer: alice, payee: hand, amount: [6771, 6954, 6872][index] ?? 0 }),
+      ]),
+      ...bobToAlice,
+    ]);
+    kb.entities.add(dan);
+    expect(ask(kb, "3306(a)(2)(A)", [alice], 2017)).toBe("true");
+    expect(ask(kb, "3306(a)(2)", [alice], 2017)).toBe("true");
+    expect(ask(kb, "3306(c)(1)(A)(i)", [alice, bob], 2017)).toBe("true");
+    const few = kbWith([
+      ...aliceToBob,
+      agricultural_labor({ employer: alice, employee: bob }),
+      ...bobToAlice,
+    ]);
+    expect(ask(few, "3306(a)(2)(A)", [alice], 2017)).toBe("false");
+    expect(ask(few, "3306(c)(1)(A)(i)", [alice, bob], 2017)).toBe("false");
+    expect(ask(few, "3306(c)(1)", [alice, bob], 2017)).toBe("true");
+  });
+
+  test("§3306(a)(2)(B): five in agricultural labor on ten days in ten weeks", () => {
+    // s3306_a_2_B_*: initials stand for Bob, Cameron, Dan, Emily, Fred and George.
+    const hands: Record<string, Person> = {
+      B: bob,
+      C: new Person("Cameron"),
+      D: new Person("Dan"),
+      E: new Person("Emily"),
+      F: new Person("Fred"),
+      G: new Person("George"),
+    };
+    const occasions = (days: readonly (readonly [string, string])[]): KnowledgeBase => {
+      const kb = kbWith([
+        ...Object.values(hands).map((hand) =>
+          agricultural_labor({ employer: alice, employee: hand }),
+        ),
+        ...days.flatMap(([day, initials]) =>
+          initials
+            .split("")
+            .map((initial) =>
+              employed_on({ employer: alice, employee: hands[initial] ?? bob, day: d(day) }),
+            ),
+        ),
+      ]);
+      kb.entities.add(...Object.values(hands));
+      return kb;
+    };
+    const positive = occasions([
+      ["2017-01-24", "BCDEF"],
+      ["2017-02-04", "BCDEF"],
+      ["2017-03-03", "BCDEF"],
+      ["2017-03-19", "CDEFG"],
+      ["2017-04-02", "BCDFG"],
+      ["2017-05-09", "CDEFG"],
+      ["2017-10-15", "BCDEG"],
+      ["2017-10-25", "BCDEFG"],
+      ["2017-11-08", "BCEFG"],
+      ["2017-11-22", "BCDEF"],
+      ["2017-12-01", "BCDEG"],
+      ["2017-12-03", "BCDEG"],
+    ]);
+    expect(ask(positive, "3306(a)(2)(B)", [alice], 2017)).toBe("true");
+    expect(ask(positive, "3306(a)(2)(B)", [alice], 2018)).toBe("true");
+    expect(ask(positive, "3306(c)(1)(A)(ii)", [alice, bob], 2017)).toBe("true");
+    // Two days short of five people, and the 1st and 3rd of December share a week.
+    const negative = occasions([
+      ["2017-01-24", "BCDEF"],
+      ["2017-02-04", "BCF"],
+      ["2017-03-03", "BCDEF"],
+      ["2017-03-19", "CDEFG"],
+      ["2017-04-02", "BCDFG"],
+      ["2017-05-09", "CDEFG"],
+      ["2017-10-15", "BCDEG"],
+      ["2017-10-25", "BEFG"],
+      ["2017-11-08", "BCEFG"],
+      ["2017-11-22", "BCDEF"],
+      ["2017-12-01", "BCDEG"],
+      ["2017-12-03", "BCDEG"],
+    ]);
+    expect(ask(negative, "3306(a)(2)(B)", [alice], 2017)).toBe("false");
+    expect(ask(negative, "3306(a)(1)(B)", [alice], 2017)).toBe("false");
+  });
+
+  test("§3306(c)(1), (c)(2), (c)(5), (c)(A): what is not employment", () => {
+    // s3306_c_1_*, s3306_c_2_*, s3306_c_5_*, s3306_c_A_*
+    const abroad = kbWith([
+      ...aliceToBob,
+      service_abroad({ employer: alice, employee: bob }),
+      agricultural_labor({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(abroad, "3306(c)(1)", [alice, bob], 2017)).toBe("true");
+    expect(ask(abroad, "3306(c)(A)", [alice, bob])).toBe("false");
+    const abroadDomestic = kbWith([
+      ...aliceToBob,
+      service_abroad({ employer: alice, employee: bob }),
+      domestic_service({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(abroadDomestic, "3306(c)(1)", [alice, bob], 2017)).toBe("false");
+    expect(ask(abroadDomestic, "3306(c)(2)", [alice, bob], 2017)).toBe("false");
+    const littleDomestic = kbWith([
+      employed.since({ employer: alice, employee: bob, day: d("2017-02-01") }),
+      employed.until({ employer: alice, employee: bob, day: d("2017-09-02") }),
+      paid({ payer: alice, payee: bob, amount: 300 }),
+      domestic_service({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(littleDomestic, "3306(c)(2)", [alice, bob], 2017)).toBe("true");
+    expect(ask(littleDomestic, "3306(c)", [alice, bob], 2017)).toBe("false");
+    const home = kbWith([...aliceToBob]);
+    expect(ask(home, "3306(c)(A)", [alice, bob])).toBe("true");
+    expect(ask(home, "3306(c)", [alice, bob], 2017)).toBe("true");
+    expect(ask(home, "3306(b)", [alice, bob], 2017)).toBe("true");
+    const father = kbWith([...aliceToBob, child_of({ child: alice, parent: bob })]);
+    expect(ask(father, "3306(c)(5)", [alice, bob], 2017)).toBe("true");
+    expect(ask(father, "3306(c)", [alice, bob], 2017)).toBe("false");
+    const brother = kbWith([...aliceToBob, sibling_of({ a: alice, b: bob })]);
+    expect(ask(brother, "3306(c)(5)", [alice, bob], 2017)).toBe("false");
+    const child = kbWith([
+      ...aliceToBob,
+      child_of({ child: bob, parent: alice }),
+      born({ person: bob, day: d("2000-05-05") }),
+    ]);
+    expect(ask(child, "3306(c)(5)(B)", [alice, bob], 2017)).toBe("true");
+    expect(ask(child, "3306(c)(5)(B)", [alice, bob], 2021)).toBe("false");
+  });
+
+  test("§3306(c)(10), (c)(13), (c)(21): students, patients and the committed", () => {
+    // s3306_c_10_A_i_*, s3306_c_10_A_ii_*, s3306_c_13_*, s3306_c_21_*
+    const student = kbWith([
+      works_for_institution.inYear({ person: alice, kind: "school", year: 2017n }),
+      enrolled_at_school.since({ person: alice, day: d("2015-08-29") }),
+      enrolled_at_school.until({ person: alice, day: d("2019-05-30") }),
+    ]);
+    expect(ask(student, "3306(c)(10)(A)(i)", [alice], 2017)).toBe("true");
+    const graduate = kbWith([
+      works_for_institution.inYear({ person: alice, kind: "school", year: 2017n }),
+      enrolled_at_school.since({ person: alice, day: d("2011-08-27") }),
+      enrolled_at_school.until({ person: alice, day: d("2016-05-29") }),
+    ]);
+    expect(ask(graduate, "3306(c)(10)(A)(i)", [alice], 2017)).toBe("false");
+    const husband = kbWith([
+      married_undated({ a: alice, b: bob }),
+      works_for_institution.inYear({ person: bob, kind: "school", year: 2017n }),
+      enrolled_at_school.since({ person: alice, day: d("2015-08-29") }),
+      enrolled_at_school.until({ person: alice, day: d("2019-05-30") }),
+    ]);
+    expect(ask(husband, "3306(c)(10)(A)(ii)", [bob], 2017)).toBe("true");
+    expect(ask(husband, "3306(c)(10)", [bob], 2017)).toBe("true");
+    const father = kbWith([
+      child_of({ child: alice, parent: bob }),
+      works_for_institution.inYear({ person: bob, kind: "school", year: 2017n }),
+      enrolled_at_school.since({ person: alice, day: d("2015-08-29") }),
+      enrolled_at_school.until({ person: alice, day: d("2019-05-30") }),
+    ]);
+    expect(ask(father, "3306(c)(10)(A)(ii)", [bob], 2017)).toBe("false");
+    const nurse = kbWith([
+      works_for_institution.inYear({ person: alice, kind: "nurses training school", year: 2017n }),
+      enrolled_at_nursing_school.since({ person: alice, day: d("2015-08-29") }),
+      enrolled_at_nursing_school.until({ person: alice, day: d("2019-05-30") }),
+    ]);
+    expect(ask(nurse, "3306(c)(13)", [alice], 2017)).toBe("true");
+    expect(ask(graduate, "3306(c)(13)", [alice], 2017)).toBe("false");
+    const jailed = kbWith([
+      works_for_institution.inYear({ person: alice, kind: "penal institution", year: 2017n }),
+      committed_to_penal_institution.since({ person: alice, day: d("2015-01-24") }),
+      committed_to_penal_institution.until({ person: alice, day: d("2019-05-05") }),
+    ]);
+    expect(ask(jailed, "3306(c)(21)", [alice], 2017)).toBe("true");
+    const patient = kbWith([
+      works_for_institution.inYear({ person: alice, kind: "hospital", year: 2017n }),
+      hospital_patient.since({ person: alice, day: d("2015-01-24") }),
+      hospital_patient.until({ person: alice, day: d("2019-05-05") }),
+    ]);
+    expect(ask(patient, "3306(c)(21)", [alice], 2017)).toBe("false");
+    expect(ask(patient, "3306(c)(10)(B)", [alice], 2017)).toBe("true");
+  });
+
+  test("§3306(b)(2), (b)(7), (b)(11), (b)(15): what is not wages", () => {
+    // s3306_b_2_A_*, s3306_b_7_*, s3306_b_11_*, s3306_b_15_*, s3306_b_*
+    const insured = kbWith([
+      employed.inYear({ employer: alice, employee: bob, year: 2017n }),
+      paid_in({ payer: alice, payee: bob, amount: 45_252, year: 2017n }),
+      paid_into_plan({ payer: alice, beneficiary: bob, amount: 9832, purpose: "retirement" }),
+      paid_into_plan({
+        payer: alice,
+        beneficiary: bob,
+        amount: 5322,
+        purpose: "sickness or accident disability",
+      }),
+    ]);
+    expect(ask(insured, "3306(b)(2)(A)", [alice, bob], 2017)).toBe("true");
+    const fatherInsured = kbWith([
+      employed.inYear({ employer: alice, employee: bob, year: 2017n }),
+      paid_in({ payer: alice, payee: bob, amount: 45_252, year: 2017n }),
+      paid_into_plan({ payer: alice, beneficiary: bob, amount: 9832, purpose: "retirement" }),
+      paid_into_plan({
+        payer: alice,
+        beneficiary: charlie,
+        amount: 5322,
+        purpose: "sickness or accident disability",
+      }),
+      child_of({ child: alice, parent: charlie }),
+    ]);
+    expect(ask(fatherInsured, "3306(b)(2)(A)", [alice, bob], 2017)).toBe("false");
+    expect(ask(fatherInsured, "3306(b)(2)(A)", [alice, charlie], 2017)).toBe("false");
+    const typewriter = kbWith([
+      employed.since({ employer: alice, employee: bob, day: d("2017-06-01") }),
+      paid_on({ payer: alice, payee: bob, amount: 323, day: d("2017-10-02") }),
+      paid_in_kind({ payer: alice, payee: bob }),
+      service_outside_business({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(typewriter, "3306(b)(7)", [alice, bob])).toBe("true");
+    const cash = kbWith([
+      employed.since({ employer: alice, employee: bob, day: d("2017-06-01") }),
+      paid_on({ payer: alice, payee: bob, amount: 323, day: d("2017-10-02") }),
+      service_outside_business({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(cash, "3306(b)(7)", [alice, bob])).toBe("false");
+    const hay = kbWith([
+      ...aliceToBob,
+      agricultural_labor({ employer: alice, employee: bob }),
+      paid_in_kind({ payer: alice, payee: bob }),
+    ]);
+    expect(ask(hay, "3306(b)(11)", [alice, bob], 2017)).toBe("true");
+    expect(ask(hay, "3306(b)", [alice, bob], 2017)).toBe("false");
+    const roof = kbWith([...aliceToBob, paid_in_kind({ payer: alice, payee: bob })]);
+    expect(ask(roof, "3306(b)(11)", [alice, bob], 2017)).toBe("false");
+    const dogWalking = kbWith([
+      employed.inYear({ employer: alice, employee: bob, year: 2018n }),
+      paid_in({ payer: alice, payee: bob, amount: 2325, year: 2018n }),
+      domestic_service({ employer: alice, employee: bob }),
+    ]);
+    expect(ask(dogWalking, "3306(b)", [alice, bob], 2018)).toBe("true");
+    const widow = (paidOn: string): KnowledgeBase =>
+      kbWith([
+        employed.since({ employer: alice, employee: bob, day: d("2011-02-01") }),
+        employed.until({ employer: alice, employee: bob, day: d("2019-11-19") }),
+        agricultural_labor({ employer: alice, employee: bob }),
+        died({ person: bob, day: d("2019-11-25") }),
+        married_undated({ a: bob, b: charlie }),
+        paid_on({ payer: alice, payee: charlie, amount: 1200, day: d(paidOn) }),
+      ]);
+    expect(ask(widow("2020-01-20"), "3306(b)(15)", [alice, charlie], 2020)).toBe("true");
+    expect(ask(widow("2019-12-20"), "3306(b)(15)", [alice, charlie], 2019)).toBe("false");
+  });
+
+  test("§3306(b)(10): payments on termination for death or disability, under a plan", () => {
+    // s3306_b_10_A_*, s3306_b_10_B_*
+    const laidOff = (
+      cause: "death" | "retirement for disability" | "other",
+    ): readonly GroundAtom[] => [
+      employed.since({ employer: alice, employee: bob, day: d("2011-01-02") }),
+      employed.until({ employer: alice, employee: bob, day: d("2019-10-10") }),
+      paid({ payer: alice, payee: bob, amount: 12_980 }),
+      termination_payment({ payer: alice, payee: bob, amount: 12_980, cause }),
+    ];
+    expect(
+      ask(kbWith(laidOff("retirement for disability")), "3306(b)(10)(A)", [alice], 2019, 12_980),
+    ).toBe("true");
+    expect(ask(kbWith(laidOff("other")), "3306(b)(10)(A)", [alice], 2019, 12_980)).toBe("false");
+    const planned = kbWith([
+      ...laidOff("retirement for disability"),
+      paid_under_employer_plan({ payer: alice, payee: bob, amount: 12_980 }),
+      has_disability_plan({ employer: alice }),
+    ]);
+    expect(ask(planned, "3306(b)(10)(B)", [alice], 2019, 12_980)).toBe("true");
+    expect(ask(planned, "3306(b)(10)", [alice], 2019, 12_980)).toBe("true");
+    expect(ask(planned, "3306(b)", [alice, bob], 2019)).toBe("false");
+    const unplanned = kbWith(laidOff("retirement for disability"));
+    unplanned.denies(has_disability_plan({ employer: alice }));
+    expect(ask(unplanned, "3306(b)(10)(B)", [alice], 2019, 12_980)).toBe("false");
+  });
+
+  test("§3301: 6 percent of wages, each employee's capped at $7,000", () => {
+    const kb = kbWith([
+      ...aliceToBob,
+      employed.inYear({ employer: alice, employee: charlie, year: 2017n }),
+      paid_in({ payer: alice, payee: charlie, amount: 9000, year: 2017n }),
+    ]);
+    // 3,200 plus 7,000 of the 9,000: 10,200 at 6 percent.
+    expect(ask(kb, "3301", [alice], 2017, 612)).toBe("true");
+    expect(ask(kb, "3301", [alice], 2017, 732)).toBe("false");
+    expect(ask(kbWith([]), "3301", [alice], 2017, 0)).toBe("false");
   });
 });

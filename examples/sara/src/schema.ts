@@ -610,6 +610,243 @@ export const blind = dated(
   "Becoming blind on a day, or having been blind since a day, starts the state on that day.",
 );
 
+// --- Employment, for §3306 and §3301 ---
+
+export const paid_in = closedPredicate(
+  "paid_in",
+  { payer: Person, payee: Person, amount: Number, year: BigInt },
+  {
+    description: "The payer paid the payee this amount in the given calendar year.",
+    instructions: withPersons(
+      "ASSERT when the text says the payer paid exactly this amount to the payee in, during " +
+        "or over this year, naming the year of the payment itself. IRRELEVANT when the text " +
+        "gives the payment an exact day, gives no year for it, or gives a year only for the " +
+        "work it was for. The fields are ordered: 'payer' pays, 'payee' receives. ",
+    ),
+  },
+);
+
+export const paid_on = closedPredicate(
+  "paid_on",
+  { payer: Person, payee: Person, amount: Number, day: Date },
+  {
+    description: "The payer paid the payee this amount on the given day.",
+    instructions: withPersons(
+      "ASSERT when the text says the payer paid exactly this amount to the payee on this " +
+        "exact day. IRRELEVANT for any other day, including days the work was done, and " +
+        "when the text gives no day for the payment. The fields are ordered: 'payer' pays, " +
+        "'payee' receives. ",
+    ),
+  },
+);
+
+export const domestic_service = closedPredicate(
+  "domestic_service",
+  { employer: Person, employee: Person },
+  {
+    description: "The work the employee did for the employer was domestic service.",
+    instructions: withPersons(
+      "ASSERT when the text says the employer employed, or paid, the employee for domestic " +
+        "service, housework, or service in a private home such as cleaning, cooking, " +
+        "gardening at the home or walking the dog. The fields are ordered: 'employer' pays " +
+        "for the work, 'employee' does it. IRRELEVANT for any other kind of work. ",
+    ),
+  },
+);
+
+export const service_outside_business = closedPredicate(
+  "service_outside_business",
+  { employer: Person, employee: Person },
+  {
+    description:
+      "The service the employee performed for the employer was not in the course of the " +
+      "employer's trade or business.",
+    instructions: withPersons(
+      "ASSERT when the text says what business the employer runs and the employee's service " +
+        "for them was something else, such as painting the employer's house for the owner " +
+        "of a factory. DENY when the service was part of the employer's business. IRRELEVANT " +
+        "when the text does not say what business the employer runs. ",
+    ),
+  },
+);
+
+export const paid_in_kind = closedPredicate(
+  "paid_in_kind",
+  { payer: Person, payee: Person },
+  {
+    description:
+      "The payer paid the payee in a medium other than cash: goods, produce, or an item of " +
+      "value.",
+    instructions: withPersons(
+      "ASSERT when the text says the payer paid the payee with goods, produce such as eggs, " +
+        "grapes or hay, or an item such as a typewriter, rather than money. DENY when the " +
+        "text says the payment was in cash or in money. IRRELEVANT when the text does not " +
+        "say what the payment was made in. ",
+    ),
+  },
+);
+
+export const PLAN_PURPOSES = enumeration(
+  "sickness or accident disability",
+  "death",
+  "retirement",
+  "other",
+);
+
+export const paid_into_plan = closedPredicate(
+  "paid_into_plan",
+  { payer: Person, beneficiary: Person, amount: Number, purpose: PLAN_PURPOSES },
+  {
+    description:
+      "The payer paid this amount into a plan, fund or insurance for the beneficiary, which " +
+      "provides for the given contingency.",
+    instructions: withPersons(
+      "ASSERT when the text says the payer paid exactly this amount into a fund, plan or " +
+        "insurance for the beneficiary: 'sickness or accident disability' for health " +
+        "insurance, sick pay or disability provision, 'death' for life insurance or death " +
+        "benefits, 'retirement' for a retirement or pension fund, 'other' otherwise. The " +
+        "beneficiary is the person the fund is for, not the fund. IRRELEVANT for money paid " +
+        "directly to a person. ",
+    ),
+  },
+);
+
+export const TERMINATION_CAUSES = enumeration("death", "retirement for disability", "other");
+
+export const termination_payment = closedPredicate(
+  "termination_payment",
+  { payer: Person, payee: Person, amount: Number, cause: TERMINATION_CAUSES },
+  {
+    description:
+      "The payer paid the payee this amount upon or after ending the payee's employment, " +
+      "which ended for the given cause.",
+    instructions: withPersons(
+      "ASSERT when the text says the payer paid exactly this amount to the payee on, or " +
+        "because of, the end of the payee's employment: 'death' when the employee died, " +
+        "'retirement for disability' when the employee retired or the contract was ended " +
+        "because of their disability, 'other' for any other reason such as retirement on " +
+        "reaching an age. IRRELEVANT for ordinary wages and for payments not tied to the " +
+        "end of the employment. ",
+    ),
+  },
+);
+
+export const paid_under_employer_plan = closedPredicate(
+  "paid_under_employer_plan",
+  { payer: Person, payee: Person, amount: Number },
+  {
+    description:
+      "The payer paid the payee this amount under, or using, a plan the payer established " +
+      "for their employees generally.",
+    instructions: withPersons(
+      "ASSERT when the text says the payment of exactly this amount was made using, under " +
+        "or from a plan, fund or scheme the payer set up for their employees. DENY when the " +
+        "text says the payer had no such plan. IRRELEVANT when the text does not mention a " +
+        "plan for this payment. ",
+    ),
+  },
+);
+
+export const service_abroad = closedPredicate(
+  "service_abroad",
+  { employer: Person, employee: Person },
+  {
+    description: "The employee's work for the employer was performed outside the United States.",
+    instructions: withPersons(
+      "ASSERT when the text places the work in a city or country outside the United States, " +
+        "such as Caracas, Venezuela or Toronto, Canada. DENY when the text places it in the " +
+        "United States, such as Baltimore, Maryland. IRRELEVANT when the text gives no " +
+        "place. The fields are ordered: 'employer' pays for the work, 'employee' does it. ",
+    ),
+  },
+);
+
+export const american_employer = closedPredicate(
+  "american_employer",
+  { person: Person },
+  {
+    description: "The person is an American employer.",
+    instructions: withPersons(
+      "ASSERT when the text says this person is an American employer. IRRELEVANT otherwise. ",
+    ),
+  },
+);
+
+export const us_citizen = closedPredicate(
+  "us_citizen",
+  { person: Person },
+  {
+    description: "The person is a citizen of the United States.",
+    instructions: withPersons(
+      "ASSERT when the text says this person is an American citizen or a citizen of the " +
+        "United States. IRRELEVANT otherwise. ",
+    ),
+  },
+);
+
+export const admitted_alien_farm_worker = closedPredicate(
+  "admitted_alien_farm_worker",
+  { person: Person },
+  {
+    description:
+      "The person is an alien admitted to the United States to perform agricultural labor.",
+    instructions: withPersons(
+      "ASSERT when the text says this person is a foreign national admitted to the United " +
+        "States to perform agricultural labor. IRRELEVANT otherwise. ",
+    ),
+  },
+);
+
+export const INSTITUTIONS = enumeration(
+  "school",
+  "hospital",
+  "nurses training school",
+  "penal institution",
+  "united states government",
+  "state government",
+  "foreign government",
+  "international organization",
+);
+
+export const works_for_institution = yearly(
+  "works_for_institution",
+  { person: Person, kind: INSTITUTIONS },
+  "the person performed services for, was employed by, or was paid by an institution of " +
+    "the given kind",
+  "The kinds: 'school' is a school, college or university; 'hospital' a hospital; 'nurses " +
+    "training school' a school of nursing; 'penal institution' a jail or prison; 'united " +
+    "states government', 'state government' (a State or its subdivision), 'foreign " +
+    "government', 'international organization'. A psychiatric hospital is a hospital, not a " +
+    "penal institution. IRRELEVANT when the employer is a named person.",
+);
+
+export const enrolled_at_school = dated(
+  "enrolled_at_school",
+  { person: Person },
+  "the person was enrolled and attending classes at a school, college or university",
+  "A school of nursing counts here too.",
+);
+
+export const enrolled_at_nursing_school = dated(
+  "enrolled_at_nursing_school",
+  { person: Person },
+  "the person was enrolled and attending classes at a school of nursing",
+  "Enrollment at a university or college that is not a school of nursing is IRRELEVANT here.",
+);
+
+export const hospital_patient = dated(
+  "hospital_patient",
+  { person: Person },
+  "the person was a patient of a hospital",
+);
+
+export const committed_to_penal_institution = dated(
+  "committed_to_penal_institution",
+  { person: Person },
+  "the person was committed to, or held in, a jail, prison or other penal institution",
+  "Commitment to a hospital, including a psychiatric hospital, is IRRELEVANT here.",
+);
+
 /**
  * Names the fact vocabulary and its instructions, so a results file says which extraction
  * produced it. Bump it when a predicate or instruction changes. "probe-4-2026-10-22" was
@@ -617,7 +854,7 @@ export const blind = dated(
  * §152(d)(2); "hh-2026-10-23" made the joint return a one-person fact and added the stated
  * marital, surviving-spouse and head-of-household statuses for the household provisions.
  */
-export const EXTRACTION_VERSION = "am-2026-10-23";
+export const EXTRACTION_VERSION = "em-2026-10-23";
 
 /** The predicates Jev may assert or deny from a case's text. */
 export const FACT_PREDICATES = [
@@ -658,6 +895,23 @@ export const FACT_PREDICATES = [
   ...yearlyPredicates(stated_amount),
   ...yearlyPredicates(additional_amount_63f),
   ...datedPredicates(blind),
+  paid_in,
+  paid_on,
+  domestic_service,
+  service_outside_business,
+  paid_in_kind,
+  paid_into_plan,
+  termination_payment,
+  paid_under_employer_plan,
+  service_abroad,
+  american_employer,
+  us_citizen,
+  admitted_alien_farm_worker,
+  ...yearlyPredicates(works_for_institution),
+  ...datedPredicates(enrolled_at_school),
+  ...datedPredicates(enrolled_at_nursing_school),
+  ...datedPredicates(hospital_patient),
+  ...datedPredicates(committed_to_penal_institution),
 ] as const;
 
 // --- The calendar, asserted as facts so rules can look up a year's bounds ---
