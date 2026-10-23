@@ -574,7 +574,7 @@ function evaluateOrBody(
         active,
         context,
         pathCanHaveUnavailableBindings,
-      ).filter((result) => result.bindings.size === environment.size);
+      ).filter((result) => !bindsBeyond(result.bindings, environment));
       const result = bestResult(results);
       return result === undefined ? [] : [result.judgment];
     });
@@ -963,7 +963,7 @@ function evaluateExpression(
     const right = evaluateExpression(expression.args[1], left.bindings, context);
     assert(isScalarGoalExpression(left.expression), "Left arithmetic operand must be scalar");
     assert(isScalarGoalExpression(right.expression), "Right arithmetic operand must be scalar");
-    const variable = new Var(`$tmp${context.nextTemp++}`);
+    const variable = new Var(`${TEMPORARY_PREFIX}${context.nextTemp++}`);
     const goal: ArithmeticGoal<typeof expression.kind> = {
       kind: expression.kind,
       bind: variable,
@@ -1911,6 +1911,31 @@ function bindingsArray(bindings: ReadonlyMap<Var, unknown>): Bindings {
   return [...bindings.entries()];
 }
 
+/**
+ * The temporaries arithmetic introduces for its intermediate results. They record the
+ * computation in the proof tree but are not rule variables, so two environments that
+ * differ only in temporaries are the same environment, and a result that adds only
+ * temporaries binds nothing beyond the environment it was evaluated in.
+ */
+const TEMPORARY_PREFIX = "$tmp";
+
+function isTemporary(variable: Var): boolean {
+  return variable.name.startsWith(TEMPORARY_PREFIX);
+}
+
+/** Whether the result binds a rule variable the environment does not. */
+function bindsBeyond(
+  result: ReadonlyMap<Var, unknown>,
+  environment: ReadonlyMap<Var, unknown>,
+): boolean {
+  for (const variable of result.keys()) {
+    if (!isTemporary(variable) && !environment.has(variable)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function uniqueBindings(
   bindings: readonly ReadonlyMap<Var, unknown>[],
 ): readonly ReadonlyMap<Var, unknown>[] {
@@ -1919,7 +1944,9 @@ function uniqueBindings(
 
   for (const binding of bindings) {
     const key = JSON.stringify(
-      bindingsArray(binding).map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
+      bindingsArray(binding)
+        .filter(([variable]) => !isTemporary(variable))
+        .map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
     );
     if (!seen.has(key)) {
       seen.add(key);

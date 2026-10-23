@@ -35,7 +35,6 @@ export const regressionExamples: readonly DslTestSpec[] = [
       "One thing satisfies p and a different thing satisfies s. No single thing satisfies both, so the conjunction is false.",
     narration:
       "One thing satisfies p and a different thing satisfies s. No single thing satisfies both, so the conjunction is false.",
-    fails: "1cc875a: disjunction cannot borrow truth from another binding",
     build(kb) {
       kb.entities.add(x1, x3);
       kb.asserts(p({ x: x1 }));
