@@ -1379,8 +1379,13 @@ function aggregateValueIsAvailable(
   return valueForVariable(bindings, expression) !== UNBOUND;
 }
 
+/**
+ * The sum of the rows' values: a bigint when every row is a bigint, otherwise a number.
+ * No rows at all sum to the number 0, as an amount that may later meet number
+ * arithmetic, rather than to a bigint zero that would not.
+ */
 function sumValues(values: readonly DefinedValue[]): number | bigint {
-  if (values.every((value) => typeof value === "bigint")) {
+  if (values.length > 0 && values.every((value) => typeof value === "bigint")) {
     return values.reduce((total, value) => total + value, 0n);
   }
 
