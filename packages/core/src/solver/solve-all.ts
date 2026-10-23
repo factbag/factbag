@@ -4,6 +4,7 @@ import {
   fieldIdentityToken,
   isAtomLike,
   isAtomForPredicate,
+  isEntityValue,
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
@@ -837,8 +838,11 @@ function evaluateComparisonBody(
 ): readonly BodyResult[] {
   const left = evaluateExpression(args[0], bindings, context);
   const right = evaluateExpression(args[1], left.bindings, context);
-  assert(isScalarGoalExpression(left.expression), "Left comparison operand must be scalar");
-  assert(isScalarGoalExpression(right.expression), "Right comparison operand must be scalar");
+  assert(isComparisonOperand(left.expression), "Left comparison operand must be scalar or entity");
+  assert(
+    isComparisonOperand(right.expression),
+    "Right comparison operand must be scalar or entity",
+  );
   const nextBindings = right.bindings;
   const judgmentBindings = bindingsArray(nextBindings);
   const goal: ComparisonGoal<typeof kind> = {
@@ -1035,6 +1039,11 @@ function isScalarGoalExpression(value: GoalExpression): value is GoalExpression<
     typeof value === "boolean" ||
     value instanceof Date
   );
+}
+
+/** A comparison operand: a scalar, or an entity for equality. */
+function isComparisonOperand(value: GoalExpression): value is GoalExpression {
+  return isScalarGoalExpression(value) || isEntityValue(value);
 }
 
 function isNumericGoalExpression(value: unknown): value is GoalExpression<number | bigint> {
@@ -1782,9 +1791,9 @@ function compareValues(
 
   switch (kind) {
     case "eq":
-      return leftComparable === rightComparable ? "true" : "false";
+      return sameValue(leftComparable, rightComparable) ? "true" : "false";
     case "neq":
-      return leftComparable === rightComparable ? "false" : "true";
+      return sameValue(leftComparable, rightComparable) ? "false" : "true";
     case "lt":
     case "lte":
     case "gt":
@@ -1793,6 +1802,17 @@ function compareValues(
     default:
       return assertNever(kind, "Unhandled comparison kind");
   }
+}
+
+/** Equality for comparisons: entities by type and id, everything else by value. */
+function sameValue(left: DefinedValue, right: DefinedValue): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (isEntityValue(left) && isEntityValue(right)) {
+    return JSON.stringify(fieldIdentityToken(left)) === JSON.stringify(fieldIdentityToken(right));
+  }
+  return false;
 }
 
 function compareOrderedValues(

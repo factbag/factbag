@@ -59,8 +59,8 @@ export type ClosedWorldAbsenceSupport = Readonly<{
 // @public
 export type ComparisonGoal<Kind extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte"> = Readonly<{
     readonly kind: Kind;
-    readonly left: GoalExpression<Scalar>;
-    readonly right: GoalExpression<Scalar>;
+    readonly left: GoalExpression;
+    readonly right: GoalExpression;
 }>;
 
 // @public

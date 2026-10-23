@@ -132,7 +132,7 @@ export class UnsafeUnboundVariableProgrammerError extends ProgrammerError {
 
 // Warnings were encountered during analysis:
 //
-// dist/dsl/types.d.ts:57:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
+// dist/dsl/types.d.ts:59:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
 // dist/types/literal.d.ts:9:5 - (ae-forgotten-export) The symbol "AnyAtom" needs to be exported by the entry point index.d.ts
 
 ```

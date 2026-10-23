@@ -1,4 +1,4 @@
-import type { ComparableTerm, Formula } from "../types";
+import type { ComparableTerm, EqualityTerm, Formula } from "../types";
 
 // Comparison operators for rule-body side constraints.
 
@@ -30,4 +30,23 @@ export function lte(
   right: ComparableTerm,
 ): Formula<boolean, readonly [ComparableTerm, ComparableTerm]> {
   return { kind: "lte", args: [left, right] };
+}
+
+/**
+ * Require the two terms to be equal: numbers and bigints by value, dates by instant, and
+ * entities by type and id, however many times they were constructed.
+ */
+export function eq(
+  left: EqualityTerm,
+  right: EqualityTerm,
+): Formula<boolean, readonly [EqualityTerm, EqualityTerm]> {
+  return { kind: "eq", args: [left, right] };
+}
+
+/** Require the two terms to differ, in the sense of {@link eq}. */
+export function neq(
+  left: EqualityTerm,
+  right: EqualityTerm,
+): Formula<boolean, readonly [EqualityTerm, EqualityTerm]> {
+  return { kind: "neq", args: [left, right] };
 }
