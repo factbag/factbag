@@ -8,7 +8,93 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { yearBoundsFacts, yearMarksFacts } from "../schema";
 import type { Person } from "../schema";
 import { defineHelpers } from "./helpers";
-import { defineS151, s151_b, s151_c } from "./s151";
+import {
+  defineS1,
+  s1_a,
+  s1_a_i,
+  s1_a_ii,
+  s1_a_iii,
+  s1_a_iv,
+  s1_a_v,
+  s1_b,
+  s1_b_i,
+  s1_b_ii,
+  s1_b_iii,
+  s1_b_iv,
+  s1_b_v,
+  s1_c,
+  s1_c_i,
+  s1_c_ii,
+  s1_c_iii,
+  s1_c_iv,
+  s1_c_v,
+  s1_d,
+  s1_d_i,
+  s1_d_ii,
+  s1_d_iii,
+  s1_d_iv,
+  s1_d_v,
+  s1_tax,
+} from "./s1";
+import {
+  defineS63,
+  s63_a,
+  s63_b,
+  s63_c,
+  s63_c_1,
+  s63_c_2,
+  s63_c_2_A,
+  s63_c_2_A_amount,
+  s63_c_2_B,
+  s63_c_2_B_amount,
+  s63_c_2_C,
+  s63_c_2_C_amount,
+  s63_c_3,
+  s63_c_5,
+  s63_c_5_amount,
+  s63_c_6,
+  s63_c_6_A,
+  s63_c_6_B,
+  s63_c_7_i_amount,
+  s63_c_7_ii_amount,
+  s63_d,
+  s63_d_2,
+  s63_f,
+  s63_f_1_A,
+  s63_f_1_B,
+  s63_f_2_A,
+  s63_f_2_B,
+  s63_f_3,
+  s63_f_3_amount,
+  taxable_income_of,
+} from "./s63";
+import {
+  applicable_amount,
+  defineS68,
+  s68_a,
+  s68_a_1,
+  s68_a_2,
+  s68_applies,
+  s68_b_1_A,
+  s68_b_1_A_amount,
+  s68_b_1_B,
+  s68_b_1_B_amount,
+  s68_b_1_C,
+  s68_b_1_C_amount,
+  s68_b_1_D,
+  s68_b_1_D_amount,
+  s68_f,
+} from "./s68";
+import {
+  defineS151,
+  exemption_amount,
+  s151_a,
+  s151_b,
+  s151_c,
+  s151_d_2,
+  s151_d_2_amount,
+  s151_d_3_B,
+} from "./s151";
 import {
   defineS152,
   s152_b_1,
@@ -63,7 +149,14 @@ import {
 export type Provision = Readonly<{
   /** The citation as it appears in questions, such as "2(a)(1)(A)". */
   citation: string;
-  predicate: PredicateDeclaration;
+  /** The predicate for a yes-or-no question, when the provision has one. */
+  predicate?: PredicateDeclaration;
+  /**
+   * The predicate for a question that names an amount, with an `amount` field: "is equal
+   * to $4,000", "have to pay $7,208". When the provision has only this form, a question
+   * without an amount cannot be read.
+   */
+  valued?: PredicateDeclaration;
   /** The person fields, in the order the question names people. */
   people: readonly string[];
   /** Whether the predicate takes the taxable year named in the question. */
@@ -99,6 +192,59 @@ function applies(citation: string, predicate: PredicateDeclaration, subject: str
     year: true,
     description: `Whether section ${citation} applies to the taxpayer for the taxable year: ${subject}.`,
   };
+}
+
+/** A provision whose question names an amount: whether the amount under it is the one named. */
+function amounts(citation: string, valued: PredicateDeclaration, subject: string): Provision {
+  return {
+    citation,
+    valued,
+    people: [...TAXPAYER_YEAR],
+    year: true,
+    description:
+      `Whether ${subject} under section ${citation} for the taxpayer and taxable year is the ` +
+      "amount the question names.",
+  };
+}
+
+/** A provision with both forms: whether it applies, and whether its amount is the one named. */
+function both(
+  citation: string,
+  predicate: PredicateDeclaration,
+  valued: PredicateDeclaration,
+  subject: string,
+): Provision {
+  return {
+    citation,
+    predicate,
+    valued,
+    people: [...TAXPAYER_YEAR],
+    year: true,
+    description:
+      `Whether section ${citation} applies to the taxpayer for the taxable year, or, when ` +
+      `the question names an amount, whether ${subject} under it is that amount.`,
+  };
+}
+
+/** The roman numerals of the five brackets of each §1 schedule. */
+const BRACKETS = ["i", "ii", "iii", "iv", "v"] as const;
+
+function schedule(
+  letter: string,
+  whole: PredicateDeclaration,
+  brackets: readonly PredicateDeclaration[],
+  who: string,
+): readonly Provision[] {
+  return [
+    amounts(`1(${letter})`, whole, `the tax on the taxable income of ${who}`),
+    ...brackets.map((predicate, index) =>
+      amounts(
+        `1(${letter})(${BRACKETS[index] ?? ""})`,
+        predicate,
+        `the tax on the taxable income of ${who}, when the income falls in this bracket`,
+      ),
+    ),
+  ];
 }
 
 export const PROVISIONS: readonly Provision[] = [
@@ -386,13 +532,103 @@ export const PROVISIONS: readonly Provision[] = [
       "Whether the individual bears any of the relationships to the taxpayer described in " +
       "section 152(d)(2) for the taxable year.",
   },
+
+  // --- §151(a) and (d): exemption amounts ---
+  amounts("151(a)", s151_a, "the taxpayer's total exemptions"),
+  amounts("151(d)", exemption_amount, "the exemption amount"),
+  both("151(d)(2)", s151_d_2, s151_d_2_amount, "the exemption amount, which is zero"),
+  amounts("151(d)(3)(B)", s151_d_3_B, "the applicable percentage"),
+
+  // --- §68: overall limitation on itemized deductions ---
+  amounts("68(a)", s68_a, "the reduction of the itemized deductions"),
+  amounts("68(a)(1)", s68_a_1, "the reduction of the itemized deductions, 3 percent of the excess"),
+  amounts("68(a)(2)", s68_a_2, "80 percent of the itemized deductions"),
+  both("68", s68_applies, s68_a, "the reduction of the itemized deductions"),
+  amounts("68(b)", applicable_amount, "the applicable amount"),
+  both("68(b)(1)(A)", s68_b_1_A, s68_b_1_A_amount, "the applicable amount"),
+  both("68(b)(1)(B)", s68_b_1_B, s68_b_1_B_amount, "the applicable amount"),
+  both("68(b)(1)(C)", s68_b_1_C, s68_b_1_C_amount, "the applicable amount"),
+  both("68(b)(1)(D)", s68_b_1_D, s68_b_1_D_amount, "the applicable amount"),
+  applies("68(f)", s68_f, "the section does not apply, the year being 2018 through 2025"),
+
+  // --- §63: taxable income and the standard deduction ---
+  amounts("63(a)", s63_a, "taxable income"),
+  amounts("63(b)", s63_b, "taxable income of one who does not itemize"),
+  amounts("63(c)", s63_c, "the standard deduction"),
+  amounts("63(c)(1)", s63_c_1, "the standard deduction"),
+  amounts("63(c)(2)", s63_c_2, "the basic standard deduction"),
+  both("63(c)(2)(A)", s63_c_2_A, s63_c_2_A_amount, "the basic standard deduction"),
+  both("63(c)(2)(B)", s63_c_2_B, s63_c_2_B_amount, "the basic standard deduction"),
+  both("63(c)(2)(C)", s63_c_2_C, s63_c_2_C_amount, "the basic standard deduction"),
+  amounts("63(c)(3)", s63_c_3, "the additional standard deduction"),
+  both(
+    "63(c)(5)",
+    s63_c_5,
+    s63_c_5_amount,
+    "the limit on the basic standard deduction of a dependent",
+  ),
+  applies("63(c)(6)", s63_c_6, "the standard deduction is zero"),
+  applies("63(c)(6)(A)", s63_c_6_A, "married filing separately where either spouse itemizes"),
+  applies("63(c)(6)(B)", s63_c_6_B, "a nonresident alien"),
+  amounts("63(c)(7)(i)", s63_c_7_i_amount, "the basic standard deduction of a head of household"),
+  amounts("63(c)(7)(ii)", s63_c_7_ii_amount, "the basic standard deduction in any other case"),
+  applies("63(d)", s63_d, "the taxpayer's deduction is an itemized deduction"),
+  applies(
+    "63(d)(2)",
+    s63_d_2,
+    "the taxpayer's deduction is one for personal exemptions under §151",
+  ),
+  amounts("63(f)", s63_f, "the additional amounts for the aged and blind"),
+  applies("63(f)(1)(A)", s63_f_1_A, "the taxpayer has attained age 65"),
+  {
+    citation: "63(f)(1)(B)",
+    predicate: s63_f_1_B,
+    people: ["taxpayer", "spouse"],
+    year: true,
+    description:
+      "Whether section 63(f)(1)(B) applies to the taxpayer with the spouse as the spouse for " +
+      "the taxable year: the spouse has attained age 65 and an exemption is allowable for them.",
+  },
+  applies("63(f)(2)(A)", s63_f_2_A, "the taxpayer is blind at the close of the year"),
+  {
+    citation: "63(f)(2)(B)",
+    predicate: s63_f_2_B,
+    people: ["taxpayer", "spouse"],
+    year: true,
+    description:
+      "Whether section 63(f)(2)(B) applies to the taxpayer with the spouse as the spouse for " +
+      "the taxable year: the spouse is blind and an exemption is allowable for them.",
+  },
+  both("63(f)(3)", s63_f_3, s63_f_3_amount, "the additional standard deduction at $750"),
+  amounts("63", taxable_income_of, "taxable income"),
+
+  // --- §1: tax imposed ---
+  amounts("1", s1_tax, "the tax"),
+  ...schedule(
+    "a",
+    s1_a,
+    [s1_a_i, s1_a_ii, s1_a_iii, s1_a_iv, s1_a_v],
+    "a married individual filing jointly or a surviving spouse",
+  ),
+  ...schedule("b", s1_b, [s1_b_i, s1_b_ii, s1_b_iii, s1_b_iv, s1_b_v], "a head of household"),
+  ...schedule("c", s1_c, [s1_c_i, s1_c_ii, s1_c_iii, s1_c_iv, s1_c_v], "an unmarried individual"),
+  ...schedule(
+    "d",
+    s1_d,
+    [s1_d_i, s1_d_ii, s1_d_iii, s1_d_iv, s1_d_v],
+    "a married individual filing separately",
+  ),
 ];
 
-/** The ground atom a question about a provision resolves to. */
+/**
+ * The ground atom a question about a provision resolves to: the valued form when the
+ * question names an amount and the provision has one, else the yes-or-no form.
+ */
 export function provisionAtom(
   provision: Provision,
   people: readonly Person[],
   year: bigint | undefined,
+  amount?: number,
 ): GroundAtom {
   if (people.length !== provision.people.length) {
     throw new Error(`Section ${provision.citation} names ${provision.people.length} people`);
@@ -400,7 +636,13 @@ export function provisionAtom(
   if (provision.year !== (year !== undefined)) {
     throw new Error(`Section ${provision.citation} ${provision.year ? "needs" : "takes no"} year`);
   }
-  const fields: Record<string, Person | bigint> = {};
+  const predicate = amount === undefined ? provision.predicate : provision.valued;
+  if (predicate === undefined) {
+    throw new Error(
+      `Section ${provision.citation} ${amount === undefined ? "needs" : "takes no"} amount`,
+    );
+  }
+  const fields: Record<string, Person | bigint | number> = {};
   for (const [index, name] of provision.people.entries()) {
     const person = people[index];
     if (person !== undefined) {
@@ -410,7 +652,10 @@ export function provisionAtom(
   if (year !== undefined) {
     fields["year"] = year;
   }
-  return { predicate: provision.predicate, fields };
+  if (amount !== undefined) {
+    fields["amount"] = amount;
+  }
+  return { predicate, fields };
 }
 
 /** A fresh knowledge base holding the calendar and every rule, ready for one case's facts. */
@@ -427,5 +672,8 @@ export function statuteKB(): KnowledgeBase {
   defineS151(kb);
   defineS7703(kb);
   defineS2(kb);
+  defineS68(kb);
+  defineS63(kb);
+  defineS1(kb);
   return kb;
 }

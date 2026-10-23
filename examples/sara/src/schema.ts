@@ -546,6 +546,70 @@ function datedPredicates<Fields extends StateFields>(
   return [state.undated, state.inYear, state.since, state.until];
 }
 
+// --- Amounts the text states, for §1, §63, §68 and §151(d) ---
+
+export const taxable_income = closedPredicate(
+  "taxable_income",
+  { person: Person, year: BigInt, amount: Number },
+  {
+    description: "The person's taxable income for the given calendar year, as the text states it.",
+    instructions: withPersons(
+      "ASSERT when the text says this person's taxable income for this year is exactly this " +
+        "amount. A taxable income the text gives for the person and their spouse together is " +
+        "this person's. IRRELEVANT for gross income, pay, earnings or income that the text does " +
+        "not call taxable income, and for a different year or amount. The year is a four-digit " +
+        "number. ",
+    ),
+  },
+);
+
+/** The kinds of amount a text states by naming the section that allows it. */
+export const AMOUNT_KINDS = enumeration(
+  "exemption_151",
+  "exemption_151c",
+  "exemption_amount_151d",
+  "standard_deduction_63c",
+  "basic_standard_deduction_63c2",
+  "additional_standard_deduction_63c3",
+  "itemized_deduction",
+  "applicable_amount_68b",
+);
+
+export const stated_amount = yearly(
+  "stated_amount",
+  { person: Person, kind: AMOUNT_KINDS, amount: Number },
+  "the person is allowed, entitled to, gets, or has an amount of the given kind",
+  "The kinds: 'exemption_151' is a deduction or exemption the person is allowed under " +
+    "section 151 or 151(a), or under 151(b) for themself, as a total; 'exemption_151c' is an " +
+    "exemption or deduction under section 151(c) for a dependent; 'exemption_amount_151d' is " +
+    "the exemption amount under section 151(d); 'standard_deduction_63c' is a deduction under " +
+    "section 63(c), the standard deduction; 'basic_standard_deduction_63c2' is the basic " +
+    "standard deduction under section 63(c)(2); 'additional_standard_deduction_63c3' is the " +
+    "additional standard deduction under section 63(c)(3) as a total; 'itemized_deduction' is " +
+    "an itemized deduction, a deduction under section 63 or 63(d), or a deduction for a gift " +
+    "to charity; 'applicable_amount_68b' is the applicable amount under section 68(b). An " +
+    "amount of one kind is IRRELEVANT to every other kind. Income, pay, taxable income, taxes " +
+    "paid and additional amounts under section 63(f) are not amounts of these kinds.",
+);
+
+export const additional_amount_63f = yearly(
+  "additional_amount_63f",
+  { taxpayer: Person, beneficiary: Person, amount: Number },
+  "the taxpayer is entitled to an additional standard deduction, or additional amount, of " +
+    "this amount under section 63(f) on account of the beneficiary",
+  "The fields are ordered: 'taxpayer' is entitled to the amount, 'beneficiary' is the person it " +
+    "is for, who is the taxpayer themself under section 63(f)(1)(A) or 63(f)(2)(A) and the " +
+    "taxpayer's spouse under 63(f)(1)(B) or 63(f)(2)(B). When the text gives one amount 'each' " +
+    "for several people, it holds for each of them.",
+);
+
+export const blind = dated(
+  "blind",
+  { person: Person },
+  "the person is, or was, blind",
+  "Becoming blind on a day, or having been blind since a day, starts the state on that day.",
+);
+
 /**
  * Names the fact vocabulary and its instructions, so a results file says which extraction
  * produced it. Bump it when a predicate or instruction changes. "probe-4-2026-10-22" was
@@ -553,7 +617,7 @@ function datedPredicates<Fields extends StateFields>(
  * §152(d)(2); "hh-2026-10-23" made the joint return a one-person fact and added the stated
  * marital, surviving-spouse and head-of-household statuses for the household provisions.
  */
-export const EXTRACTION_VERSION = "hh-2026-10-23";
+export const EXTRACTION_VERSION = "am-2026-10-23";
 
 /** The predicates Jev may assert or deny from a case's text. */
 export const FACT_PREDICATES = [
@@ -590,6 +654,10 @@ export const FACT_PREDICATES = [
   ...datedPredicates(disabled),
   ...datedPredicates(retired),
   has_disability_plan,
+  taxable_income,
+  ...yearlyPredicates(stated_amount),
+  ...yearlyPredicates(additional_amount_63f),
+  ...datedPredicates(blind),
 ] as const;
 
 // --- The calendar, asserted as facts so rules can look up a year's bounds ---

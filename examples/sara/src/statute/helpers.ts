@@ -19,11 +19,14 @@ import {
   lte,
   not,
   or,
+  sum,
   variable,
 } from "@factbag/core/dsl";
 import type { KnowledgeBase } from "@factbag/core/kb";
 import { NEG_INF } from "../calendar";
 import {
+  AMOUNT_KINDS,
+  blind,
   born,
   child_of,
   died,
@@ -41,6 +44,7 @@ import {
   separate_return,
   shares_home,
   sibling_of,
+  stated_amount,
   stepchild_of,
   year_bounds,
   year_marks,
@@ -64,6 +68,8 @@ const H = variable("H");
 const F2 = variable("F2");
 const L2 = variable("L2");
 const X2 = variable("X2");
+const K = variable("K");
+const T = variable("T");
 
 /** The two people married on `start`; an undated marriage starts at the sentinel −∞. */
 export const marriage = closedPredicate("marriage", { a: Person, b: Person, start: Date });
@@ -228,6 +234,47 @@ export const files_separately = closedPredicate("files_separately", {
   person: Person,
   year: BigInt,
 });
+
+// --- Amounts and states for §1, §63, §68 and §151(d) ---
+
+/** The person's gross income for the year: the stated amounts summed, 0 when none. */
+export const gross_income_of = closedPredicate("gross_income_of", {
+  person: Person,
+  year: BigInt,
+  amount: Number,
+});
+/** An amount of the kind the text states for the person, for the year or with no year. */
+export const stated = closedPredicate("stated", {
+  person: Person,
+  year: BigInt,
+  kind: AMOUNT_KINDS,
+  amount: Number,
+});
+/** The text states some amount of the kind for the person and year. */
+export const has_stated = closedPredicate("has_stated", {
+  person: Person,
+  year: BigInt,
+  kind: AMOUNT_KINDS,
+});
+/** The stated amounts of the kind for the person and year, summed. */
+export const stated_total = closedPredicate("stated_total", {
+  person: Person,
+  year: BigInt,
+  kind: AMOUNT_KINDS,
+  amount: Number,
+});
+/** The person has itemized deductions for the year, so elects to itemize. */
+export const itemizes = closedPredicate("itemizes", { person: Person, year: BigInt });
+/** The person's itemized deductions for the year before §68, 0 when none. */
+export const itemized_total = closedPredicate("itemized_total", {
+  person: Person,
+  year: BigInt,
+  amount: Number,
+});
+/** The person is blind at the close of the year. */
+export const blind_at_close = closedPredicate("blind_at_close", { person: Person, year: BigInt });
+const blind_ended_before = closedPredicate("blind_ended_before", { person: Person, day: Date });
+const has_blind_since = closedPredicate("has_blind_since", { person: Person });
 
 export function defineHelpers(kb: KnowledgeBase): void {
   kb.rule(dated_marriage({ a: A, b: B })).iff(
@@ -455,5 +502,47 @@ export function defineHelpers(kb: KnowledgeBase): void {
   );
   kb.rule(files_separately({ person: P, year: Y })).iff(
     or(separate_return.undated({ person: P }), separate_return.inYear({ person: P, year: Y })),
+  );
+
+  // Amounts and blindness.
+  kb.rule(gross_income_of({ person: P, year: Y, amount: A })).iff(
+    letIn(A, sum(X).where(gross_income({ person: P, year: Y, amount: X })), gte(A, 0)),
+  );
+  kb.rule(stated({ person: P, year: Y, kind: K, amount: A })).iff(
+    or(
+      stated_amount.undated({ person: P, kind: K, amount: A }),
+      stated_amount.inYear({ person: P, kind: K, amount: A, year: Y }),
+    ),
+  );
+  kb.rule(has_stated({ person: P, year: Y, kind: K })).iff(
+    stated({ person: P, year: Y, kind: K, amount: A }),
+  );
+  kb.rule(stated_total({ person: P, year: Y, kind: K, amount: T })).iff(
+    letIn(T, sum(A).where(stated({ person: P, year: Y, kind: K, amount: A })), gte(T, 0)),
+  );
+  kb.rule(itemizes({ person: P, year: Y })).iff(
+    has_stated({ person: P, year: Y, kind: "itemized_deduction" }),
+  );
+  kb.rule(itemized_total({ person: P, year: Y, amount: A })).iff(
+    stated_total({ person: P, year: Y, kind: "itemized_deduction", amount: A }),
+  );
+  kb.rule(blind_ended_before({ person: P, day: D })).iff(
+    and(blind.until({ person: P, day: E }), gt(D, E)),
+  );
+  kb.rule(has_blind_since({ person: P })).iff(blind.since({ person: P, day: D }));
+  kb.rule(blind_at_close({ person: P, year: Y })).iff(
+    and(
+      year_bounds({ year: Y, first: F, last: L }),
+      or(
+        blind.undated({ person: P }),
+        blind.inYear({ person: P, year: Y }),
+        and(
+          blind.since({ person: P, day: S }),
+          lte(S, L),
+          not(blind_ended_before({ person: P, day: L })),
+        ),
+        and(blind.until({ person: P, day: E }), gte(E, L), not(has_blind_since({ person: P }))),
+      ),
+    ),
   );
 }

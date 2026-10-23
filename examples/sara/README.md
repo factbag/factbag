@@ -61,10 +61,28 @@ hand-written gold in `src/probe-gold.ts`; both read nothing but the train split.
 
 ## Coverage
 
-The statute covers §7703(a) and (b), §2(a) and (b), §151(b) and (c), and §152(b), (c) and
-(d), each with its subparagraphs: 28 of the 88 citations in the train split, 56 of its 176
-entailment cases. The remaining subsections, mostly about amounts (§1, §63, §68, §151(d))
-and employment (§3306), are to be added in the same shape, then the numeric cases.
+The statute covers §7703(a) and (b), §2(a) and (b), §151, §152(b), (c) and (d), §63, §68
+and §1, each with its subparagraphs: 65 of the 85 citations in the train split's
+entailment cases, 136 of its 176 cases. What remains is employment, §3306 and §3301 (20
+citations, 40 cases), and then the numeric cases.
+
+Questions come in two forms. A yes-or-no question asks whether a provision applies to the
+people it names; a value question names an amount ("is equal to $4,000", "have to pay
+$7,208", "equal to 22") and asks whether the provision's amount is that one. A provision
+may have either form or both (§63(c)(5) and §68(b)(1)(A) have both), and the reader picks
+the valued form when the question names an amount. The amount sits in the query atom, so
+the solver's constraint on an already bound `letIn` variable does the comparison; the
+rules round as the reference does, to whole dollars with halves away from zero, and the
+percentage rules keep to whole-number arithmetic so that a half never meets a float.
+
+The amounts rest on stated figures where the text gives them and on the derivations
+otherwise: an amount the text states by naming its section (an exemption under §151(c),
+a basic standard deduction under §63(c)(2), an itemized deduction, the applicable amount
+of §68(b), and so on) is one fact predicate with a kind, and each rule prefers the stated
+figure to its own derivation of it. Taxable income is the stated figure, or §63(b) for
+one who does not itemize and §63(a) for one who does; §1's twenty brackets are each a
+predicate, since a question may ask about one bracket and is answered no when the income
+falls in another.
 
 The household provisions rest on a derived-status layer: married under §7703 including the
 living-apart rule of (b); surviving spouse from §2(a); head of household from §2(b); and
@@ -123,7 +141,9 @@ Replaying that run's saved facts and question readings under the reference-check
 no requests) gives 55/56: only `s152_b_1_pos` changes, as described above
 (`results/replay-2026-10-23T14-15-54-569Z`). The solver's share of a case is a median 27 ms
 and at most 110 ms, against the 1.3 s median end to end; the rest is the classifier.
-A fresh extraction run on these rules is pending the TypeSafe account's credits.
+A fresh extraction run on these rules, and the first run of the amounts family, wait on
+the TypeSafe account's credits; the amounts family is so far exercised by the statute
+tests, whose facts are the train texts written down (49 tests, under 6 s).
 
 §152(d)(2) was the first provision added under a reservation: its train citations (B) and
 (E) were the development cases, (D) and (F) were reserved unread until the rules, the

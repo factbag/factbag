@@ -6,6 +6,7 @@ import {
   abode_over_half,
   child_incl_step,
   cohabited_during,
+  files_jointly,
   files_separately,
   maintained_home_in,
   maintains_household,
@@ -64,6 +65,11 @@ export const s7703_b = closedPredicate("s7703_b", { taxpayer: Person, year: BigI
  * under (b), or stated outright by the text.
  */
 export const married_7703 = closedPredicate("married_7703", { taxpayer: Person, year: BigInt });
+/** Married under §7703 for the year and not making a joint return: filing separately. */
+export const married_separate = closedPredicate("married_separate", {
+  taxpayer: Person,
+  year: BigInt,
+});
 
 export function defineS7703(kb: KnowledgeBase): void {
   kb.rule(s7703_a_1({ taxpayer: T, spouse: S, year: Y })).iff(
@@ -119,5 +125,8 @@ export function defineS7703(kb: KnowledgeBase): void {
       married_stated.inYear({ person: T, year: Y }),
       and(married_a({ taxpayer: T, year: Y }), not(s7703_b({ taxpayer: T, year: Y }))),
     ),
+  );
+  kb.rule(married_separate({ taxpayer: T, year: Y })).iff(
+    and(married_7703({ taxpayer: T, year: Y }), not(files_jointly({ person: T, year: Y }))),
   );
 }

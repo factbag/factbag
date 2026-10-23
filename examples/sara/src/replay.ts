@@ -44,7 +44,11 @@ for (const declaration of FACT_PREDICATES) {
   byName.set(declaration.name, declaration);
 }
 for (const provision of PROVISIONS) {
-  byName.set(provision.predicate.name, provision.predicate);
+  for (const declaration of [provision.predicate, provision.valued]) {
+    if (declaration !== undefined) {
+      byName.set(declaration.name, declaration);
+    }
+  }
 }
 
 /** Parse a rendered field back by the predicate's declared type. */

@@ -10,7 +10,7 @@ export type Mentions = Readonly<{
   dates: readonly Date[];
   /** Four-digit years written on their own, not as part of a full date. */
   years: readonly number[];
-  /** Dollar amounts and percentages, as plain numbers. */
+  /** Dollar amounts, percentages and the figure after "equal to", as plain numbers. */
   amounts: readonly number[];
 }>;
 
@@ -51,6 +51,8 @@ const DAY_FIRST = new RegExp(String.raw`\b${ORDINAL}\s+(${MONTH})\.?,?\s+(\d{4})
 const MONTH_DAY = new RegExp(String.raw`\b(${MONTH})\.?\s+${ORDINAL}\b`, "gu");
 const YEAR = /\b(1[89]\d{2}|2[01]\d{2})\b/gu;
 const AMOUNT = /\$\s?(\d[\d,]*)|(\d+(?:\.\d+)?)\s?%/gu;
+/** "equal to 22", "equal to at most $500": the figure a value question asks about. */
+const EQUAL_TO = /\bequal to\s+(?:at most\s+|at least\s+)?\$?\s?(\d[\d,]*(?:\.\d+)?)\b/gu;
 const CAPITALISED = /\b[A-Z][a-z]+\b/gu;
 
 /**
@@ -167,6 +169,9 @@ export function mentions(text: string): Mentions {
   const amounts = new Set<number>();
   for (const match of text.matchAll(AMOUNT)) {
     amounts.add(Number((match[1] ?? match[2] ?? "").replaceAll(",", "")));
+  }
+  for (const match of text.matchAll(EQUAL_TO)) {
+    amounts.add(Number((match[1] ?? "").replaceAll(",", "")));
   }
   const people: string[] = [];
   for (const match of text.matchAll(CAPITALISED)) {
