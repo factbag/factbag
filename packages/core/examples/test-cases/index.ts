@@ -1,3 +1,4 @@
+import { regressionExamples as regressionEmptyNumberSum } from "./empty-number-sum.test-case";
 import { aggregateCompletenessTestCases } from "./aggregate-completeness.test-case";
 import { aggregateCountIntervalTestCases } from "./aggregate-count-interval.test-case";
 import { closedWorldNegationTestCase } from "./closed-world-negation.test-case";
@@ -43,6 +44,7 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
+  ...regressionEmptyNumberSum,
   ...smokeGoalValueTestCases,
   ...goalValueTruthTableTestCases,
   derivedPredicateBoundaryTestCase,
