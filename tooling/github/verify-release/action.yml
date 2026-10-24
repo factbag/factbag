@@ -1,0 +1,37 @@
+name: Verify release artifact
+description: Check the artifact handoff on a fresh runner without installing project dependencies
+
+inputs:
+  artifact-id:
+    description: Artifact ID produced by the build job
+    required: true
+  version:
+    description: Expected package version
+    required: true
+  integrity:
+    description: Expected tarball integrity from the build job
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: "24"
+        package-manager-cache: false
+    - name: Require npm with trusted publishing support
+      shell: bash
+      run: |
+        node -e 'const {execFileSync}=require("node:child_process"); const [major,minor,patch]=execFileSync("npm",["--version"],{encoding:"utf8"}).trim().split(".").map(Number); if (!(major>11 || (major===11 && (minor>5 || (minor===5 && patch>=1))))) process.exit(1)'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        artifact-ids: ${{ inputs.artifact-id }}
+        path: candidate
+        merge-multiple: true
+    - name: Verify artifact integrity and identity
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.version }}
+        RELEASE_INTEGRITY: ${{ inputs.integrity }}
+        RELEASE_ACTION_PATH: ${{ github.action_path }}
+      run: node "$RELEASE_ACTION_PATH/../../../scripts/release-artifact.ts" verify candidate "$RELEASE_VERSION"

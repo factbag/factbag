@@ -4,6 +4,7 @@ updates:
     directories:
       - /
       - /tooling/github/setup
+      - /tooling/github/verify-release
     schedule:
       interval: weekly
       day: monday
