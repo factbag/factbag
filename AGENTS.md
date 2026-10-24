@@ -12,3 +12,8 @@ This block is written and re-added by `turbo` before repository-scoped commands 
 ## Agent skills
 
 When adding or changing agent skills, follow [skills/README.md](skills/README.md).
+
+## Pull requests
+
+Follow the [pull request title convention](CONTRIBUTING.md#pull-request-titles)
+when opening a pull request.
