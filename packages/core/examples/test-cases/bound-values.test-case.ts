@@ -106,7 +106,6 @@ export const regressionExamples: readonly DslTestSpec[] = [
       "Alice was paid 351. The computed rounded amount is 98, so asking for 99 must be false.",
     narration:
       "Alice was paid 351. The computed rounded amount is 98, so asking for 99 must be false.",
-    fails: "afb79b2: a computed amount constrains the queried amount",
     build(kb) {
       return build(kb);
     },
@@ -127,7 +126,6 @@ export const regressionExamples: readonly DslTestSpec[] = [
     name: "Regression: an aggregate constrains the queried count",
     invariant: "Two payment rows exist. Asking whether the aggregate count is five must be false.",
     narration: "Two payment rows exist. Asking whether the aggregate count is five must be false.",
-    fails: "afb79b2: an aggregate constrains the queried count",
     build(kb) {
       return build(kb);
     },
