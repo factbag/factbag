@@ -25,13 +25,14 @@
     "release:pre-exit": "changeset pre exit",
     "release:pack": "node scripts/clean-output.ts .release && changeset pack --out-dir .release",
     "release:prepare": "changeset version && pnpm install --lockfile-only",
-    "release:publish": "changeset publish --from-pack-dir .release",
     "release:status": "changeset status",
     "release:verify": "node scripts/verify-artifacts.ts && pnpm release:pack && node scripts/verify-packed-consumer.ts --release",
     "test": "turbo test",
     "test:examples": "turbo test:examples --filter=@factbag/core",
     "typecheck": "turbo typecheck && tsc -p scripts/tsconfig.json",
-    "knip": "knip"
+    "knip": "knip",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:release && pnpm build && pnpm api-report:check",
+    "test:release": "node --test scripts/release-artifact.test.ts"
   },
   "devDependencies": {
     "@changesets/cli": "catalog:",

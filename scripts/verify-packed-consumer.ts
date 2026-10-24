@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -7,44 +6,18 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-interface PackedArtifact {
-  name: string;
-  version: string;
-  tarball: {
-    path: string;
-    integrity: string;
-  };
-}
-
-interface PackedRelease extends PackedArtifact {
-  kind: "publish";
-  access: "public";
-  tag: string;
-}
-
-interface PublishPlan {
-  version: number;
-  plan: PackedRelease[][];
-}
+import {
+  integrity,
+  readReleasePlan,
+  verifyTarball,
+  type PackedArtifact,
+  type PackedManifest,
+} from "./release-artifact.ts";
 
 interface CompilerManifest {
   name: string;
   version: string;
   bin: { tsc: string };
-}
-
-interface PackedManifest {
-  name: string;
-  version: string;
-  private?: boolean;
-  exports: unknown;
-  dependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-  publishConfig?: {
-    access?: string;
-  };
 }
 
 console.log(`Verifying packed packages on Node ${process.versions.node}`);
@@ -64,24 +37,7 @@ const releaseDirectory = releaseMode
 try {
   let releases: PackedArtifact[];
   if (releaseMode) {
-    const plan = JSON.parse(
-      await readFile(path.join(releaseDirectory, "publish-plan.json"), "utf8"),
-    ) as PublishPlan;
-    const expectedChunks = [["factbag"]];
-
-    assert.equal(plan.version, 1, "Unsupported publish-plan format");
-    assert.deepEqual(
-      plan.plan.map((chunk) => chunk.map((release) => release.name)),
-      expectedChunks,
-      "Only the canonical factbag package may be published",
-    );
-
-    for (const release of plan.plan.flat()) {
-      assert.equal(release.kind, "publish");
-      assert.equal(release.access, "public");
-      assert.equal(release.tag, "latest");
-    }
-    releases = plan.plan.flat();
+    releases = [await readReleasePlan(releaseDirectory, packageManifest.version)];
   } else {
     // CI verifies this checkout even when its version is already on npm.
     const tarballPath = "factbag.tgz";
@@ -92,9 +48,7 @@ try {
         version: packageManifest.version,
         tarball: {
           path: tarballPath,
-          integrity: `sha256-${createHash("sha256")
-            .update(await readFile(path.join(releaseDirectory, tarballPath)))
-            .digest("base64")}`,
+          integrity: integrity(await readFile(path.join(releaseDirectory, tarballPath)), "sha256"),
         },
       },
     ];
@@ -104,14 +58,7 @@ try {
     assert.equal(release.version, packageManifest.version);
 
     const tarball = path.join(releaseDirectory, release.tarball.path);
-    const integrity = `sha256-${createHash("sha256")
-      .update(await readFile(tarball))
-      .digest("base64")}`;
-    assert.equal(
-      integrity,
-      release.tarball.integrity,
-      `${release.name} tarball integrity mismatch`,
-    );
+    const manifest = await verifyTarball(tarball, release.version, release.tarball.integrity);
     const files = tar(["-tf", tarball]).trim().split("\n").filter(Boolean);
     const documentation = new Set([
       "package/package.json",
@@ -130,11 +77,6 @@ try {
       );
     }
 
-    const manifest = JSON.parse(tar(["-xOf", tarball, "package/package.json"])) as PackedManifest;
-    assert.equal(manifest.name, release.name);
-    assert.equal(manifest.version, release.version);
-    assert.notEqual(manifest.private, true);
-    assert.equal(manifest.publishConfig?.access, "public");
     assert.equal(manifest.dependencies?.["@typesafe-ai/sdk"], undefined);
     assert.equal(manifest.optionalDependencies?.["@typesafe-ai/sdk"], undefined);
     assert.equal(manifest.peerDependencies?.["@typesafe-ai/sdk"], "^0.6.0");
