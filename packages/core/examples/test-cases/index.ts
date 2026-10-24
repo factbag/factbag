@@ -1,4 +1,5 @@
 import { regressionExamples as boundValuesRegressionExamples } from "./bound-values.test-case";
+import { regressionExamples as regressionOrEnvironments } from "./or-environments.test-case";
 import { aggregateCompletenessTestCases } from "./aggregate-completeness.test-case";
 import { aggregateCountIntervalTestCases } from "./aggregate-count-interval.test-case";
 import { closedWorldNegationTestCase } from "./closed-world-negation.test-case";
@@ -45,6 +46,7 @@ import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
   ...boundValuesRegressionExamples,
+  ...regressionOrEnvironments,
   ...smokeGoalValueTestCases,
   ...goalValueTruthTableTestCases,
   derivedPredicateBoundaryTestCase,
