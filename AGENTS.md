@@ -9,6 +9,13 @@ Read `docs/README.md` inside that installed package first, then read the relevan
 This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
 <!-- END:turborepo-agent-rules -->
 
+## Repository Overview
+
+Factbag is a TypeScript library that turns documents into evidence and conclusions
+using TypeSafe AI’s Jev model. It combines source-linked evidence with application
+facts and rules in a queryable knowledge base, supporting true, false, conflicted,
+and unknown conclusions.
+
 ## Pull requests
 
 Follow the [pull request title convention](CONTRIBUTING.md#pull-request-titles)
