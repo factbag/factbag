@@ -192,6 +192,10 @@ try {
     ),
   ) as { version: string };
 
+  // The temporary project does not inherit workspace-local pnpm configuration.
+  // Reuse the populated store while keeping its installation isolated.
+  const storePath = workspaceStorePath();
+
   for (const withSdk of [false, true]) {
     console.log(
       `Checking ${withSdk ? "Jev with an explicit SDK" : "core, corpus, and guards without the SDK"}`,
@@ -251,6 +255,8 @@ try {
         [
           "install",
           "--offline",
+          "--store-dir",
+          storePath,
           "--ignore-scripts",
           "--no-frozen-lockfile",
           "--strict-peer-dependencies",
@@ -315,6 +321,21 @@ function runPnpm(arguments_: string[], cwd: string): void {
   const pnpm = process.env["npm_execpath"];
   assert.ok(pnpm, "npm_execpath is required to run the repository pnpm version");
   run(process.execPath, [pnpm, ...arguments_], cwd);
+}
+
+function workspaceStorePath(): string {
+  const pnpm = process.env["npm_execpath"];
+  assert.ok(pnpm, "npm_execpath is required to run the repository pnpm version");
+  const result = spawnSync(process.execPath, [pnpm, "store", "path", "--silent"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`pnpm store path failed with status ${result.status}: ${result.stderr}`);
+  }
+  const storePath = result.stdout.trim();
+  assert.ok(path.isAbsolute(storePath), `Expected an absolute pnpm store path: ${storePath}`);
+  return storePath;
 }
 
 function run(command: string, arguments_: string[], cwd: string): void {
