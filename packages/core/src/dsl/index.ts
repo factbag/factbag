@@ -13,7 +13,7 @@ export type {
   EqualityTerm,
   NumericTerm,
 } from "./types";
-export { add, div, mul, sub } from "./operators/arithmetic";
+export { add, ceilTo, div, floorTo, max, min, mul, roundTo, sub } from "./operators/arithmetic";
 export { eq, gt, gte, lte, neq } from "./operators/comparison";
 export { closedPredicate, predicate } from "./predicate";
 export { enumeration } from "./enumeration";

@@ -65,9 +65,44 @@ export type SubGoal = ArithmeticGoal<"sub">;
 export type MulGoal = ArithmeticGoal<"mul">;
 /** Arithmetic goal binding the quotient of two expressions. */
 export type DivGoal = ArithmeticGoal<"div">;
+/** Arithmetic goal binding the lesser of two numeric expressions. */
+export type MinGoal = ArithmeticGoal<"min">;
+/** Arithmetic goal binding the greater of two numeric expressions. */
+export type MaxGoal = ArithmeticGoal<"max">;
+/** Arithmetic goal rounding halves away from zero at the right operand's decimal places. */
+export type RoundToGoal = ArithmeticGoal<"roundTo">;
+/** Arithmetic goal rounding toward negative infinity at the right operand's decimal places. */
+export type FloorToGoal = ArithmeticGoal<"floorTo">;
+/** Arithmetic goal rounding toward positive infinity at the right operand's decimal places. */
+export type CeilToGoal = ArithmeticGoal<"ceilTo">;
+
+/** The primitive arithmetic operations. */
+export type ArithmeticKind =
+  | "add"
+  | "sub"
+  | "mul"
+  | "div"
+  | "min"
+  | "max"
+  | "roundTo"
+  | "floorTo"
+  | "ceilTo";
+
+/** Shared runtime classification for arithmetic formulas. */
+export const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
+  "add",
+  "sub",
+  "mul",
+  "div",
+  "min",
+  "max",
+  "roundTo",
+  "floorTo",
+  "ceilTo",
+];
 
 /** Bind the result of a primitive arithmetic operation. */
-export type ArithmeticGoal<Kind extends "add" | "sub" | "mul" | "div"> = Readonly<{
+export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
   readonly kind: Kind;
   readonly bind: Var;
   readonly left: GoalExpression<Scalar>;
@@ -123,6 +158,11 @@ export type Goal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal
@@ -141,6 +181,11 @@ export type PrimitiveGoal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal

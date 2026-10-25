@@ -12,6 +12,7 @@ import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
   ArithmeticGoal,
+  ArithmeticKind,
   CountGoal,
   ComparisonGoal,
   ExistsGoal,
@@ -22,6 +23,7 @@ import type {
   OrGoal,
   SumGoal,
 } from "../types/goal";
+import { ARITHMETIC_KINDS } from "../types/goal";
 import type { Bindings, GoalValue } from "../types/common";
 import type {
   Judgment,
@@ -47,6 +49,7 @@ import {
 } from "./goal-value";
 import { groundAtom, matchPattern, matchRuleForAtom } from "./matching";
 import { CandidateSearch } from "./candidate-search";
+import { ProgramIndex } from "./program-index";
 
 const UNBOUND: unique symbol = Symbol("factbag.unbound");
 type Unbound = typeof UNBOUND;
@@ -68,7 +71,10 @@ type CountUncertainty =
 type SearchContext = {
   candidates: CandidateSearch;
   judgments: Map<PredicateDeclaration, Map<string, QueryJudgment>>;
+  index: ProgramIndex;
 };
+
+type ActiveAtoms = ReadonlyMap<string, PredicateDeclaration>;
 
 export function solveQueryAll<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
@@ -76,9 +82,10 @@ export function solveQueryAll<Schema extends PredicateSchema>(
   atom: Atom<Schema>,
 ): QueryAllJudgment<Schema> {
   validateQuery(literals, rules, atom);
-  const result = solveQueryAllInternal(literals, rules, atom, new Set(), {
+  const result = solveQueryAllInternal(literals, rules, atom, new Map(), {
     candidates: new CandidateSearch(rules),
     judgments: new Map(),
+    index: new ProgramIndex(literals, rules),
   });
 
   const stack: unknown[] = [result];
@@ -112,7 +119,7 @@ function solveQueryAllInternal<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: Atom<Schema>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
 ): QueryAllJudgment<Schema> {
   if (isGroundAtom(atom)) {
@@ -130,12 +137,13 @@ function solveGroundAtom<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: GroundAtom<Schema>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
 ): QueryJudgment<Schema> {
-  // Discovery can temporarily expose partial candidate tables. Only reuse
-  // completed ground judgments outside that fixed-point computation.
-  if (search.candidates.isEvaluating) {
+  // Discovery can expose partial tables. Reuse only when no predicate this
+  // judgment depends on is in a fixed-point computation.
+  const dependencies = search.index.reaches(atom.predicate);
+  if (search.candidates.evaluatingAmong(dependencies)) {
     return evaluateGroundAtom(literals, rules, atom, active, search);
   }
 
@@ -144,7 +152,13 @@ function solveGroundAtom<Schema extends PredicateSchema>(
     judgments = new Map();
     search.judgments.set(atom.predicate, judgments);
   }
-  const key = JSON.stringify([groundAtomKey(atom), [...active].sort()]);
+  // An active atom of an unreachable predicate cannot be met again during this
+  // evaluation, so it cannot influence the judgment. Keep only reachable contexts,
+  // comparing predicate objects rather than parsing names out of atom keys.
+  const relevantActive = [...active]
+    .filter(([, predicate]) => dependencies.has(predicate))
+    .map(([key]) => key);
+  const key = JSON.stringify([groundAtomKey(atom, search), relevantActive.sort()]);
   const cached = judgments.get(key);
   if (cached !== undefined && judgmentMatchesAtom(cached, atom)) {
     return cached;
@@ -166,14 +180,14 @@ function evaluateGroundAtom<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: GroundAtom<Schema>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
 ): QueryJudgment<Schema> {
   const goal: GroundAtomGoal<Schema> = { kind: "atom", atom };
   const bindings: Bindings = [];
-  const atomKey = groundAtomKey(atom);
-  const positiveLiterals = matchingLiterals(literals, atom, "+");
-  const negativeLiterals = matchingLiterals(literals, atom, "-");
+  const atomKey = groundAtomKey(atom, search);
+  const positiveLiterals = matchingLiterals(search.index.literalsFor(atom.predicate), atom, "+");
+  const negativeLiterals = matchingLiterals(search.index.literalsFor(atom.predicate), atom, "-");
   const values: GoalValue[] = [];
   const positive: RuleSupport<Schema>[] = [];
   const negative: RuleSupport<Schema>[] = [];
@@ -188,10 +202,10 @@ function evaluateGroundAtom<Schema extends PredicateSchema>(
   }
 
   if (!active.has(atomKey)) {
-    const nextActive = new Set(active);
-    nextActive.add(atomKey);
+    const nextActive = new Map(active);
+    nextActive.set(atomKey, atom.predicate);
 
-    for (const rule of rules) {
+    for (const rule of search.index.rulesFor(atom.predicate)) {
       const match = matchRuleForAtom(rule, atom);
       if (match === undefined) {
         continue;
@@ -307,7 +321,7 @@ function evaluateRuleBody(
   rules: readonly AnyRule[],
   body: unknown,
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
 ): BodyResult {
   const context: EvaluationContext = {
@@ -341,7 +355,7 @@ function evaluateRuleBodyMany(
   rules: readonly AnyRule[],
   body: unknown,
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
@@ -373,7 +387,10 @@ function evaluateRuleBodyMany(
     }
 
     const atom = groundAtom(bodyAtom, bindings);
-    assert(!active.has(groundAtomKey(atom)), "Validated query must not recurse through negation");
+    assert(
+      !active.has(groundAtomKey(atom, context.search)),
+      "Validated query must not recurse through negation",
+    );
     const child = solveGroundAtom(literals, rules, atom, active, context.search);
     const goal: NotGoal = { kind: "not", goal: { kind: "atom", atom } };
     const value =
@@ -515,7 +532,7 @@ function evaluateExistsBody(
   rules: readonly AnyRule[],
   args: readonly unknown[],
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings: boolean,
 ): readonly BodyResult[] {
@@ -549,7 +566,7 @@ function evaluateOrBody(
   rules: readonly AnyRule[],
   args: readonly unknown[],
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings: boolean,
 ): readonly BodyResult[] {
@@ -631,7 +648,7 @@ function evaluateAndBody(
   rules: readonly AnyRule[],
   args: readonly unknown[],
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings: boolean,
 ): readonly BodyResult[] {
@@ -694,7 +711,7 @@ function evaluateAtomBody(
   rules: readonly AnyRule[],
   atom: Atom,
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
@@ -702,8 +719,8 @@ function evaluateAtomBody(
     const grounded = groundAtom(atom, environment);
     const judgmentBindings = bindingsArray(environment);
     // Candidate discovery needs bindings, not recursive proofs. Positive SCCs
-    // cannot contain negation or aggregates, and candidate heads are retained
-    // regardless of body truth. Prove these candidates only after discovery.
+    // cannot contain negation or aggregates. Unknown placeholders retain recursive
+    // candidates unless a settled conjunct is false; prove them after discovery.
     const judgment: QueryJudgment =
       context.candidatePredicate !== undefined &&
       context.search.candidates.sameComponent(context.candidatePredicate, grounded.predicate)
@@ -837,7 +854,7 @@ function evaluateLetInBody(
   rules: readonly AnyRule[],
   args: readonly [unknown, unknown, unknown],
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings: boolean,
 ): readonly BodyResult[] {
@@ -896,7 +913,7 @@ function evaluateLetBodyAfterValue(
   rules: readonly AnyRule[],
   body: unknown,
   value: ExpressionResult,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
   pathCanHaveUnavailableBindings: boolean,
 ): readonly BodyResult[] {
@@ -1158,7 +1175,7 @@ function evaluateAggregateInto(
       | readonly [unknown, unknown, Readonly<{ completeWhen?: unknown }>];
   }>,
   bindings: ReadonlyMap<Var, unknown>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   context: EvaluationContext,
 ): AggregateEvaluation {
   const [valueExpression, whereBody, options] = aggregate.args;
@@ -1426,7 +1443,7 @@ function primitiveCountJudgment(
 }
 
 function primitiveArithmeticJudgment(
-  goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">,
+  goal: ArithmeticGoal<ArithmeticKind>,
   bindings: Bindings,
   left: unknown,
   leftExpression: GoalExpression,
@@ -1569,7 +1586,7 @@ function primitiveRangeForExact(value: unknown): Partial<PrimitiveEvaluation> {
 
 // Type guards. Formula guards use `is<Kind>Formula`; structural shape guards use `is<Shape>Like`.
 type ArithmeticFormula = Readonly<{
-  kind: "add" | "sub" | "mul" | "div";
+  kind: ArithmeticKind;
   args: readonly [unknown, unknown];
 }>;
 
@@ -1592,7 +1609,9 @@ type AggregateFormula = Readonly<{
 
 function isArithmeticFormula(value: unknown): value is ArithmeticFormula {
   return (
-    isFormula(value) && ["add", "sub", "mul", "div"].includes(value.kind) && value.args.length === 2
+    isFormula(value) &&
+    ARITHMETIC_KINDS.some((kind) => kind === value.kind) &&
+    value.args.length === 2
   );
 }
 
@@ -1628,10 +1647,10 @@ function isLiteralLike(value: unknown): value is AnyLiteral {
 }
 
 function calculateValue(
-  kind: "add" | "sub" | "mul" | "div",
+  kind: ArithmeticKind,
   left: SolverValue,
   right: SolverValue,
-  goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">,
+  goal: ArithmeticGoal<ArithmeticKind>,
 ): SolverValue {
   if (left === UNBOUND || right === UNBOUND) {
     return UNBOUND;
@@ -1644,6 +1663,11 @@ function calculateValue(
       case "add":
       case "mul":
       case "div":
+      case "min":
+      case "max":
+      case "roundTo":
+      case "floorTo":
+      case "ceilTo":
         break;
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
@@ -1660,12 +1684,77 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "min":
+        return Math.min(left, right);
+      case "max":
+        return Math.max(left, right);
+      case "roundTo":
+      case "floorTo":
+      case "ceilTo":
+        if (!Number.isInteger(right)) {
+          throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+        }
+        return roundAtPlaces(left, right, kind);
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
     }
   }
 
   throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+}
+
+/**
+ * Shift the shortest decimal representation, avoiding multiplication artifacts
+ * at decimal boundaries (1.005 becomes 100.5, not 100.49999999999999).
+ * Earlier arithmetic and the final conversion still use number precision.
+ */
+function shiftDecimal(value: number, places: number): number {
+  if (value === 0 || !Number.isFinite(value)) {
+    return value;
+  }
+  const [coefficient, exponent = "0"] = String(value).split("e");
+  const shiftedExponent = Number(exponent) + places;
+  if (shiftedExponent > 308) {
+    return Math.sign(value) * Infinity;
+  }
+  if (shiftedExponent < -324) {
+    return Math.sign(value) * 0;
+  }
+  return Number(`${coefficient}e${shiftedExponent}`);
+}
+
+function roundAtPlaces(
+  value: number,
+  places: number,
+  kind: "roundTo" | "floorTo" | "ceilTo",
+): number {
+  if (value === 0 || !Number.isFinite(value)) {
+    return value;
+  }
+  let shifted = shiftDecimal(value, places);
+  // A finer scale than number can represent cannot change the original value.
+  if (!Number.isFinite(shifted)) {
+    return value;
+  }
+  // Preserve direction if a very coarse scale underflows a nonzero operand.
+  if (shifted === 0) {
+    shifted = Math.sign(value) * Number.MIN_VALUE;
+  }
+  let rounded: number;
+  switch (kind) {
+    case "roundTo":
+      rounded = Math.sign(shifted) * Math.round(Math.abs(shifted));
+      break;
+    case "floorTo":
+      rounded = Math.floor(shifted);
+      break;
+    case "ceilTo":
+      rounded = Math.ceil(shifted);
+      break;
+    default:
+      return assertNever(kind, "Unhandled rounding kind");
+  }
+  return shiftDecimal(rounded, -places);
 }
 
 function compareValues(
@@ -2004,21 +2093,21 @@ function canGroundAtom(atom: Atom, bindings: ReadonlyMap<Var, unknown>): boolean
   return Object.values(atom.fields).every((value) => !isVar(value) || bindings.has(value));
 }
 
-function groundAtomKey(atom: GroundAtom): string {
+function groundAtomKey(atom: GroundAtom, search: SearchContext): string {
   const fields = atom.predicate.paramNames.map((name) => fieldIdentityToken(atom.fields[name]));
-  return `${atom.predicate.name}:${JSON.stringify(fields)}`;
+  return `${search.index.predicateId(atom.predicate)}:${JSON.stringify(fields)}`;
 }
 
 function candidateGroundAtoms<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: Atom<Schema>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
   pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   return search.candidates
-    .candidates(atom, matchingGroundAtoms(literals, atom), () =>
+    .candidates(atom, matchingGroundAtoms(search.index.literalsFor(atom.predicate), atom), () =>
       deriveCandidateAtoms(literals, rules, atom, active, search, pathCanHaveUnavailableBindings),
     )
     .filter((candidate): candidate is GroundAtom<Schema> =>
@@ -2036,12 +2125,12 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: Atom<Schema>,
-  active: ReadonlySet<string>,
+  active: ActiveAtoms,
   search: SearchContext,
   pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   const atoms: GroundAtom<Schema>[] = [];
-  for (const rule of rules) {
+  for (const rule of search.index.rulesFor(atom.predicate)) {
     const ruleHead = atomForPredicate(rule.head.atom, atom.predicate);
     if (ruleHead === undefined) {
       continue;

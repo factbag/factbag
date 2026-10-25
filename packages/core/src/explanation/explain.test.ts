@@ -3,7 +3,19 @@
  * JSON across direct evidence, conflicts, unknowns, and closed-world negation.
  */
 import { describe, expect, it } from "vitest";
-import { closedPredicate, not, predicate, variable } from "../dsl";
+import {
+  ceilTo,
+  closedPredicate,
+  floorTo,
+  gte,
+  letIn,
+  max,
+  min,
+  not,
+  predicate,
+  roundTo,
+  variable,
+} from "../dsl";
 import { KnowledgeBase } from "../knowledge-base";
 import { query } from "../query";
 import type { Explanation } from "./types";
@@ -25,6 +37,29 @@ const cara = new Person("cara");
 const drew = new Person("drew");
 
 describe("explainJudgment", () => {
+  it.each([min, max, roundTo, floorTo, ceilTo])(
+    "names %s in primitive explanation claims",
+    (operator) => {
+      // Arrange
+      const kb = new KnowledgeBase();
+      const rounded = closedPredicate("rounded", { value: Number });
+      const V = variable("V");
+      kb.rule(rounded({ value: V })).iff(letIn(V, operator(1, 2), gte(V, 0)));
+
+      // Act
+      const explanation = explainJudgment(query(kb, rounded({ value: 1 })));
+
+      // Assert
+      const claims = (node: Explanation): string[] => [
+        node.claim,
+        ...("given" in node ? node.given : []).flatMap(claims),
+      ];
+      expect(claims(explanation)).toContainEqual(
+        expect.stringContaining(` = ${operator.name}(1, 2) = true`),
+      );
+    },
+  );
+
   describe("direct atom evidence", () => {
     const activeSanction = predicate("active_sanction", { person: Person });
 
