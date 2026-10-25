@@ -53,6 +53,62 @@ export function reachablePredicates(
   return reachable;
 }
 
+/** Tarjan's linear-time components; every member maps to the same component set. */
+export function stronglyConnectedComponents(
+  edges: readonly Edge[],
+): ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>> {
+  const next = new Map<PredicateDeclaration, Set<PredicateDeclaration>>();
+  for (const edge of edges) {
+    let targets = next.get(edge.from);
+    if (targets === undefined) {
+      targets = new Set();
+      next.set(edge.from, targets);
+    }
+    targets.add(edge.to);
+  }
+  const indices = new Map<PredicateDeclaration, number>();
+  const onStack = new Set<PredicateDeclaration>();
+  const stack: PredicateDeclaration[] = [];
+  const components = new Map<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>();
+  let counter = 0;
+  const visit = (predicate: PredicateDeclaration): number => {
+    const index = counter++;
+    let lowLink = index;
+    indices.set(predicate, index);
+    stack.push(predicate);
+    onStack.add(predicate);
+    for (const target of next.get(predicate) ?? []) {
+      const targetIndex = indices.get(target);
+      if (targetIndex === undefined) {
+        lowLink = Math.min(lowLink, visit(target));
+      } else if (onStack.has(target)) {
+        lowLink = Math.min(lowLink, targetIndex);
+      }
+    }
+    if (lowLink === index) {
+      const component = new Set<PredicateDeclaration>();
+      let member: PredicateDeclaration | undefined;
+      do {
+        member = stack.pop();
+        if (member !== undefined) {
+          onStack.delete(member);
+          component.add(member);
+        }
+      } while (member !== undefined && member !== predicate);
+      for (const found of component) {
+        components.set(found, component);
+      }
+    }
+    return lowLink;
+  };
+  for (const predicate of next.keys()) {
+    if (!indices.has(predicate)) {
+      visit(predicate);
+    }
+  }
+  return components;
+}
+
 export function isNegativeLiteral(value: unknown): value is AnyLiteral & { sign: "-" } {
   return (
     typeof value === "object" &&

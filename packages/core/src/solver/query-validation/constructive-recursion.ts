@@ -5,17 +5,26 @@ import type { PredicateDeclaration } from "../../types/predicate";
 import type { AnyRule } from "../../types/rule";
 import type { PredicateSchema } from "../../types/schema";
 import type { QueryValidationContext } from "./context";
-import { isNegativeLiteral, reachablePredicates, ruleEdges, variablesIn, type Edge } from "./utils";
+import {
+  isNegativeLiteral,
+  reachablePredicates,
+  ruleEdges,
+  stronglyConnectedComponents,
+  variablesIn,
+} from "./utils";
 
 export function assertConstructiveRecursion<Schema extends PredicateSchema>(
   context: QueryValidationContext<Schema>,
 ): void {
   const edges = context.rules.flatMap(ruleEdges);
   const reachable = reachablePredicates(context.atom.predicate, edges);
-  const components = stronglyConnectedComponents(reachable, edges);
+  const components = new Set(stronglyConnectedComponents(edges).values());
   const needsCandidateEnumeration = variablesIn(context.atom).length > 0;
 
   for (const component of components) {
+    if (![...component].some((predicate) => reachable.has(predicate))) {
+      continue;
+    }
     const internalEdges = edges.filter(
       (edge) => component.has(edge.from) && component.has(edge.to),
     );
@@ -47,39 +56,19 @@ function hasNonRecursiveBaseRule(
 ): boolean {
   return rules.some(
     (rule) =>
-      component.has(rule.head.atom.predicate) && !bodyReferencesPredicates(rule.body, component),
+      component.has(rule.head.atom.predicate) && hasNonRecursiveAlternative(rule.body, component),
   );
 }
 
-function stronglyConnectedComponents(
-  predicates: ReadonlySet<PredicateDeclaration>,
-  edges: readonly Edge[],
-): Array<Set<PredicateDeclaration>> {
-  const components: Array<Set<PredicateDeclaration>> = [];
-  const remaining = new Set(predicates);
-
-  for (const predicate of predicates) {
-    if (!remaining.has(predicate)) {
-      continue;
-    }
-
-    const forward = reachablePredicates(predicate, edges);
-    const backward = reachablePredicates(predicate, reverseEdges(edges));
-    const component = new Set<PredicateDeclaration>();
-    for (const candidate of predicates) {
-      if (forward.has(candidate) && backward.has(candidate)) {
-        component.add(candidate);
-        remaining.delete(candidate);
-      }
-    }
-    components.push(component);
+/** An iff definition can put its base case beside recursion in a disjunction. */
+function hasNonRecursiveAlternative(
+  body: unknown,
+  component: ReadonlySet<PredicateDeclaration>,
+): boolean {
+  if (isFormula(body, "or")) {
+    return body.args.some((branch) => hasNonRecursiveAlternative(branch, component));
   }
-
-  return components;
-}
-
-function reverseEdges(edges: readonly Edge[]): Edge[] {
-  return edges.map((edge) => ({ ...edge, from: edge.to, to: edge.from }));
+  return !bodyReferencesPredicates(body, component);
 }
 
 function bodyReferencesPredicates(

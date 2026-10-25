@@ -46,6 +46,7 @@ import {
 } from "./goal-value";
 import { groundAtom, matchPattern, matchRuleForAtom } from "./matching";
 import { CandidateSearch } from "./candidate-search";
+import { ruleEdges, stronglyConnectedComponents } from "./query-validation/utils";
 
 const UNBOUND: unique symbol = Symbol("factbag.unbound");
 type Unbound = typeof UNBOUND;
@@ -67,7 +68,51 @@ type CountUncertainty =
 type SearchContext = {
   candidates: CandidateSearch;
   judgments: Map<PredicateDeclaration, Map<string, QueryJudgment>>;
+  tabled: ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>;
+  tables: Map<PredicateDeclaration, ComponentTable>;
 };
+
+/** A query-local worklist shared by all predicates of one eligible component. */
+type ComponentTable = {
+  judgments: Map<string, QueryJudgment>;
+  atoms: Map<string, GroundAtom>;
+  /** Every atom that has read the key, including reads in earlier evaluations. */
+  dependents: Map<string, Set<string>>;
+  changes: Map<string, number>;
+  queue: string[];
+  queued: Set<string>;
+  running: boolean;
+  evaluating: string | undefined;
+};
+
+function tabledComponents(
+  literals: readonly AnyLiteral[],
+  rules: readonly AnyRule[],
+): SearchContext["tabled"] {
+  const edges = rules.flatMap(ruleEdges);
+  const components = stronglyConnectedComponents(edges);
+  const selfRecursive = new Set(
+    edges.filter((edge) => edge.from === edge.to).map((edge) => edge.from),
+  );
+  // Denials count too: combining any own evidence with rules is outside the fragment.
+  const stated = new Set(literals.map((literal) => literal.atom.predicate));
+  const tabled = new Map<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>();
+  // Positive, evidence-free closed components iterate monotonically from absence.
+  // Open-world seeds and evidence/rule conflicts must retain the loop-checked search.
+  for (const component of new Set(components.values())) {
+    const members = [...component];
+    if (
+      members.some((member) => member.world !== "closed" || stated.has(member)) ||
+      !(component.size > 1 || members.some((member) => selfRecursive.has(member)))
+    ) {
+      continue;
+    }
+    for (const member of members) {
+      tabled.set(member, component);
+    }
+  }
+  return tabled;
+}
 
 export function solveQueryAll<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
@@ -78,6 +123,8 @@ export function solveQueryAll<Schema extends PredicateSchema>(
   const result = solveQueryAllInternal(literals, rules, atom, new Set(), {
     candidates: new CandidateSearch(rules),
     judgments: new Map(),
+    tabled: tabledComponents(literals, rules),
+    tables: new Map(),
   });
 
   const stack: unknown[] = [result];
@@ -132,6 +179,16 @@ function solveGroundAtom<Schema extends PredicateSchema>(
   active: ReadonlySet<string>,
   search: SearchContext,
 ): QueryJudgment<Schema> {
+  if (search.tabled.has(atom.predicate)) {
+    // Same-component reads during candidate discovery use placeholders in
+    // evaluateAtomBody, never proofs. A proof requested by discovery therefore belongs
+    // to a lower component: its candidate calls settle before returning, and cannot
+    // depend on the discovering component (otherwise they would be in the same SCC).
+    // Ground recursive reads use this table directly, not candidate placeholders.
+    // It is safe to keep these judgments even while higher discovery is running.
+    return solveTabledAtom(literals, rules, atom, active, search);
+  }
+
   // Discovery can temporarily expose partial candidate tables. Only reuse
   // completed ground judgments outside that fixed-point computation.
   if (search.candidates.isEvaluating) {
@@ -159,6 +216,114 @@ function judgmentMatchesAtom<Schema extends PredicateSchema>(
   atom: GroundAtom<Schema>,
 ): judgment is QueryJudgment<Schema> {
   return atomEquals(judgment.goal.atom, atom);
+}
+
+/** Read the current approximation inside a run, or settle the demanded atoms outside it. */
+function solveTabledAtom<Schema extends PredicateSchema>(
+  literals: readonly AnyLiteral[],
+  rules: readonly AnyRule[],
+  atom: GroundAtom<Schema>,
+  active: ReadonlySet<string>,
+  search: SearchContext,
+): QueryJudgment<Schema> {
+  const table = tableFor(search, atom.predicate);
+  const key = groundAtomKey(atom);
+  const enter = (): QueryJudgment<Schema> => {
+    const absent: QueryJudgment<Schema> = {
+      value: "false",
+      goal: { kind: "atom", atom },
+      bindings: [],
+      negative: [{ source: "closed-world-absence" }],
+    };
+    table.judgments.set(key, absent);
+    table.atoms.set(key, atom);
+    table.queue.push(key);
+    table.queued.add(key);
+    return absent;
+  };
+  if (table.running) {
+    const judgment = table.judgments.get(key) ?? enter();
+    if (table.evaluating !== undefined) {
+      let dependents = table.dependents.get(key);
+      if (dependents === undefined) {
+        dependents = new Set();
+        table.dependents.set(key, dependents);
+      }
+      dependents.add(table.evaluating);
+    }
+    assert(judgmentMatchesAtom(judgment, atom), "Tabled judgment must match its atom");
+    return judgment;
+  }
+  const settled = table.judgments.get(key);
+  if (settled !== undefined) {
+    assert(judgmentMatchesAtom(settled, atom), "Tabled judgment must match its atom");
+    return settled;
+  }
+
+  enter();
+  table.running = true;
+  try {
+    // An index avoids shifting the remaining queue on each evaluation.
+    for (let offset = 0; offset < table.queue.length; offset += 1) {
+      const next = table.queue[offset];
+      assert(next !== undefined, "Queued atom must have a key");
+      table.queued.delete(next);
+      const current = table.judgments.get(next);
+      const subject = table.atoms.get(next);
+      assert(current !== undefined && subject !== undefined, "Queued atom must be in the table");
+      table.evaluating = next;
+      const judged = evaluateGroundAtom(literals, rules, subject, active, search);
+      table.evaluating = undefined;
+      // Immutable older judgments can be cited by newer ones, never vice versa:
+      // provenance remains a finite DAG even when an atom cites its earlier self.
+      table.judgments.set(next, judged);
+      if (judged.value === current.value) {
+        continue;
+      }
+      assert(
+        maxGoalValue(current.value, judged.value) === judged.value,
+        "Tabled recursion must be monotone",
+      );
+      const changes = (table.changes.get(next) ?? 0) + 1;
+      assert(changes <= 3, "Tabled recursion did not converge");
+      table.changes.set(next, changes);
+      for (const dependent of table.dependents.get(next) ?? []) {
+        if (!table.queued.has(dependent)) {
+          table.queue.push(dependent);
+          table.queued.add(dependent);
+        }
+      }
+    }
+    table.queue.length = 0;
+  } finally {
+    table.running = false;
+    table.evaluating = undefined;
+  }
+  const result = table.judgments.get(key);
+  assert(result !== undefined && judgmentMatchesAtom(result, atom), "Run must judge its seed");
+  return result;
+}
+
+function tableFor(search: SearchContext, predicate: PredicateDeclaration): ComponentTable {
+  let table = search.tables.get(predicate);
+  if (table === undefined) {
+    const component = search.tabled.get(predicate);
+    assert(component !== undefined, "Only a tabled predicate has a table");
+    table = {
+      judgments: new Map(),
+      atoms: new Map(),
+      dependents: new Map(),
+      changes: new Map(),
+      queue: [],
+      queued: new Set(),
+      running: false,
+      evaluating: undefined,
+    };
+    for (const member of component) {
+      search.tables.set(member, table);
+    }
+  }
+  return table;
 }
 
 function evaluateGroundAtom<Schema extends PredicateSchema>(
