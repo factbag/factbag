@@ -13,6 +13,11 @@ export function add(
   return { kind: "add", args: [left, right] };
 }
 
+/** Subtract one numeric term from another. */
+export function sub(
+  left: NumericTerm,
+  right: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]>;
 /**
  * Subtract a numeric duration in milliseconds from a date term, producing a
  * date expression.
@@ -34,11 +39,6 @@ export function sub(
   left: DateTerm,
   right: NumericTerm,
 ): Formula<Date, readonly [DateTerm, NumericTerm]>;
-/** Subtract one numeric term from another. */
-export function sub(
-  left: NumericTerm,
-  right: NumericTerm,
-): Formula<number, readonly [NumericTerm, NumericTerm]>;
 export function sub(
   left: DateTerm | NumericTerm,
   right: NumericTerm,
@@ -66,4 +66,31 @@ export function div(
   assertSupportedValue(left);
   assertSupportedValue(right);
   return { kind: "div", args: [left, right] };
+}
+
+/**
+ * Count signed UTC calendar days from `earlier` to `later`, ignoring time of day.
+ * Add one to count both the first and last day of a stay.
+ */
+export function daysBetween(
+  later: DateTerm,
+  earlier: DateTerm,
+): Formula<number, readonly [DateTerm, DateTerm]> {
+  assertSupportedValue(later);
+  assertSupportedValue(earlier);
+  return { kind: "daysBetween", args: [later, earlier] };
+}
+
+/**
+ * Count signed whole years from `earlier` to `later` by UTC calendar anniversaries,
+ * ignoring time of day. February 29 anniversaries fall on March 1 in common years.
+ * A person's age on a day is `yearsBetween(day, birthday)`.
+ */
+export function yearsBetween(
+  later: DateTerm,
+  earlier: DateTerm,
+): Formula<number, readonly [DateTerm, DateTerm]> {
+  assertSupportedValue(later);
+  assertSupportedValue(earlier);
+  return { kind: "yearsBetween", args: [later, earlier] };
 }

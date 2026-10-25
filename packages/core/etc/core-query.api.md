@@ -20,12 +20,15 @@ export type AnyAtomGoal = Readonly<{
 }>;
 
 // @public
-export type ArithmeticGoal<Kind extends "add" | "sub" | "mul" | "div"> = Readonly<{
+export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
     readonly kind: Kind;
     readonly bind: Var;
     readonly left: GoalExpression<Scalar>;
     readonly right: GoalExpression<Scalar>;
 }>;
+
+// @public
+export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween";
 
 // @public
 export type ArithmeticPrimitiveSupport = Readonly<{
@@ -85,6 +88,9 @@ export type CountPrimitiveSupport = Readonly<{
 }>;
 
 // @public
+export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
+
+// @public
 export type DivGoal = ArithmeticGoal<"div">;
 
 // @public
@@ -117,7 +123,7 @@ export type ExistsGoal = Readonly<{
 }>;
 
 // @public
-export type Goal = AnyAtomGoal | NotGoal | AndGoal | OrGoal | ExistsGoal | LetGoal | AddGoal | SubGoal | MulGoal | DivGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
+export type Goal = AnyAtomGoal | NotGoal | AndGoal | OrGoal | ExistsGoal | LetGoal | AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
 
 // Warning: (ae-forgotten-export) The symbol "Entity" needs to be exported by the entry point index.d.ts
 // Warning: (ae-forgotten-export) The symbol "Term" needs to be exported by the entry point index.d.ts
@@ -228,7 +234,7 @@ export type PrimitiveEvaluation = Readonly<{
 }>;
 
 // @public
-export type PrimitiveGoal = AddGoal | SubGoal | MulGoal | DivGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
+export type PrimitiveGoal = AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
 
 // @public
 export type PrimitiveSupport = Readonly<{
@@ -237,7 +243,7 @@ export type PrimitiveSupport = Readonly<{
 }>;
 
 // @public
-export type PrimitiveSupportFor<GoalType extends PrimitiveGoal> = PrimitiveSupport | (GoalType["kind"] extends "add" | "sub" | "mul" | "div" ? ArithmeticPrimitiveSupport : GoalType["kind"] extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte" ? ComparisonPrimitiveSupport : GoalType["kind"] extends "sum" ? SumPrimitiveSupport : GoalType["kind"] extends "count" ? CountPrimitiveSupport : never);
+export type PrimitiveSupportFor<GoalType extends PrimitiveGoal> = PrimitiveSupport | (GoalType["kind"] extends ArithmeticKind ? ArithmeticPrimitiveSupport : GoalType["kind"] extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte" ? ComparisonPrimitiveSupport : GoalType["kind"] extends "sum" ? SumPrimitiveSupport : GoalType["kind"] extends "count" ? CountPrimitiveSupport : never);
 
 // @public
 export type PrimitiveUncertainty = Readonly<{
@@ -297,13 +303,16 @@ export type SumPrimitiveSupport = Readonly<{
     readonly results: Bindings;
 }>;
 
+// @public
+export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
+
 // Warnings were encountered during analysis:
 //
 // dist/types/goal.d.ts:10:5 - (ae-forgotten-export) The symbol "Atom" needs to be exported by the entry point index.d.ts
 // dist/types/goal.d.ts:15:5 - (ae-forgotten-export) The symbol "AnyAtom" needs to be exported by the entry point index.d.ts
 // dist/types/goal.d.ts:20:5 - (ae-forgotten-export) The symbol "GroundAtom" needs to be exported by the entry point index.d.ts
-// dist/types/goal.d.ts:61:5 - (ae-forgotten-export) The symbol "Var" needs to be exported by the entry point index.d.ts
-// dist/types/goal.d.ts:62:5 - (ae-forgotten-export) The symbol "Scalar" needs to be exported by the entry point index.d.ts
+// dist/types/goal.d.ts:67:5 - (ae-forgotten-export) The symbol "Var" needs to be exported by the entry point index.d.ts
+// dist/types/goal.d.ts:68:5 - (ae-forgotten-export) The symbol "Scalar" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:9:5 - (ae-forgotten-export) The symbol "Literal" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:18:5 - (ae-forgotten-export) The symbol "Rule" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:24:5 - (ae-forgotten-export) The symbol "AnyLiteral" needs to be exported by the entry point index.d.ts

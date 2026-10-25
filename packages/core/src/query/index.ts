@@ -11,10 +11,12 @@ export type {
   AndGoal,
   AnyAtomGoal,
   ArithmeticGoal,
+  ArithmeticKind,
   AtomGoal,
   ComparisonGoal,
   CompoundGoal,
   CountGoal,
+  DaysBetweenGoal,
   DivGoal,
   EqGoal,
   ExistsGoal,
@@ -33,6 +35,7 @@ export type {
   PrimitiveGoal,
   SubGoal,
   SumGoal,
+  YearsBetweenGoal,
 } from "../types/goal";
 export type {
   ArithmeticPrimitiveSupport,

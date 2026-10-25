@@ -3,7 +3,7 @@
  * JSON across direct evidence, conflicts, unknowns, and closed-world negation.
  */
 import { describe, expect, it } from "vitest";
-import { closedPredicate, not, predicate, variable } from "../dsl";
+import { closedPredicate, daysBetween, gte, not, predicate, variable, yearsBetween } from "../dsl";
 import { KnowledgeBase } from "../knowledge-base";
 import { query } from "../query";
 import type { Explanation } from "./types";
@@ -25,6 +25,22 @@ const cara = new Person("cara");
 const drew = new Person("drew");
 
 describe("explainJudgment", () => {
+  it.each([daysBetween, yearsBetween])(
+    "names the %s date operation in a rendered proof",
+    (operator) => {
+      // Arrange
+      const kb = new KnowledgeBase();
+      const oldEnough = closedPredicate("old_enough", { person: Person });
+      kb.rule(oldEnough({ person: alice })).iff(
+        gte(operator(new Date("2017-12-31"), new Date("1950-03-02")), 65),
+      );
+      // Act
+      const explanation = explainJudgment(query(kb, oldEnough({ person: alice })));
+      // Assert
+      expect(JSON.stringify(explanation)).toContain(`${operator.name}(`);
+    },
+  );
+
   describe("direct atom evidence", () => {
     const activeSanction = predicate("active_sanction", { person: Person });
 

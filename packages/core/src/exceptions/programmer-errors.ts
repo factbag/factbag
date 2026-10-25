@@ -1,4 +1,4 @@
-import type { ArithmeticGoal } from "../types/goal";
+import type { ArithmeticGoal, ArithmeticKind } from "../types/goal";
 import type { PredicateDeclaration } from "../types/predicate";
 import type { AnyRule } from "../types/rule";
 import type { Var } from "../types/variable";
@@ -14,18 +14,20 @@ export class ProgrammerError extends Error {
 /** Arithmetic primitive with operands the solver cannot legally evaluate. */
 export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
   /** The arithmetic operation that failed. */
-  readonly operation: "add" | "sub" | "mul" | "div";
+  readonly operation: ArithmeticKind;
   /** The evaluated left and right operand values. */
   readonly operands: readonly [unknown, unknown];
   /** The arithmetic goal being evaluated when the failure occurred. */
-  readonly goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">;
+  readonly goal: ArithmeticGoal<ArithmeticKind>;
 
   constructor(
-    operation: "add" | "sub" | "mul" | "div",
+    operation: ArithmeticKind,
     operands: readonly [unknown, unknown],
-    goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">,
+    goal: ArithmeticGoal<ArithmeticKind>,
   ) {
-    super(`${operation} expected numeric operands`);
+    super(
+      `${operation} expected ${operation === "daysBetween" || operation === "yearsBetween" ? "date" : "numeric"} operands`,
+    );
     this.name = "PrimitiveArithmeticProgrammerError";
     this.operation = operation;
     this.operands = operands;

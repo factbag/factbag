@@ -78,7 +78,20 @@ export function isCompleteWhenOption(value: unknown): value is Readonly<{ comple
 export function isPrimitiveFormula(value: unknown): boolean {
   return (
     isFormula(value) &&
-    ["add", "sub", "mul", "div", "eq", "neq", "lt", "lte", "gt", "gte"].includes(value.kind)
+    [
+      "add",
+      "sub",
+      "mul",
+      "div",
+      "daysBetween",
+      "yearsBetween",
+      "eq",
+      "neq",
+      "lt",
+      "lte",
+      "gt",
+      "gte",
+    ].includes(value.kind)
   );
 }
 
