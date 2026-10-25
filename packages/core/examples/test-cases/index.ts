@@ -1,4 +1,5 @@
 import { emptySumTestCases } from "./empty-number-sum.test-case";
+import { judgmentContextTestCases } from "./judgment-context.test-case";
 import { deadPathLetTestCases } from "./dead-path-let.test-case";
 import { deadPathComparisonTestCases } from "./dead-path-comparison.test-case";
 import { regressionExamples as regressionFalseCandidates } from "./false-candidates.test-case";
@@ -52,6 +53,7 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
+  ...judgmentContextTestCases,
   ...emptySumTestCases,
   ...deadPathLetTestCases,
   ...deadPathComparisonTestCases,

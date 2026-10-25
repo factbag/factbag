@@ -32,6 +32,7 @@ export function reachablePredicates(
   start: PredicateDeclaration,
   edges: readonly Edge[],
 ): Set<PredicateDeclaration> {
+  const next = adjacency(edges);
   const reachable = new Set<PredicateDeclaration>([start]);
   const stack = [start];
 
@@ -41,16 +42,81 @@ export function reachablePredicates(
       continue;
     }
 
-    for (const edge of edges) {
-      if (edge.from !== current || reachable.has(edge.to)) {
+    for (const target of next.get(current) ?? []) {
+      if (reachable.has(target)) {
         continue;
       }
-      reachable.add(edge.to);
-      stack.push(edge.to);
+      reachable.add(target);
+      stack.push(target);
     }
   }
 
   return reachable;
+}
+
+function adjacency(
+  edges: readonly Edge[],
+): ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>> {
+  const next = new Map<PredicateDeclaration, Set<PredicateDeclaration>>();
+  for (const { from, to } of edges) {
+    let targets = next.get(from);
+    if (targets === undefined) {
+      targets = new Set();
+      next.set(from, targets);
+    }
+    targets.add(to);
+  }
+  return next;
+}
+
+/** Linear-time Tarjan components, including predicates that occur only as targets. */
+export function stronglyConnectedComponents(
+  edges: readonly Edge[],
+): ReadonlyMap<PredicateDeclaration, ReadonlySet<PredicateDeclaration>> {
+  const next = adjacency(edges);
+  const indices = new Map<PredicateDeclaration, number>();
+  const onStack = new Set<PredicateDeclaration>();
+  const stack: PredicateDeclaration[] = [];
+  const components = new Map<PredicateDeclaration, ReadonlySet<PredicateDeclaration>>();
+
+  // Plain recursion is sufficient for the expected graphs of a few hundred predicates.
+  function visit(predicate: PredicateDeclaration): number {
+    const index = indices.size;
+    indices.set(predicate, index);
+    let lowLink = index;
+    stack.push(predicate);
+    onStack.add(predicate);
+    for (const target of next.get(predicate) ?? []) {
+      const targetIndex = indices.get(target);
+      if (targetIndex === undefined) {
+        const targetLowLink = visit(target);
+        lowLink = Math.min(lowLink, targetLowLink);
+      } else if (onStack.has(target)) {
+        lowLink = Math.min(lowLink, targetIndex);
+      }
+    }
+    if (lowLink === index) {
+      const component = new Set<PredicateDeclaration>();
+      for (let member = stack.pop(); member !== undefined; member = stack.pop()) {
+        onStack.delete(member);
+        component.add(member);
+        if (member === predicate) {
+          break;
+        }
+      }
+      for (const member of component) {
+        components.set(member, component);
+      }
+    }
+    return lowLink;
+  }
+
+  for (const predicate of next.keys()) {
+    if (!indices.has(predicate)) {
+      visit(predicate);
+    }
+  }
+  return components;
 }
 
 export function isNegativeLiteral(value: unknown): value is AnyLiteral & { sign: "-" } {

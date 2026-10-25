@@ -3,7 +3,7 @@ import type { Atom, GroundAtom } from "../types/atom";
 import type { PredicateDeclaration } from "../types/predicate";
 import type { AnyRule } from "../types/rule";
 import { isVar, type Var } from "../types/variable";
-import { reachablePredicates, ruleEdges } from "./query-validation/utils";
+import { ruleEdges, stronglyConnectedComponents } from "./query-validation/utils";
 
 type CandidateTable = {
   atoms: Map<string, GroundAtom>;
@@ -20,19 +20,18 @@ type CandidateGroup = {
 export class CandidateSearch {
   private readonly groups = new Map<PredicateDeclaration, CandidateGroup>();
   private readonly tables = new Map<PredicateDeclaration, Map<string, CandidateTable>>();
+  private evaluatingGroups = 0;
 
   constructor(rules: readonly AnyRule[]) {
-    const edges = rules.flatMap(ruleEdges);
+    const components = stronglyConnectedComponents(rules.flatMap(ruleEdges));
     for (const rule of rules) {
       const predicate = rule.head.atom.predicate;
       if (this.groups.has(predicate)) {
         continue;
       }
       const group: CandidateGroup = { tables: new Set(), evaluating: false, changed: false };
-      for (const dependency of reachablePredicates(predicate, edges)) {
-        if (reachablePredicates(dependency, edges).has(predicate)) {
-          this.groups.set(dependency, group);
-        }
+      for (const member of components.get(predicate) ?? [predicate]) {
+        this.groups.set(member, group);
       }
     }
   }
@@ -68,6 +67,7 @@ export class CandidateSearch {
 
     if (!group.evaluating) {
       group.evaluating = true;
+      this.evaluatingGroups += 1;
       try {
         do {
           group.changed = false;
@@ -77,6 +77,7 @@ export class CandidateSearch {
         } while (group.changed);
       } finally {
         group.evaluating = false;
+        this.evaluatingGroups -= 1;
       }
     }
 
@@ -90,8 +91,17 @@ export class CandidateSearch {
     );
   }
 
-  get isEvaluating(): boolean {
-    return [...this.groups.values()].some((group) => group.evaluating);
+  /** A judgment depending on these predicates might observe a partial candidate table. */
+  evaluatingAmong(predicates: Iterable<PredicateDeclaration>): boolean {
+    if (this.evaluatingGroups === 0) {
+      return false;
+    }
+    for (const predicate of predicates) {
+      if (this.groups.get(predicate)?.evaluating === true) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
