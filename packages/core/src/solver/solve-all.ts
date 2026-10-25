@@ -559,9 +559,22 @@ function evaluateOrBody(
   );
   const environments = candidateBindings.length === 0 ? [bindings] : candidateBindings;
 
-  return environments.map((environment) => {
-    const judgments = args.map((arg) => {
-      const results = evaluateRuleBodyMany(
+  // A branch is judged in an environment only by results that bind nothing beyond it. A
+  // result that extends the environment belongs to the extended environment, which is
+  // evaluated on its own; counting it here would let the or claim truth under bindings it
+  // does not carry, and a later conjunct would then range over the unbound variable freely.
+  // The extended environments are usually among the candidates already. They are not when
+  // the first pass ran with a variable an earlier failed conjunct left unbound: a branch
+  // then binds less than it does once the variable is bound. Such an extension is queued
+  // and judged in turn, and an environment no branch fits exactly stands for nothing but
+  // its extensions, so it yields no judgment of its own.
+  const queue = [...environments];
+  const seen = new Set(queue.map(bindingsKey));
+  const results: BodyResult[] = [];
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    const environment = next;
+    const judgments = args.flatMap((arg) => {
+      const branch = evaluateRuleBodyMany(
         literals,
         rules,
         arg,
@@ -570,16 +583,28 @@ function evaluateOrBody(
         context,
         pathCanHaveUnavailableBindings,
       );
-      assert(results.length > 0, "Or branch evaluation produced no results");
-      const result = bestResult(results);
-      assert(result !== undefined, "Or branch evaluation produced no best result");
-      return result.judgment;
+      for (const result of branch) {
+        if (bindsBeyond(result.bindings, environment)) {
+          const key = bindingsKey(result.bindings);
+          if (!seen.has(key)) {
+            seen.add(key);
+            queue.push(result.bindings);
+          }
+        }
+      }
+      const result = bestResult(
+        branch.filter((candidate) => !bindsBeyond(candidate.bindings, environment)),
+      );
+      return result === undefined ? [] : [result.judgment];
     });
+    if (judgments.length === 0) {
+      continue;
+    }
     const judgmentBindings = bindingsArray(environment);
     const reboundJudgments = judgments.map((judgment) => withBindings(judgment, judgmentBindings));
     const goal: OrGoal = { kind: "or", goals: reboundJudgments.map((judgment) => judgment.goal) };
 
-    return {
+    results.push({
       judgment: compoundJudgment(
         goal,
         maxGoalValue(...reboundJudgments.map((judgment) => judgment.value)),
@@ -587,8 +612,9 @@ function evaluateOrBody(
         reboundJudgments,
       ),
       bindings: environment,
-    };
-  });
+    });
+  }
+  return results;
 }
 
 function evaluateAndBody(
@@ -959,7 +985,7 @@ function evaluateExpression(
     const right = evaluateExpression(expression.args[1], left.bindings, context);
     assert(isScalarGoalExpression(left.expression), "Left arithmetic operand must be scalar");
     assert(isScalarGoalExpression(right.expression), "Right arithmetic operand must be scalar");
-    const variable = new Var(`$tmp${context.nextTemp++}`);
+    const variable = new Var(`${TEMPORARY_PREFIX}${context.nextTemp++}`);
     const goal: ArithmeticGoal<typeof expression.kind> = {
       kind: expression.kind,
       bind: variable,
@@ -1907,6 +1933,40 @@ function bindingsArray(bindings: ReadonlyMap<Var, unknown>): Bindings {
   return [...bindings.entries()];
 }
 
+/**
+ * The temporaries arithmetic introduces for its intermediate results. They record the
+ * computation in the proof tree but are not rule variables, so two environments that
+ * differ only in temporaries are the same environment, and a result that adds only
+ * temporaries binds nothing beyond the environment it was evaluated in.
+ */
+const TEMPORARY_PREFIX = "$tmp";
+
+function isTemporary(variable: Var): boolean {
+  return variable.name.startsWith(TEMPORARY_PREFIX);
+}
+
+/** Whether the result binds a rule variable the environment does not. */
+function bindsBeyond(
+  result: ReadonlyMap<Var, unknown>,
+  environment: ReadonlyMap<Var, unknown>,
+): boolean {
+  for (const variable of result.keys()) {
+    if (!isTemporary(variable) && !environment.has(variable)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** A key identifying a binding environment by its non-temporary variables' values. */
+function bindingsKey(binding: ReadonlyMap<Var, unknown>): string {
+  return JSON.stringify(
+    bindingsArray(binding)
+      .filter(([variable]) => !isTemporary(variable))
+      .map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
+  );
+}
+
 function uniqueBindings(
   bindings: readonly ReadonlyMap<Var, unknown>[],
 ): readonly ReadonlyMap<Var, unknown>[] {
@@ -1914,9 +1974,7 @@ function uniqueBindings(
   const unique: ReadonlyMap<Var, unknown>[] = [];
 
   for (const binding of bindings) {
-    const key = JSON.stringify(
-      bindingsArray(binding).map(([variable, value]) => [variable.name, fieldIdentityToken(value)]),
-    );
+    const key = bindingsKey(binding);
     if (!seen.has(key)) {
       seen.add(key);
       unique.push(binding);
