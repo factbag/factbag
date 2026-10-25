@@ -16,6 +16,14 @@ using TypeSafe AI’s Jev model. It combines source-linked evidence with applica
 facts and rules in a queryable knowledge base, supporting true, false, conflicted,
 and unknown conclusions.
 
+## Keep interfaces narrow
+
+Keep symbols at the narrowest practical scope. Export or re-export only for a
+concrete consumer across that boundary, not speculative reuse or testing
+convenience. Internal module exports are not package entrypoints; public exports,
+including exposed types, are compatibility commitments. Do not create oversized
+files or awkward abstractions merely to avoid internal exports.
+
 ## Agent skills
 
 When adding or changing agent skills, follow [skills/README.md](skills/README.md).
