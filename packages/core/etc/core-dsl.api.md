@@ -65,6 +65,9 @@ export function count(value: Term): AggregateBuilder;
 export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
 
 // @public
+export function daysBetween(later: DateTerm, earlier: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;
+
+// @public
 export function div(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
@@ -80,6 +83,12 @@ export type EnumType<Value extends string = string> = Readonly<{
     kind: "enum";
     values: readonly Value[];
 }>;
+
+// @public
+export function eq(left: EqualityTerm, right: EqualityTerm): Formula<boolean, readonly [EqualityTerm, EqualityTerm]>;
+
+// @public
+export type EqualityTerm = ComparableTerm | string | boolean | Entity;
 
 // Warning: (ae-forgotten-export) The symbol "ExistsArgs" needs to be exported by the entry point index.d.ts
 //
@@ -133,6 +142,9 @@ export function min(left: NumericTerm, right: NumericTerm): Formula<number, read
 
 // @public
 export function mul(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+
+// @public
+export function neq(left: EqualityTerm, right: EqualityTerm): Formula<boolean, readonly [EqualityTerm, EqualityTerm]>;
 
 // @public
 export type NonGroundAtom<Schema extends PredicateSchema = PredicateSchema> = AtomForState<Schema, "non-ground">;
@@ -212,10 +224,10 @@ export type RuntimeType<T> = EnumType | RuntimeConstructor<T & Entity> | Boolean
 export type Scalar = string | number | boolean | Date;
 
 // @public
-export function sub(left: DateTerm, right: NumericTerm): Formula<Date, readonly [DateTerm, NumericTerm]>;
+export function sub(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
-export function sub(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+export function sub(left: DateTerm, right: NumericTerm): Formula<Date, readonly [DateTerm, NumericTerm]>;
 
 // @public
 export function sum(value: NumericTerm): AggregateBuilder;
@@ -232,8 +244,11 @@ export class Var<Name extends string = string> {
 // @public
 export function variable<const Name extends string>(name: Name): Var<Name>;
 
+// @public
+export function yearsBetween(later: DateTerm, earlier: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;
+
 // Warnings were encountered during analysis:
 //
-// dist/dsl/types.d.ts:49:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
+// dist/dsl/types.d.ts:51:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
 
 ```

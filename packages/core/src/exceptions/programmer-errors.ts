@@ -27,7 +27,7 @@ export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
   ) {
     const rounding = operation === "roundTo" || operation === "floorTo" || operation === "ceilTo";
     super(
-      `${operation} expected numeric operands${rounding ? " and a whole number of decimal places" : ""}`,
+      `${operation} expected ${operation === "daysBetween" || operation === "yearsBetween" ? "date" : "numeric"} operands${rounding ? " and a whole number of decimal places" : ""}`,
     );
     this.name = "PrimitiveArithmeticProgrammerError";
     this.operation = operation;

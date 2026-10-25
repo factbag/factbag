@@ -10,6 +10,8 @@ import {
   gt,
   gte,
   lte,
+  eq,
+  neq,
   letIn,
   variable,
   predicate,
@@ -31,7 +33,7 @@ describe("number-only DSL", () => {
 
   it("rejects bigint arithmetic and comparison operands without coercing them", () => {
     // Arrange
-    const operators = [add, sub, mul, div, gt, gte, lte];
+    const operators = [add, sub, mul, div, gt, gte, lte, eq, neq];
     // Act / Assert
     for (const operator of operators) {
       // @ts-expect-error Bigint operands are unsupported.

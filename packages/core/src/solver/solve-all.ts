@@ -1,12 +1,14 @@
 import {
   atomEquals,
   fieldEquals,
+  isEntityValue,
   fieldIdentityToken,
   isAtomLike,
   isAtomForPredicate,
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
+import { daysBetween, yearsBetween } from "./calendar";
 import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
@@ -960,8 +962,15 @@ function evaluateComparisonBody(
 ): readonly BodyResult[] {
   const left = evaluateExpression(args[0], bindings, context);
   const right = evaluateExpression(args[1], left.bindings, context);
-  assert(isScalarGoalExpression(left.expression), "Left comparison operand must be scalar");
-  assert(isScalarGoalExpression(right.expression), "Right comparison operand must be scalar");
+  const allowsEntities = kind === "eq" || kind === "neq";
+  assert(
+    isScalarGoalExpression(left.expression) || (allowsEntities && isEntityValue(left.expression)),
+    "Left comparison operand must be scalar, or entity for equality",
+  );
+  assert(
+    isScalarGoalExpression(right.expression) || (allowsEntities && isEntityValue(right.expression)),
+    "Right comparison operand must be scalar, or entity for equality",
+  );
   const nextBindings = right.bindings;
   const judgmentBindings = bindingsArray(nextBindings);
   const goal: ComparisonGoal<typeof kind> = {
@@ -1813,22 +1822,17 @@ function calculateValue(
     return UNBOUND;
   }
 
-  if (left instanceof Date && typeof right === "number") {
-    switch (kind) {
-      case "sub":
-        return new Date(left.getTime() - right);
-      case "add":
-      case "mul":
-      case "div":
-      case "min":
-      case "max":
-      case "roundTo":
-      case "floorTo":
-      case "ceilTo":
-        break;
-      default:
-        return assertNever(kind, "Unhandled arithmetic kind");
+  if (left instanceof Date && right instanceof Date) {
+    if (kind === "daysBetween") {
+      return daysBetween(left, right);
     }
+    if (kind === "yearsBetween") {
+      return yearsBetween(left, right);
+    }
+  }
+
+  if (left instanceof Date && typeof right === "number" && kind === "sub") {
+    return new Date(left.getTime() - right);
   }
 
   if (typeof left === "number" && typeof right === "number") {
@@ -1841,6 +1845,9 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "daysBetween":
+      case "yearsBetween":
+        break;
       case "min":
         return Math.min(left, right);
       case "max":
@@ -1933,9 +1940,9 @@ function compareValues(
 
   switch (kind) {
     case "eq":
-      return leftComparable === rightComparable ? "true" : "false";
+      return sameValue(leftComparable, rightComparable) ? "true" : "false";
     case "neq":
-      return leftComparable === rightComparable ? "false" : "true";
+      return sameValue(leftComparable, rightComparable) ? "false" : "true";
     case "lt":
     case "lte":
     case "gt":
@@ -1944,6 +1951,17 @@ function compareValues(
     default:
       return assertNever(kind, "Unhandled comparison kind");
   }
+}
+
+/** Compare entities using the same type-and-id tokens as atom identity keys. */
+function sameValue(left: DefinedValue, right: DefinedValue): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (isEntityValue(left) && isEntityValue(right)) {
+    return JSON.stringify(fieldIdentityToken(left)) === JSON.stringify(fieldIdentityToken(right));
+  }
+  return false;
 }
 
 function compareOrderedValues(

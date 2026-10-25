@@ -65,6 +65,10 @@ export type SubGoal = ArithmeticGoal<"sub">;
 export type MulGoal = ArithmeticGoal<"mul">;
 /** Arithmetic goal binding the quotient of two expressions. */
 export type DivGoal = ArithmeticGoal<"div">;
+/** Arithmetic goal binding the UTC calendar days from the right date to the left. */
+export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
+/** Arithmetic goal binding whole anniversary years from the right date to the left. */
+export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
 /** Arithmetic goal binding the lesser of two numeric expressions. */
 export type MinGoal = ArithmeticGoal<"min">;
 /** Arithmetic goal binding the greater of two numeric expressions. */
@@ -82,6 +86,8 @@ export type ArithmeticKind =
   | "sub"
   | "mul"
   | "div"
+  | "daysBetween"
+  | "yearsBetween"
   | "min"
   | "max"
   | "roundTo"
@@ -94,6 +100,8 @@ export const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
   "sub",
   "mul",
   "div",
+  "daysBetween",
+  "yearsBetween",
   "min",
   "max",
   "roundTo",
@@ -125,8 +133,8 @@ export type GteGoal = ComparisonGoal<"gte">;
 /** Compare two value-producing expressions. */
 export type ComparisonGoal<Kind extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte"> = Readonly<{
   readonly kind: Kind;
-  readonly left: GoalExpression<Scalar>;
-  readonly right: GoalExpression<Scalar>;
+  readonly left: GoalExpression;
+  readonly right: GoalExpression;
 }>;
 
 /** Sum a numeric expression over rows matched by a body goal. */
@@ -158,6 +166,8 @@ export type Goal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | DaysBetweenGoal
+  | YearsBetweenGoal
   | MinGoal
   | MaxGoal
   | RoundToGoal
@@ -181,6 +191,8 @@ export type PrimitiveGoal =
   | SubGoal
   | MulGoal
   | DivGoal
+  | DaysBetweenGoal
+  | YearsBetweenGoal
   | MinGoal
   | MaxGoal
   | RoundToGoal

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   ceilTo,
   closedPredicate,
+  daysBetween,
   floorTo,
   gte,
   letIn,
@@ -15,6 +16,7 @@ import {
   predicate,
   roundTo,
   variable,
+  yearsBetween,
 } from "../dsl";
 import { KnowledgeBase } from "../knowledge-base";
 import { query } from "../query";
@@ -37,6 +39,22 @@ const cara = new Person("cara");
 const drew = new Person("drew");
 
 describe("explainJudgment", () => {
+  it.each([daysBetween, yearsBetween])(
+    "names the %s date operation in a rendered proof",
+    (operator) => {
+      // Arrange
+      const kb = new KnowledgeBase();
+      const oldEnough = closedPredicate("old_enough", { person: Person });
+      kb.rule(oldEnough({ person: alice })).iff(
+        gte(operator(new Date("2017-12-31"), new Date("1950-03-02")), 65),
+      );
+      // Act
+      const explanation = explainJudgment(query(kb, oldEnough({ person: alice })));
+      // Assert
+      expect(JSON.stringify(explanation)).toContain(`${operator.name}(`);
+    },
+  );
+
   it.each([min, max, roundTo, floorTo, ceilTo])(
     "names %s in primitive explanation claims",
     (operator) => {

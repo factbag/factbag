@@ -1,5 +1,6 @@
 import { emptySumTestCases } from "./empty-number-sum.test-case";
 import { tabledRecursionTestCases } from "./tabled-recursion.test-case";
+import { equalityTestCases } from "./equality.test-case";
 import { judgmentContextTestCases } from "./judgment-context.test-case";
 import { roundingTestCases } from "./rounding.test-case";
 import { deadPathLetTestCases } from "./dead-path-let.test-case";
@@ -18,6 +19,7 @@ import {
   closedWorldPositiveBoundaryTestCase,
 } from "./closed-world-positive-boundary.test-case";
 import { dateWindowRulesTestCases } from "./date-window-rules.test-case";
+import { dateDifferencesTestCases } from "./date-differences.test-case";
 import { derivedPredicateBoundaryTestCase } from "./derived-predicate-boundary.test-case";
 import { evidenceNegationTestCases } from "./evidence-negation.test-case";
 import { evidenceMetadataProofTestCase } from "./evidence-metadata-proof.test-case";
@@ -56,6 +58,7 @@ import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
   ...tabledRecursionTestCases,
+  ...equalityTestCases,
   ...judgmentContextTestCases,
   ...roundingTestCases,
   ...emptySumTestCases,
@@ -76,6 +79,7 @@ export const testCases: readonly DslTestSpec[] = [
   closedWorldPositiveBoundaryTestCase,
   closedWorldPositiveArithmeticBoundaryTestCase,
   ...dateWindowRulesTestCases,
+  ...dateDifferencesTestCases,
   ...aggregateCompletenessTestCases,
   ...aggregateCountIntervalTestCases,
   recursiveRulesTestCase,

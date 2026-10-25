@@ -139,7 +139,7 @@ export function fieldIdentityToken(value: unknown): unknown {
   return value;
 }
 
-function isEntityValue(value: unknown): value is Entity & { constructor: { name: string } } {
+export function isEntityValue(value: unknown): value is Entity & { constructor: { name: string } } {
   if (!isRecord(value) || typeof value["id"] !== "string") {
     return false;
   }
