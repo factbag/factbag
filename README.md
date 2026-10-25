@@ -1,5 +1,7 @@
 # Factbag
 
+<img src="docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
+
 Turn documents into evidence and conclusions with [Jev](https://typesafe.ai/) and TypeScript.
 
 Factbag uses TypeSafe AI’s Jev model to read passages and assess specific claims.
