@@ -73,8 +73,8 @@ export type PrimitiveEvaluation = Readonly<{
 
 /** Numeric lower/upper bound produced or consumed by a primitive operation. */
 export type NumericRange = Readonly<{
-  readonly lower: number | bigint;
-  readonly upper: number | bigint | "infinity";
+  readonly lower: number;
+  readonly upper: number | "infinity";
 }>;
 
 /** Why a primitive evaluation is not exact. */

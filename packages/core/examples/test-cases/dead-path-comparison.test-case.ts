@@ -12,8 +12,8 @@ const bob = new Person("bob");
 const marriedOn = closedPredicate("married_on", { a: Person, b: Person, day: Date });
 const died = closedPredicate("died", { person: Person, day: Date });
 const marriedAt = closedPredicate("married_at", { a: Person, b: Person, day: Date });
-const marriedIn = closedPredicate("married_in", { a: Person, b: Person, year: BigInt });
-const yearEnd = closedPredicate("year_end", { year: BigInt, last: Date });
+const marriedIn = closedPredicate("married_in", { a: Person, b: Person, year: Number });
+const yearEnd = closedPredicate("year_end", { year: Number, last: Date });
 const A = variable("A");
 const B = variable("B");
 const D = variable("D");
@@ -47,7 +47,7 @@ function scenario(wedding: Date, hasDeath: boolean) {
     build(kb: KnowledgeBase) {
       kb.entities.add(alice, bob);
       kb.asserts(marriedOn({ a: alice, b: bob, day: wedding }));
-      kb.asserts(yearEnd({ year: 2013n, last: end }));
+      kb.asserts(yearEnd({ year: 2013, last: end }));
       if (hasDeath) {
         kb.asserts(died({ person: bob, day: death }));
       }
@@ -57,7 +57,7 @@ function scenario(wedding: Date, hasDeath: boolean) {
     expectedKnowledgeBase: {
       literals: [
         { sign: "+" as const, atom: marriedOn({ a: alice, b: bob, day: wedding }) },
-        { sign: "+" as const, atom: yearEnd({ year: 2013n, last: end }) },
+        { sign: "+" as const, atom: yearEnd({ year: 2013, last: end }) },
         ...(hasDeath ? [{ sign: "+" as const, atom: died({ person: bob, day: death }) }] : []),
       ],
       rules: [dateRule, yearRule],
@@ -65,12 +65,12 @@ function scenario(wedding: Date, hasDeath: boolean) {
   } as const;
 }
 
-const atom = marriedIn({ a: alice, b: bob, year: 2013n });
+const atom = marriedIn({ a: alice, b: bob, year: 2013 });
 function proof(value: "true" | "false") {
   return ruleProof(atom, value, yearRule, [
     [A, alice],
     [B, bob],
-    [Y, 2013n],
+    [Y, 2013],
   ]);
 }
 

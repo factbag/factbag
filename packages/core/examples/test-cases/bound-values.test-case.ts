@@ -1,6 +1,5 @@
 import { expect } from "vitest";
 import {
-  add,
   and,
   closedPredicate,
   count,
@@ -9,7 +8,6 @@ import {
   gte,
   letIn,
   lte,
-  mul,
   or,
   sum,
   variable,
@@ -29,11 +27,11 @@ class Event {
 const alice = new Person("alice");
 const first = new Event("first");
 const second = new Event("second");
-const paid = closedPredicate("paid", { who: Person, event: Event, amount: BigInt });
+const paid = closedPredicate("paid", { who: Person, event: Event, amount: Number });
 const week = closedPredicate("paid_in_week", { event: Event, week: String });
-const total = closedPredicate("total_paid", { who: Person, amount: BigInt });
-const tax = closedPredicate("tax_due", { who: Person, amount: BigInt });
-const lesser = closedPredicate("lesser_of_total_and_tax", { who: Person, amount: BigInt });
+const total = closedPredicate("total_paid", { who: Person, amount: Number });
+const tax = closedPredicate("tax_due", { who: Person, amount: Number });
+const lesser = closedPredicate("lesser_of_total_and_tax", { who: Person, amount: Number });
 const weeks = closedPredicate("weeks_paid", { who: Person, count: Number });
 
 const P = variable("P");
@@ -48,13 +46,13 @@ const N = variable("N");
 const totalRule = {
   kind: "iff",
   head: { sign: "+", atom: total({ who: P, amount: T }) },
-  body: letIn(T, sum(A).where(paid({ who: P, event: E, amount: A })), gte(T, 0n)),
+  body: letIn(T, sum(A).where(paid({ who: P, event: E, amount: A })), gte(T, 0)),
 } as const;
 const taxRule = {
   kind: "iff",
   head: { sign: "+", atom: tax({ who: P, amount: R }) },
-  // round(351 * 0.28) = 98, using integer arithmetic.
-  body: and(total({ who: P, amount: T }), letIn(R, div(add(mul(T, 28n), 50n), 100n), gte(R, 0n))),
+  // Half the total keeps this binding example exact in number arithmetic.
+  body: and(total({ who: P, amount: T }), letIn(R, div(T, 2), gte(R, 0))),
 } as const;
 const lesserRule = {
   kind: "iff",
@@ -62,7 +60,7 @@ const lesserRule = {
   body: and(
     total({ who: P, amount: T }),
     tax({ who: P, amount: R }),
-    or(and(lte(T, R), letIn(M, T, gte(M, 0n))), and(gt(T, R), letIn(M, R, gte(M, 0n)))),
+    or(and(lte(T, R), letIn(M, T, gte(M, 0))), and(gt(T, R), letIn(M, R, gte(M, 0)))),
   ),
 } as const;
 const weeksRule = {
@@ -79,8 +77,8 @@ const rules = [totalRule, taxRule, lesserRule, weeksRule] as const;
 const scenario = {
   build(kb: KnowledgeBase) {
     kb.entities.add(alice, first, second);
-    kb.asserts(paid({ who: alice, event: first, amount: 100n }));
-    kb.asserts(paid({ who: alice, event: second, amount: 251n }));
+    kb.asserts(paid({ who: alice, event: first, amount: 100 }));
+    kb.asserts(paid({ who: alice, event: second, amount: 251 }));
     kb.asserts(week({ event: first, week: "09" }));
     kb.asserts(week({ event: second, week: "09" }));
     kb.rule(totalRule.head.atom).iff(totalRule.body);
@@ -90,8 +88,8 @@ const scenario = {
   },
   expectedKnowledgeBase: {
     literals: [
-      { sign: "+", atom: paid({ who: alice, event: first, amount: 100n }) },
-      { sign: "+", atom: paid({ who: alice, event: second, amount: 251n }) },
+      { sign: "+", atom: paid({ who: alice, event: first, amount: 100 }) },
+      { sign: "+", atom: paid({ who: alice, event: second, amount: 251 }) },
       { sign: "+", atom: week({ event: first, week: "09" }) },
       { sign: "+", atom: week({ event: second, week: "09" }) },
     ],
@@ -131,16 +129,16 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     name: "bound values: accepts the computed amount and rejects a different amount",
     invariant: "A let binding must agree with a value supplied by the query, not overwrite it.",
     narration:
-      "Alice's payments total 351 and rounded tax is 98. Querying 98 succeeds; querying 99 fails.",
-    queryAtoms: [tax({ who: alice, amount: 98n }), tax({ who: alice, amount: 99n })],
+      "Alice's payments total 351 and tax is 175.5. Querying 175.5 succeeds; querying 99 fails.",
+    queryAtoms: [tax({ who: alice, amount: 175.5 }), tax({ who: alice, amount: 99 })],
     expectedProofs: [
-      proof(tax({ who: alice, amount: 98n }), "true", taxRule, [
-        [R, 98n],
-        [T, 351n],
+      proof(tax({ who: alice, amount: 175.5 }), "true", taxRule, [
+        [R, 175.5],
+        [T, 351],
       ]),
-      proof(tax({ who: alice, amount: 99n }), "false", taxRule, [
-        [R, 99n],
-        [T, 351n],
+      proof(tax({ who: alice, amount: 99 }), "false", taxRule, [
+        [R, 99],
+        [T, 351],
       ]),
     ],
   },
@@ -148,12 +146,12 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     ...scenario,
     name: "bound values: discovers the computed amount for an unbound query",
     invariant: "Constraining bound variables must not prevent binding an unbound output.",
-    narration: "Asking for Alice's tax amount enumerates exactly one true result, 98.",
+    narration: "Asking for Alice's tax amount enumerates exactly one true result, 175.5.",
     queryAtoms: tax({ who: alice, amount: R }),
     expectedProofs: [
-      proof(tax({ who: alice, amount: 98n }), "true", taxRule, [
-        [R, 98n],
-        [T, 351n],
+      proof(tax({ who: alice, amount: 175.5 }), "true", taxRule, [
+        [R, 175.5],
+        [T, 351],
       ]),
     ],
   },
@@ -162,13 +160,13 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     name: "bound values: disjunction preserves each candidate's computed value",
     invariant: "A branch must not overwrite a candidate with a different branch's computed value.",
     narration:
-      "The lesser of total payments (351) and tax (98) is 98. Enumeration omits the unsupported 351 candidate and retains the true 98 candidate.",
+      "The lesser of total payments (351) and tax (175.5) is 175.5. Enumeration omits the unsupported 351 candidate and retains the true 175.5 candidate.",
     queryAtoms: lesser({ who: alice, amount: M }),
     expectedProofs: [
-      proof(lesser({ who: alice, amount: 98n }), "true", lesserRule, [
-        [M, 98n],
-        [T, 351n],
-        [R, 98n],
+      proof(lesser({ who: alice, amount: 175.5 }), "true", lesserRule, [
+        [M, 175.5],
+        [T, 351],
+        [R, 175.5],
       ]),
     ],
   },
@@ -176,12 +174,12 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     ...scenario,
     name: "bound values: rejects a grounded amount from the unsuccessful branch",
     invariant: "A grounded query must not borrow the value computed by a different branch.",
-    narration: "Alice's lesser amount is 98, so a direct query for 351 is false.",
-    queryAtoms: lesser({ who: alice, amount: 351n }),
-    expectedProofs: proof(lesser({ who: alice, amount: 351n }), "false", lesserRule, [
-      [M, 351n],
-      [T, 351n],
-      [R, 98n],
+    narration: "Alice's lesser amount is 175.5, so a direct query for 351 is false.",
+    queryAtoms: lesser({ who: alice, amount: 351 }),
+    expectedProofs: proof(lesser({ who: alice, amount: 351 }), "false", lesserRule, [
+      [M, 351],
+      [T, 351],
+      [R, 175.5],
     ]),
   },
   {
@@ -201,10 +199,10 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     name: "bound values: sum accepts its total and rejects a different queried total",
     invariant: "A sum must constrain an already-bound output rather than overwrite it.",
     narration: "Alice's payments are 100 and 251. Their total is 351, not one.",
-    queryAtoms: [total({ who: alice, amount: 351n }), total({ who: alice, amount: 1n })],
+    queryAtoms: [total({ who: alice, amount: 351 }), total({ who: alice, amount: 1 })],
     expectedProofs: [
-      proof(total({ who: alice, amount: 351n }), "true", totalRule, [[T, 351n]]),
-      proof(total({ who: alice, amount: 1n }), "false", totalRule, [[T, 1n]]),
+      proof(total({ who: alice, amount: 351 }), "true", totalRule, [[T, 351]]),
+      proof(total({ who: alice, amount: 1 }), "false", totalRule, [[T, 1]]),
     ],
   },
 ];
