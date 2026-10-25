@@ -32,7 +32,7 @@ the rules again.
 ## Install
 
 ```sh
-npm install factbag @typesafe-ai/sdk@^0.6.0
+npm install factbag@alpha @typesafe-ai/sdk@^0.6.0
 ```
 
 ESM only. Requires Node 22.18+ on the 22.x line, or Node 24 or 26.
