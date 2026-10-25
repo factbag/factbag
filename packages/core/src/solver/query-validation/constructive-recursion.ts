@@ -5,14 +5,21 @@ import type { PredicateDeclaration } from "../../types/predicate";
 import type { AnyRule } from "../../types/rule";
 import type { PredicateSchema } from "../../types/schema";
 import type { QueryValidationContext } from "./context";
-import { isNegativeLiteral, reachablePredicates, ruleEdges, variablesIn, type Edge } from "./utils";
+import {
+  isNegativeLiteral,
+  reachablePredicates,
+  ruleEdges,
+  stronglyConnectedComponents,
+  variablesIn,
+  type Edge,
+} from "./utils";
 
 export function assertConstructiveRecursion<Schema extends PredicateSchema>(
   context: QueryValidationContext<Schema>,
 ): void {
   const edges = context.rules.flatMap(ruleEdges);
   const reachable = reachablePredicates(context.atom.predicate, edges);
-  const components = stronglyConnectedComponents(reachable, edges);
+  const components = componentsAmong(reachable, edges);
   const needsCandidateEnumeration = variablesIn(context.atom).length > 0;
 
   for (const component of components) {
@@ -51,35 +58,18 @@ function hasNonRecursiveBaseRule(
   );
 }
 
-function stronglyConnectedComponents(
+function componentsAmong(
   predicates: ReadonlySet<PredicateDeclaration>,
   edges: readonly Edge[],
-): Array<Set<PredicateDeclaration>> {
-  const components: Array<Set<PredicateDeclaration>> = [];
-  const remaining = new Set(predicates);
+): ReadonlySet<PredicateDeclaration>[] {
+  const components = new Set<ReadonlySet<PredicateDeclaration>>();
+  const byPredicate = stronglyConnectedComponents(edges);
 
   for (const predicate of predicates) {
-    if (!remaining.has(predicate)) {
-      continue;
-    }
-
-    const forward = reachablePredicates(predicate, edges);
-    const backward = reachablePredicates(predicate, reverseEdges(edges));
-    const component = new Set<PredicateDeclaration>();
-    for (const candidate of predicates) {
-      if (forward.has(candidate) && backward.has(candidate)) {
-        component.add(candidate);
-        remaining.delete(candidate);
-      }
-    }
-    components.push(component);
+    components.add(byPredicate.get(predicate) ?? new Set([predicate]));
   }
 
-  return components;
-}
-
-function reverseEdges(edges: readonly Edge[]): Edge[] {
-  return edges.map((edge) => ({ ...edge, from: edge.to, to: edge.from }));
+  return [...components];
 }
 
 function bodyReferencesPredicates(
