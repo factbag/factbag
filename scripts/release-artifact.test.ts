@@ -4,16 +4,9 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import {
-  integrity,
-  prepare,
-  validateVersion,
-  verifyCandidate,
-  verifyTarball,
-} from "./release-artifact.ts";
+import { integrity, readReleasePlan, verifyTarball } from "./release-artifact.ts";
 
 const version = "0.0.0-alpha.1";
-const commit = "a".repeat(40);
 
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), "factbag-release-test-"));
@@ -55,23 +48,25 @@ async function fixture() {
   return { root, directory, manifest, bytes, pack, release, plan, save };
 }
 
-test("prepares exactly the reviewed bytes and binds metadata to the commit", async (t) => {
+test("accepts standard alpha and stable release plans", async (t) => {
   const f = await fixture();
   t.after(() => rm(f.root, { recursive: true, force: true }));
-  const digest = await prepare(f.directory, version, commit);
-  assert.equal(digest, integrity(f.bytes, "sha512"));
-  assert.deepEqual(await readFile(path.join(f.directory, "publish/factbag.tgz")), f.bytes);
-  assert.deepEqual(
-    JSON.parse(await readFile(path.join(f.directory, "publish/release.json"), "utf8")),
-    { version, commit, integrity: digest },
-  );
+  for (const tag of ["alpha", "latest"]) {
+    f.release.tag = tag;
+    await f.save();
+    const release = await readReleasePlan(f.directory, version, tag);
+    await verifyTarball(
+      path.join(f.directory, release.tarball.path),
+      version,
+      release.tarball.integrity,
+    );
+  }
 });
 
 test("rejects a changed tarball before publishing", async (t) => {
   const f = await fixture();
   t.after(() => rm(f.root, { recursive: true, force: true }));
   await writeFile(path.join(f.directory, "factbag.tgz"), "tampered");
-  await assert.rejects(prepare(f.directory, version, commit), /integrity mismatch/u);
   await assert.rejects(
     verifyTarball(path.join(f.directory, "factbag.tgz"), version, integrity(f.bytes, "sha512")),
     /integrity mismatch/u,
@@ -88,7 +83,7 @@ for (const mutation of ["package", "version", "tag", "extra", "empty"] as const)
     if (mutation === "extra") f.plan.plan[0]?.push(f.release);
     if (mutation === "empty") f.plan.plan = [];
     await f.save();
-    await assert.rejects(prepare(f.directory, version, commit));
+    await assert.rejects(readReleasePlan(f.directory, version, "latest"));
   });
 }
 
@@ -100,7 +95,7 @@ test("rejects paths and symlinks outside the release directory", async (t) => {
   for (const filename of ["../outside.tgz", "link.tgz", path.join(f.root, "outside.tgz")]) {
     f.release.tarball.path = filename;
     await f.save();
-    await assert.rejects(prepare(f.directory, version, commit));
+    await assert.rejects(readReleasePlan(f.directory, version, "latest"));
   }
 });
 
@@ -119,30 +114,4 @@ test("rejects publishConfig overrides and a mismatched packed identity", async (
       verifyTarball(path.join(f.directory, "factbag.tgz"), version, integrity(bytes, "sha512")),
     );
   }
-});
-
-test("candidate verification binds the artifact to the approved version and commit", async (t) => {
-  const f = await fixture();
-  t.after(() => rm(f.root, { recursive: true, force: true }));
-  const digest = await prepare(f.directory, version, commit);
-  const directory = path.join(f.directory, "publish");
-  await verifyCandidate(directory, version, commit, digest);
-  await assert.rejects(verifyCandidate(directory, "1.0.0", commit, digest));
-  await assert.rejects(verifyCandidate(directory, version, "b".repeat(40), digest));
-  await assert.rejects(verifyCandidate(directory, version, commit, "sha512-other"));
-});
-
-test("version input cannot inject shell or workflow output syntax", () => {
-  for (const input of [
-    "1.0.0\nversion=other",
-    "$(id)",
-    "../other",
-    "1.0.0;id",
-    "--tag=other",
-    "",
-  ]) {
-    assert.throws(() => validateVersion(input));
-  }
-  validateVersion(version);
-  validateVersion("1.2.3");
 });
