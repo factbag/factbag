@@ -38,26 +38,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Check formatting
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
+      - name: Check source and build
+        run: pnpm check
 
       - name: Verify packed packages (TypeScript 6 and 7)
         run: pnpm build:verify
-
-      - name: Check API reports
-        run: pnpm api-report:check
 
       - name: Check committed generated files are in sync
         run: |
