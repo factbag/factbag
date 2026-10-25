@@ -14,14 +14,17 @@ describe("KnowledgeBase", () => {
   describe("accepted evidence snapshots", () => {
     for (const operation of ["asserts", "denies"] as const) {
       it.fails(`${operation} snapshots caller-owned fields across forks`, () => {
+        // Arrange
         const kb = new KnowledgeBase();
         const status = predicate("status", { value: String });
         const fields = { value: "active" };
         kb[operation](status(fields));
         const fork = kb.fork();
 
+        // Act
         fields.value = "inactive";
 
+        // Assert
         for (const store of [kb, fork]) {
           expect(query(store, status({ value: "active" })).value).toBe(
             operation === "asserts" ? "true" : "false",
@@ -30,7 +33,8 @@ describe("KnowledgeBase", () => {
         }
       });
 
-      it.fails(`${operation} snapshots provenance and nested annotations`, () => {
+      it.fails(`${operation} snapshots provenance and nested annotations across forks`, () => {
+        // Arrange
         const kb = new KnowledgeBase();
         const status = predicate("status", { value: String });
         const metadata = {
@@ -39,29 +43,67 @@ describe("KnowledgeBase", () => {
           annotations: { review: { status: "accepted" } },
         };
         const literal = kb[operation](status({ value: "active" }), metadata);
+        const fork = kb.fork();
 
+        // Act
         metadata.source = "replacement";
         metadata.scores.probability = 0.1;
         metadata.annotations.review.status = "changed";
 
-        expect(literal.metadata).toEqual({
-          source: "original",
-          scores: { probability: 0.9 },
-          annotations: { review: { status: "accepted" } },
-        });
+        // Assert
+        for (const stored of [literal, ...kb.literals(), ...fork.literals()]) {
+          expect(stored.metadata).toEqual({
+            source: "original",
+            scores: { probability: 0.9 },
+            annotations: { review: { status: "accepted" } },
+          });
+        }
       });
 
-      it.fails(`${operation} snapshots caller-owned dates`, () => {
+      it.fails(`${operation} snapshots caller-owned dates across forks`, () => {
+        // Arrange
         const kb = new KnowledgeBase();
         const recorded = predicate("recorded", { date: Date });
         const date = new Date("2026-01-01T00:00:00Z");
         kb[operation](recorded({ date }));
+        const fork = kb.fork();
 
+        // Act
         date.setUTCFullYear(2027);
 
-        expect(query(kb, recorded({ date: new Date("2026-01-01T00:00:00Z") })).value).toBe(
-          operation === "asserts" ? "true" : "false",
-        );
+        // Assert
+        for (const store of [kb, fork]) {
+          expect(query(store, recorded({ date: new Date("2026-01-01T00:00:00Z") })).value).toBe(
+            operation === "asserts" ? "true" : "false",
+          );
+          expect(query(store, recorded({ date: new Date("2027-01-01T00:00:00Z") })).value).toBe(
+            "unknown",
+          );
+        }
+      });
+
+      it(`${operation} retains the sign, provenance, and domain entity identity without mutation`, () => {
+        // Arrange
+        const kb = new KnowledgeBase();
+        const alice = new Person("alice");
+        const status = predicate("status", { person: Person, value: String });
+        const atom = status({ person: alice, value: "active" });
+
+        // Act
+        const literal = kb[operation](atom, { source: "original" });
+        const fork = kb.fork();
+
+        // Assert
+        expect(literal).toEqual({
+          sign: operation === "asserts" ? "+" : "-",
+          atom,
+          metadata: { source: "original" },
+        });
+        for (const store of [kb, fork]) {
+          expect(store.literals()).toEqual([literal]);
+          expect(store.literals()[0]?.atom.fields["person"]).toBe(alice);
+          expect(query(store, atom).value).toBe(operation === "asserts" ? "true" : "false");
+        }
       });
     }
   });
