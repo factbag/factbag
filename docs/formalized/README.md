@@ -9,5 +9,6 @@ Files:
 - `judgments.md`: rule body and multiple-rule evaluation.
 - `inequalities.md`: inequality evaluation over exact and interval values.
 - `negation.md`: explicit negative support and negation-as-failure.
+- `recursion.md`: tabled positive components and the loop-checked fallback.
 - `traces.md`: provenance and trace preservation.
 - `examples.md`: worked examples using the model.

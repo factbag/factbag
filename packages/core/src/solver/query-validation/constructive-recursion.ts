@@ -54,8 +54,19 @@ function hasNonRecursiveBaseRule(
 ): boolean {
   return rules.some(
     (rule) =>
-      component.has(rule.head.atom.predicate) && !bodyReferencesPredicates(rule.body, component),
+      component.has(rule.head.atom.predicate) && hasNonRecursiveAlternative(rule.body, component),
   );
+}
+
+/** An iff definition can put its base case beside recursion in a disjunction. */
+function hasNonRecursiveAlternative(
+  body: unknown,
+  component: ReadonlySet<PredicateDeclaration>,
+): boolean {
+  if (isFormula(body, "or")) {
+    return body.args.some((branch) => hasNonRecursiveAlternative(branch, component));
+  }
+  return !bodyReferencesPredicates(body, component);
 }
 
 function componentsAmong(
