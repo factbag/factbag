@@ -16,6 +16,10 @@ using TypeSafe AI’s Jev model. It combines source-linked evidence with applica
 facts and rules in a queryable knowledge base, supporting true, false, conflicted,
 and unknown conclusions.
 
+## Agent skills
+
+When adding or changing agent skills, follow [skills/README.md](skills/README.md).
+
 ## Pull requests
 
 Follow the [pull request title convention](CONTRIBUTING.md#pull-request-titles)
