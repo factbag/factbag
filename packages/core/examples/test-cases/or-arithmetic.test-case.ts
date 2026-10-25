@@ -68,8 +68,6 @@ function proof(amount: number, value: "true" | "false", totalAmount: number) {
 // Match decimal arithmetic to six places rather than fixing its binary rounding.
 // oxlint-disable-next-line typescript/no-unsafe-assignment -- This matcher is only used in expected numeric fields and bindings.
 const upperAmount: number = expect.closeTo(7_208.28, 6);
-// oxlint-disable-next-line typescript/no-unsafe-assignment -- The inactive upper formula gives 83.4, subject to the same binary rounding.
-const inactiveUpperAmount: number = expect.closeTo(83.4, 6);
 
 export const orArithmeticTestCases: readonly DslTestSpec[] = [
   {
@@ -85,18 +83,18 @@ export const orArithmeticTestCases: readonly DslTestSpec[] = [
     name: "or arithmetic: discovers the lower branch amount",
     invariant: "An unbound output must retain the amount computed by the successful lower branch.",
     narration:
-      "For income of 17,430, the lower formula yields a true 2,614.5. The inactive upper formula yields 83.4 (5,535 minus 5,451.6), which remains false.",
+      "For income of 17,430, the lower formula yields a true 2,614.5. The inactive upper formula yields 83.4 (5,535 minus 5,451.6), which is omitted from enumeration.",
     queryAtoms: tax({ person: alice, amount: V }),
-    expectedProofs: [proof(2_614.5, "true", 17_430), proof(inactiveUpperAmount, "false", 17_430)],
+    expectedProofs: [proof(2_614.5, "true", 17_430)],
   },
   {
     ...scenario([42_876]),
     name: "or arithmetic: discovers the upper branch amount",
     invariant: "Nested arithmetic in the upper branch must also preserve its output binding.",
     narration:
-      "Income is 42,876. The inactive lower formula gives a false 6,431.4. The upper branch yields 5,535 plus 1,673.28, or a true 7,208.28.",
+      "Income is 42,876. The inactive lower formula gives 6,431.4, which is omitted. The upper branch yields 5,535 plus 1,673.28, or a true 7,208.28.",
     queryAtoms: tax({ person: alice, amount: V }),
-    expectedProofs: [proof(6_431.4, "false", 42_876), proof(upperAmount, "true", 42_876)],
+    expectedProofs: [proof(upperAmount, "true", 42_876)],
   },
   {
     ...scenario([42_876]),
@@ -105,5 +103,21 @@ export const orArithmeticTestCases: readonly DslTestSpec[] = [
     narration: "For income of 42,876, a grounded query for 2,614.5 is false.",
     queryAtoms: tax({ person: alice, amount: 2_614.5 }),
     expectedProofs: proof(2_614.5, "false", 42_876),
+  },
+  {
+    ...scenario([17_330, 100]),
+    name: "or arithmetic: rejects the inactive upper formula through a ground query",
+    invariant: "Pruned branch outputs must still be false when explicitly queried.",
+    narration: "At income 17,430, the upper formula's output is unsupported.",
+    queryAtoms: tax({ person: alice, amount: 5_535 + 0.28 * (17_430 - 36_900) }),
+    expectedProofs: proof(5_535 + 0.28 * (17_430 - 36_900), "false", 17_430),
+  },
+  {
+    ...scenario([42_876]),
+    name: "or arithmetic: rejects the inactive lower formula through a ground query",
+    invariant: "Pruned branch outputs must still be false when explicitly queried.",
+    narration: "At income 42,876, the lower formula's output is unsupported.",
+    queryAtoms: tax({ person: alice, amount: 6_431.4 }),
+    expectedProofs: proof(6_431.4, "false", 42_876),
   },
 ];

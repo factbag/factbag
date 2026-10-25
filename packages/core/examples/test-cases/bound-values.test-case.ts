@@ -162,14 +162,9 @@ export const boundValuesTestCases: readonly DslTestSpec[] = [
     name: "bound values: disjunction preserves each candidate's computed value",
     invariant: "A branch must not overwrite a candidate with a different branch's computed value.",
     narration:
-      "The lesser of total payments (351) and tax (98) is 98. Enumeration retains the false 351 candidate and the true 98 candidate.",
+      "The lesser of total payments (351) and tax (98) is 98. Enumeration omits the unsupported 351 candidate and retains the true 98 candidate.",
     queryAtoms: lesser({ who: alice, amount: M }),
     expectedProofs: [
-      proof(lesser({ who: alice, amount: 351n }), "false", lesserRule, [
-        [M, 351n],
-        [T, 351n],
-        [R, 98n],
-      ]),
       proof(lesser({ who: alice, amount: 98n }), "true", lesserRule, [
         [M, 98n],
         [T, 351n],

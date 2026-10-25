@@ -51,11 +51,19 @@ export const orEnvironmentTestCases: readonly DslTestSpec[] = [
   },
   {
     ...scenario(x3),
-    name: "or environments: enumerates both incompatible witnesses as false",
-    invariant: "Each enumerated candidate must be judged under its own assignment.",
+    name: "or environments: omits incompatible witnesses from enumeration",
+    invariant: "No candidate is supported when each assignment fails a conjunct.",
     narration:
-      "x1 fails s and x3 fails both p and r. Enumeration returns those two false candidates, not a true result assembled from different witnesses.",
+      "x1 fails s and x3 fails both p and r. Enumeration omits both candidates instead of assembling a true result from different witnesses.",
     queryAtoms: u({ x: X }),
+    expectedProofs: [],
+  },
+  {
+    ...scenario(x3),
+    name: "or environments: grounded incompatible witnesses remain false",
+    invariant: "Pruning enumeration must not change grounded judgments.",
+    narration: "Direct queries still reject x1 and x3, each under its own assignment.",
+    queryAtoms: [u({ x: x1 }), u({ x: x3 })],
     expectedProofs: [
       ruleProof(u({ x: x1 }), "false", candidateRule, [[X, x1]]),
       ruleProof(u({ x: x3 }), "false", candidateRule, [[X, x3]]),
