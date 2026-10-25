@@ -1,3 +1,4 @@
+import { assertSupportedValue } from "../assert-supported-value";
 import type { DateTerm, Formula, NumericTerm } from "../types";
 
 // Arithmetic operators for rule-body expressions (including date subtraction).
@@ -6,7 +7,9 @@ import type { DateTerm, Formula, NumericTerm } from "../types";
 export function add(
   left: NumericTerm,
   right: NumericTerm,
-): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "add", args: [left, right] };
 }
 
@@ -35,11 +38,13 @@ export function sub(
 export function sub(
   left: NumericTerm,
   right: NumericTerm,
-): Formula<number | bigint, readonly [NumericTerm, NumericTerm]>;
+): Formula<number, readonly [NumericTerm, NumericTerm]>;
 export function sub(
   left: DateTerm | NumericTerm,
   right: NumericTerm,
-): Formula<Date | number | bigint, readonly [DateTerm | NumericTerm, NumericTerm]> {
+): Formula<Date | number, readonly [DateTerm | NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "sub", args: [left, right] };
 }
 
@@ -47,7 +52,9 @@ export function sub(
 export function mul(
   left: NumericTerm,
   right: NumericTerm,
-): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "mul", args: [left, right] };
 }
 
@@ -55,6 +62,8 @@ export function mul(
 export function div(
   left: NumericTerm,
   right: NumericTerm,
-): Formula<number | bigint, readonly [NumericTerm, NumericTerm]> {
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "div", args: [left, right] };
 }
