@@ -1,19 +1,4 @@
 import { expect } from "vitest";
-import type { QueryJudgment } from "../../src/query";
-import type { GroundAtom } from "../../src/types/atom";
-import type { DslTestSpec } from "../test-runner/test-runner";
-
-/** Match the public proof root; internal arithmetic temporaries are not this contract. */
-function proof(atom: GroundAtom, value: QueryJudgment["value"]): QueryJudgment {
-  const support: unknown = expect.arrayContaining([expect.objectContaining({ source: "rule" })]);
-  // oxlint-disable-next-line typescript/no-unsafe-return -- Vitest's asymmetric matcher checks these proof fields in the existing harness.
-  return expect.objectContaining({
-    value,
-    goal: { kind: "atom", atom },
-    bindings: [],
-    [value === "false" ? "negative" : "positive"]: support,
-  });
-}
 import {
   add,
   and,
@@ -30,6 +15,9 @@ import {
   variable,
 } from "../../src/dsl";
 import type { KnowledgeBase } from "../../src/knowledge-base";
+import type { QueryJudgment } from "../../src/query";
+import type { GroundAtom } from "../../src/types/atom";
+import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {
   constructor(readonly id: string) {}
@@ -39,6 +27,8 @@ class Event {
 }
 
 const alice = new Person("alice");
+const first = new Event("first");
+const second = new Event("second");
 const paid = closedPredicate("paid", { who: Person, event: Event, amount: BigInt });
 const week = closedPredicate("paid_in_week", { event: Event, week: String });
 const total = closedPredicate("total_paid", { who: Person, amount: BigInt });
@@ -55,91 +45,171 @@ const M = variable("M");
 const W = variable("W");
 const N = variable("N");
 
-function build(kb: KnowledgeBase) {
-  const first = new Event("first");
-  const second = new Event("second");
-  kb.entities.add(alice, first, second);
-  kb.asserts(paid({ who: alice, event: first, amount: 100n }));
-  kb.asserts(paid({ who: alice, event: second, amount: 251n }));
-  kb.asserts(week({ event: first, week: "09" }));
-  kb.asserts(week({ event: second, week: "09" }));
-  const rule0 = kb
-    .rule(total({ who: P, amount: T }))
-    .iff(letIn(T, sum(A).where(paid({ who: P, event: E, amount: A })), gte(T, 0n)));
-  // round(total * 0.28) with integer arithmetic: 351 * 28 = 9828 -> 98.
-  const rule1 = kb
-    .rule(tax({ who: P, amount: R }))
-    .iff(and(total({ who: P, amount: T }), letIn(R, div(add(mul(T, 28n), 50n), 100n), gte(R, 0n))));
-  const rule2 = kb
-    .rule(lesser({ who: P, amount: M }))
-    .iff(
-      and(
-        total({ who: P, amount: T }),
-        tax({ who: P, amount: R }),
-        or(and(lte(T, R), letIn(M, T, gte(M, 0n))), and(gt(T, R), letIn(M, R, gte(M, 0n)))),
-      ),
-    );
-  const rule3 = kb
-    .rule(weeks({ who: P, count: N }))
-    .iff(
-      letIn(
-        N,
-        count(W).where(and(paid({ who: P, event: E, amount: A }), week({ event: E, week: W }))),
-        gte(N, 0),
-      ),
-    );
-  return {
+const totalRule = {
+  kind: "iff",
+  head: { sign: "+", atom: total({ who: P, amount: T }) },
+  body: letIn(T, sum(A).where(paid({ who: P, event: E, amount: A })), gte(T, 0n)),
+} as const;
+const taxRule = {
+  kind: "iff",
+  head: { sign: "+", atom: tax({ who: P, amount: R }) },
+  // round(351 * 0.28) = 98, using integer arithmetic.
+  body: and(total({ who: P, amount: T }), letIn(R, div(add(mul(T, 28n), 50n), 100n), gte(R, 0n))),
+} as const;
+const lesserRule = {
+  kind: "iff",
+  head: { sign: "+", atom: lesser({ who: P, amount: M }) },
+  body: and(
+    total({ who: P, amount: T }),
+    tax({ who: P, amount: R }),
+    or(and(lte(T, R), letIn(M, T, gte(M, 0n))), and(gt(T, R), letIn(M, R, gte(M, 0n)))),
+  ),
+} as const;
+const weeksRule = {
+  kind: "iff",
+  head: { sign: "+", atom: weeks({ who: P, count: N }) },
+  body: letIn(
+    N,
+    count(W).where(and(paid({ who: P, event: E, amount: A }), week({ event: E, week: W }))),
+    gte(N, 0),
+  ),
+} as const;
+
+const rules = [totalRule, taxRule, lesserRule, weeksRule] as const;
+const scenario = {
+  build(kb: KnowledgeBase) {
+    kb.entities.add(alice, first, second);
+    kb.asserts(paid({ who: alice, event: first, amount: 100n }));
+    kb.asserts(paid({ who: alice, event: second, amount: 251n }));
+    kb.asserts(week({ event: first, week: "09" }));
+    kb.asserts(week({ event: second, week: "09" }));
+    kb.rule(totalRule.head.atom).iff(totalRule.body);
+    kb.rule(taxRule.head.atom).iff(taxRule.body);
+    kb.rule(lesserRule.head.atom).iff(lesserRule.body);
+    kb.rule(weeksRule.head.atom).iff(weeksRule.body);
+  },
+  expectedKnowledgeBase: {
     literals: [
-      { sign: "+" as const, atom: paid({ who: alice, event: first, amount: 100n }) },
-      { sign: "+" as const, atom: paid({ who: alice, event: second, amount: 251n }) },
-      { sign: "+" as const, atom: week({ event: first, week: "09" }) },
-      { sign: "+" as const, atom: week({ event: second, week: "09" }) },
+      { sign: "+", atom: paid({ who: alice, event: first, amount: 100n }) },
+      { sign: "+", atom: paid({ who: alice, event: second, amount: 251n }) },
+      { sign: "+", atom: week({ event: first, week: "09" }) },
+      { sign: "+", atom: week({ event: second, week: "09" }) },
     ],
-    rules: [rule0, rule1, rule2, rule3],
-  };
+    rules,
+  },
+} as const;
+
+/**
+ * Check the supporting rule, its truth value, and the relevant rule bindings.
+ * Arithmetic temporary names and unrelated intermediate proof structure are not
+ * the bound-value contract; the existing arithmetic examples cover those trees.
+ */
+function proof(
+  atom: GroundAtom,
+  value: "true" | "false",
+  rule: (typeof rules)[number],
+  bindings: QueryJudgment["bindings"],
+): QueryJudgment {
+  const body: unknown = expect.objectContaining({
+    value,
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- An asymmetric matcher intentionally permits arithmetic temporaries.
+    bindings: expect.arrayContaining([[P, alice], ...bindings]),
+  });
+  // oxlint-disable-next-line typescript/no-unsafe-return -- The existing runner evaluates these asymmetric proof expectations.
+  return expect.objectContaining({
+    value,
+    goal: { kind: "atom", atom },
+    bindings: [],
+    [value === "false" ? "negative" : "positive"]: [{ source: "rule", rule, body }],
+  });
 }
 
-export const regressionExamples: readonly DslTestSpec[] = [
+/** Bound inputs constrain computed results; unbound outputs still discover them. */
+export const boundValuesTestCases: readonly DslTestSpec[] = [
   {
-    name: "Regression: a computed amount constrains the queried amount",
-    invariant:
-      "Alice was paid 351. The computed rounded amount is 98, so asking for 99 must be false.",
+    ...scenario,
+    name: "bound values: accepts the computed amount and rejects a different amount",
+    invariant: "A let binding must agree with a value supplied by the query, not overwrite it.",
     narration:
-      "Alice was paid 351. The computed rounded amount is 98, so asking for 99 must be false.",
-    build(kb) {
-      return build(kb);
-    },
-    queryAtoms: tax({ who: alice, amount: 99n }),
-    expected(handles) {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- build returns these exact handles to the declarative harness.
-      const expectedKnowledgeBase = handles as {
-        literals: ReturnType<KnowledgeBase["literals"]>;
-        rules: ReturnType<KnowledgeBase["rules"]>;
-      };
-      return {
-        expectedKnowledgeBase,
-        expectedProofs: proof(tax({ who: alice, amount: 99n }), "false"),
-      };
-    },
+      "Alice's payments total 351 and rounded tax is 98. Querying 98 succeeds; querying 99 fails.",
+    queryAtoms: [tax({ who: alice, amount: 98n }), tax({ who: alice, amount: 99n })],
+    expectedProofs: [
+      proof(tax({ who: alice, amount: 98n }), "true", taxRule, [
+        [R, 98n],
+        [T, 351n],
+      ]),
+      proof(tax({ who: alice, amount: 99n }), "false", taxRule, [
+        [R, 99n],
+        [T, 351n],
+      ]),
+    ],
   },
   {
-    name: "Regression: an aggregate constrains the queried count",
-    invariant: "Two payment rows exist. Asking whether the aggregate count is five must be false.",
-    narration: "Two payment rows exist. Asking whether the aggregate count is five must be false.",
-    build(kb) {
-      return build(kb);
-    },
-    queryAtoms: weeks({ who: alice, count: 5 }),
-    expected(handles) {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- build returns these exact handles to the declarative harness.
-      const expectedKnowledgeBase = handles as {
-        literals: ReturnType<KnowledgeBase["literals"]>;
-        rules: ReturnType<KnowledgeBase["rules"]>;
-      };
-      return {
-        expectedKnowledgeBase,
-        expectedProofs: proof(weeks({ who: alice, count: 5 }), "false"),
-      };
-    },
+    ...scenario,
+    name: "bound values: discovers the computed amount for an unbound query",
+    invariant: "Constraining bound variables must not prevent binding an unbound output.",
+    narration: "Asking for Alice's tax amount enumerates exactly one true result, 98.",
+    queryAtoms: tax({ who: alice, amount: R }),
+    expectedProofs: [
+      proof(tax({ who: alice, amount: 98n }), "true", taxRule, [
+        [R, 98n],
+        [T, 351n],
+      ]),
+    ],
+  },
+  {
+    ...scenario,
+    name: "bound values: disjunction preserves each candidate's computed value",
+    invariant: "A branch must not overwrite a candidate with a different branch's computed value.",
+    narration:
+      "The lesser of total payments (351) and tax (98) is 98. Enumeration retains the false 351 candidate and the true 98 candidate.",
+    queryAtoms: lesser({ who: alice, amount: M }),
+    expectedProofs: [
+      proof(lesser({ who: alice, amount: 351n }), "false", lesserRule, [
+        [M, 351n],
+        [T, 351n],
+        [R, 98n],
+      ]),
+      proof(lesser({ who: alice, amount: 98n }), "true", lesserRule, [
+        [M, 98n],
+        [T, 351n],
+        [R, 98n],
+      ]),
+    ],
+  },
+  {
+    ...scenario,
+    name: "bound values: rejects a grounded amount from the unsuccessful branch",
+    invariant: "A grounded query must not borrow the value computed by a different branch.",
+    narration: "Alice's lesser amount is 98, so a direct query for 351 is false.",
+    queryAtoms: lesser({ who: alice, amount: 351n }),
+    expectedProofs: proof(lesser({ who: alice, amount: 351n }), "false", lesserRule, [
+      [M, 351n],
+      [T, 351n],
+      [R, 98n],
+    ]),
+  },
+  {
+    ...scenario,
+    name: "bound values: count constrains the queried count without deduplicating rows",
+    invariant: "A count constrains a bound output to the number of matching rows.",
+    narration:
+      "Two payment rows share the same week label. The count is two, not five (or one distinct week).",
+    queryAtoms: [weeks({ who: alice, count: 2 }), weeks({ who: alice, count: 5 })],
+    expectedProofs: [
+      proof(weeks({ who: alice, count: 2 }), "true", weeksRule, [[N, 2]]),
+      proof(weeks({ who: alice, count: 5 }), "false", weeksRule, [[N, 5]]),
+    ],
+  },
+  {
+    ...scenario,
+    name: "bound values: sum accepts its total and rejects a different queried total",
+    invariant: "A sum must constrain an already-bound output rather than overwrite it.",
+    narration: "Alice's payments are 100 and 251. Their total is 351, not one.",
+    queryAtoms: [total({ who: alice, amount: 351n }), total({ who: alice, amount: 1n })],
+    expectedProofs: [
+      proof(total({ who: alice, amount: 351n }), "true", totalRule, [[T, 351n]]),
+      proof(total({ who: alice, amount: 1n }), "false", totalRule, [[T, 1n]]),
+    ],
   },
 ];
