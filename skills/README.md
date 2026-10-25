@@ -1,12 +1,7 @@
 # Shared agent skills
 
-Author repository skills here, not in a harness-specific directory. Each skill
-has a directory containing `SKILL.md` with matching lowercase kebab-case `name`
-and a `description` explaining when to use it. Keep workflows portable: avoid
-harness-specific tool names, model settings, and shell interpolation.
-Use the [Agent Skills format](https://agentskills.io/specification), reference
-supporting files relative to the skill directory, and create only skills requested
-by the user.
+Author repository skills here, not in a harness-specific directory. See
+[AGENTS.md](AGENTS.md) for skill authoring guidance.
 
 Two committed relative directory symlinks expose the same inventory to every
 supported harness:
