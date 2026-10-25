@@ -1,5 +1,9 @@
 # Factbag
 
+[![npm alpha](https://img.shields.io/npm/v/factbag/alpha)](https://www.npmjs.com/package/factbag)
+[![CI](https://img.shields.io/github/actions/workflow/status/factbag/factbag/ci.yml?branch=main&event=push&label=CI)](https://github.com/factbag/factbag/actions/workflows/ci.yml?query=branch%3Amain)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/factbag/factbag/blob/main/LICENSE)
+
 <img src="https://raw.githubusercontent.com/factbag/factbag/main/docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
 
 Turn documents into evidence and conclusions with [Jev](https://typesafe.ai/) and TypeScript.
