@@ -206,8 +206,8 @@ export type NotGoal = Readonly<{
 
 // @public
 export type NumericRange = Readonly<{
-    readonly lower: number | bigint;
-    readonly upper: number | bigint | "infinity";
+    readonly lower: number;
+    readonly upper: number | "infinity";
 }>;
 
 // @public
@@ -285,7 +285,7 @@ export type SubgoalsSupport = Readonly<{
 export type SumGoal = Readonly<{
     readonly kind: "sum";
     readonly bind: Var;
-    readonly value: GoalExpression<number | bigint>;
+    readonly value: GoalExpression<number>;
     readonly where: Goal;
     readonly completeWhen?: Goal;
 }>;

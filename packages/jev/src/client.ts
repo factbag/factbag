@@ -151,8 +151,8 @@ function encodeField(value: unknown): JsonValue {
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
-  if (typeof value === "bigint" || value instanceof Date) {
-    return value instanceof Date ? value.toISOString() : value.toString();
+  if (value instanceof Date) {
+    return value.toISOString();
   }
   if (isRecord(value)) {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- A successful JSON round-trip produces a JSON value.

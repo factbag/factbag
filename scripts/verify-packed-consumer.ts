@@ -37,7 +37,14 @@ const releaseDirectory = releaseMode
 try {
   let releases: PackedArtifact[];
   if (releaseMode) {
-    releases = [await readReleasePlan(releaseDirectory, packageManifest.version)];
+    const preState = await readFile(path.join(root, ".changeset/pre.json"), "utf8")
+      .then((text) => JSON.parse(text) as { mode: string; tag: string })
+      .catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      });
+    const tag = preState?.mode === "pre" ? preState.tag : "latest";
+    releases = [await readReleasePlan(releaseDirectory, packageManifest.version, tag)];
   } else {
     // CI verifies this checkout even when its version is already on npm.
     const tarballPath = "factbag.tgz";

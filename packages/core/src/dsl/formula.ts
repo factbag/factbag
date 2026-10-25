@@ -1,3 +1,4 @@
+import { assertSupportedValue } from "./assert-supported-value";
 import type { Atom } from "../types/atom";
 import type { NegativeLiteral } from "../types/literal";
 import type { PredicateSchema } from "../types/schema";
@@ -89,5 +90,6 @@ export function letIn<const Value, const Body>(
   value: Value & FormulaArgumentInput<Value>,
   body: Body & RuleBodyInput<Body>,
 ): Formula<boolean, readonly [Var, Value, Body]> {
+  assertSupportedValue(value);
   return { kind: "letIn", args: [variable, value, body] };
 }

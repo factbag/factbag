@@ -98,7 +98,7 @@ export type ComparisonGoal<Kind extends "eq" | "neq" | "lt" | "lte" | "gt" | "gt
 export type SumGoal = Readonly<{
   readonly kind: "sum";
   readonly bind: Var;
-  readonly value: GoalExpression<number | bigint>;
+  readonly value: GoalExpression<number>;
   readonly where: Goal;
   readonly completeWhen?: Goal;
 }>;
