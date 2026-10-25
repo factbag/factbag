@@ -11,6 +11,7 @@ import {
   ruleEdges,
   stronglyConnectedComponents,
   variablesIn,
+  type Edge,
 } from "./utils";
 
 export function assertConstructiveRecursion<Schema extends PredicateSchema>(
@@ -18,13 +19,10 @@ export function assertConstructiveRecursion<Schema extends PredicateSchema>(
 ): void {
   const edges = context.rules.flatMap(ruleEdges);
   const reachable = reachablePredicates(context.atom.predicate, edges);
-  const components = new Set(stronglyConnectedComponents(edges).values());
+  const components = componentsAmong(reachable, edges);
   const needsCandidateEnumeration = variablesIn(context.atom).length > 0;
 
   for (const component of components) {
-    if (![...component].some((predicate) => reachable.has(predicate))) {
-      continue;
-    }
     const internalEdges = edges.filter(
       (edge) => component.has(edge.from) && component.has(edge.to),
     );
@@ -69,6 +67,20 @@ function hasNonRecursiveAlternative(
     return body.args.some((branch) => hasNonRecursiveAlternative(branch, component));
   }
   return !bodyReferencesPredicates(body, component);
+}
+
+function componentsAmong(
+  predicates: ReadonlySet<PredicateDeclaration>,
+  edges: readonly Edge[],
+): ReadonlySet<PredicateDeclaration>[] {
+  const components = new Set<ReadonlySet<PredicateDeclaration>>();
+  const byPredicate = stronglyConnectedComponents(edges);
+
+  for (const predicate of predicates) {
+    components.add(byPredicate.get(predicate) ?? new Set([predicate]));
+  }
+
+  return [...components];
 }
 
 function bodyReferencesPredicates(
