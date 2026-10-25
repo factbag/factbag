@@ -106,6 +106,20 @@ export function uniqueVariables(variables: readonly Var[]): Var[] {
   return unique;
 }
 
+/** Bindings available after an `or`: those held before it plus those every branch makes. */
+export function bindingsAfterOr(
+  branchBindings: readonly ReadonlySet<Var>[],
+  bound: ReadonlySet<Var>,
+): Set<Var> {
+  const next = new Set(bound);
+  for (const candidate of uniqueVariables(branchBindings.flatMap((branch) => [...branch]))) {
+    if (branchBindings.every((branch) => branch.has(candidate))) {
+      next.add(candidate);
+    }
+  }
+  return next;
+}
+
 export function variablesIn(value: unknown): Var[] {
   if (isVar(value)) {
     return [value];
@@ -122,16 +136,22 @@ export function variablesIn(value: unknown): Var[] {
   return Object.values(value).flatMap(variablesIn);
 }
 
+/**
+ * Record the rule edges a body contributes and return the bindings available after
+ * it. Binding rules mirror the variable-use checker: an `and` threads bindings
+ * through its conjuncts, an `or` keeps only what every branch binds, and an
+ * `exists` keeps its bindings to itself.
+ */
 function collectBodyEdges(
   body: unknown,
   headPredicate: PredicateDeclaration,
   bound: Set<Var>,
   edges: Edge[],
-): void {
+): Set<Var> {
   if (isAtomLike(body)) {
     edges.push({ from: headPredicate, to: body.predicate, kind: "positive" });
     bindVariables(body, bound);
-    return;
+    return bound;
   }
 
   if (isNegativeLiteral(body)) {
@@ -140,22 +160,29 @@ function collectBodyEdges(
       to: body.atom.predicate,
       kind: body.atom.predicate.world === "closed" ? "closed-world-not" : "explicit-not",
     });
-    bindVariables(body.atom, bound);
-    return;
+    return bound;
   }
 
   if (isFormula(body, "and")) {
+    let nextBound = bound;
     for (const arg of body.args) {
-      collectBodyEdges(arg, headPredicate, bound, edges);
+      nextBound = collectBodyEdges(arg, headPredicate, nextBound, edges);
     }
-    return;
+    return nextBound;
   }
 
-  if (isFormula(body, "or") || isFormula(body, "exists")) {
+  if (isFormula(body, "or")) {
+    const branchBindings = body.args.map((arg) =>
+      collectBodyEdges(arg, headPredicate, new Set(bound), edges),
+    );
+    return bindingsAfterOr(branchBindings, bound);
+  }
+
+  if (isFormula(body, "exists")) {
     for (const arg of body.args) {
       collectBodyEdges(arg, headPredicate, new Set(bound), edges);
     }
-    return;
+    return bound;
   }
 
   if (isFormula(body, "letIn")) {
@@ -168,13 +195,14 @@ function collectBodyEdges(
     if (isVar(variable)) {
       bound.add(variable);
     }
-    collectBodyEdges(nextBody, headPredicate, bound, edges);
-    return;
+    return collectBodyEdges(nextBody, headPredicate, bound, edges);
   }
 
   if (isPrimitiveFormula(body) && hasUnboundVariable(body, bound)) {
     edges.push({ from: headPredicate, to: headPredicate, kind: "primitive-ungrounded" });
   }
+
+  return bound;
 }
 
 function collectAggregateEdges(
