@@ -1,4 +1,5 @@
 import { emptySumTestCases } from "./empty-number-sum.test-case";
+import { equalityTestCases } from "./equality.test-case";
 import { judgmentContextTestCases } from "./judgment-context.test-case";
 import { roundingTestCases } from "./rounding.test-case";
 import { deadPathLetTestCases } from "./dead-path-let.test-case";
@@ -55,6 +56,7 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
+  ...equalityTestCases,
   ...judgmentContextTestCases,
   ...roundingTestCases,
   ...emptySumTestCases,

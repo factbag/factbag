@@ -6,7 +6,13 @@
  */
 export { and, exists, letIn, not, or } from "./formula";
 export { count, sum } from "./operators/aggregate";
-export type { AggregateBuilder, ComparableTerm, DateTerm, NumericTerm } from "./types";
+export type {
+  AggregateBuilder,
+  ComparableTerm,
+  DateTerm,
+  EqualityTerm,
+  NumericTerm,
+} from "./types";
 export {
   add,
   ceilTo,
@@ -20,7 +26,7 @@ export {
   sub,
   yearsBetween,
 } from "./operators/arithmetic";
-export { gt, gte, lte } from "./operators/comparison";
+export { eq, gt, gte, lte, neq } from "./operators/comparison";
 export { closedPredicate, predicate } from "./predicate";
 export { enumeration } from "./enumeration";
 export type {

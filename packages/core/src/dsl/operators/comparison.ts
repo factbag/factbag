@@ -1,7 +1,33 @@
 import { assertSupportedValue } from "../assert-supported-value";
-import type { ComparableTerm, Formula } from "../types";
+import type { ComparableTerm, EqualityTerm, Formula } from "../types";
 
 // Comparison operators for rule-body side constraints.
+
+/**
+ * Require equal values: numbers, strings, and booleans by value, dates by instant,
+ * and entities by type and id rather than instance.
+ *
+ * @remarks
+ * Comparisons gate whether a rule fires but contribute no proof children.
+ */
+export function eq(
+  left: EqualityTerm,
+  right: EqualityTerm,
+): Formula<boolean, readonly [EqualityTerm, EqualityTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
+  return { kind: "eq", args: [left, right] };
+}
+
+/** Require the two terms to differ, in the sense of {@link eq}. */
+export function neq(
+  left: EqualityTerm,
+  right: EqualityTerm,
+): Formula<boolean, readonly [EqualityTerm, EqualityTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
+  return { kind: "neq", args: [left, right] };
+}
 
 /**
  * Require the left term to be strictly greater than the right.
