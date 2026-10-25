@@ -1,5 +1,26 @@
 # factbag
 
+## 0.0.0-alpha.3
+
+### Minor Changes
+
+- f8f2712: Add `eq` and `neq` rule-body comparisons for numbers, dates, strings, booleans, and entities. Entities compare by type and id rather than instance; dates compare by instant.
+- 900b104: Add min, max, roundTo, floorTo, and ceilTo numeric arithmetic terms for rule bodies. Rounding supports whole-number decimal places (including negative places), with halves rounded away from zero. Decimal exponent shifting avoids multiplication artifacts at decimal rounding boundaries.
+- 4f040e3: Add `daysBetween(later, earlier)` and `yearsBetween(later, earlier)` as number-valued arithmetic terms over dates. They count signed UTC calendar days and whole anniversary years, ignoring time of day; February 29 anniversaries fall on March 1 in common years. Numeric subtraction on variables now composes with other numeric operators.
+
+### Patch Changes
+
+- 01cc338: Speed up queries over large rulesets with linear-time recursive predicate grouping,
+  per-query rule and evidence indexes, and judgment reuse during candidate discovery.
+  Preserve candidate pruning and distinguish same-named predicate declarations when
+  tracking active atoms, avoiding incorrect recursion cutoffs.
+- 80d1e75: Share explanation nodes for reused proof judgments so explanation construction no longer grows with the number of paths through a shared proof. Identical sub-explanations are still listed once, and rendered content is unchanged.
+- a074dab: Judge evidence-free, closed-world recursive components together as a least fixed
+  point instead of enumerating recursive proof paths. Doubly recursive transitive
+  closures and symmetric compositions no longer require exponential proof search.
+  Other components retain the existing search semantics. Variable queries recognize
+  a non-recursive disjunctive base case within an exclusive definition.
+
 ## 0.0.0-alpha.2
 
 ### Major Changes
