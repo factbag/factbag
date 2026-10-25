@@ -7,6 +7,7 @@ import type { Var } from "../../types/variable";
 import type { QueryValidationContext } from "./context";
 import {
   bindVariables,
+  bindingsAfterOr,
   isAggregateFormula,
   isCompleteWhenOption,
   isNegativeLiteral,
@@ -52,7 +53,10 @@ function assertSafeBody(body: unknown, bound: Set<Var>): Set<Var> {
   }
 
   if (isFormula(body, "or")) {
-    return bindingsAvailableAfterOr(body.args, bound);
+    return bindingsAfterOr(
+      body.args.map((arg) => assertSafeBody(arg, new Set(bound))),
+      bound,
+    );
   }
 
   if (isFormula(body, "exists")) {
@@ -96,19 +100,6 @@ function assertSafeAggregate(
   if (isCompleteWhenOption(options)) {
     assertSafeBody(options.completeWhen, new Set(bound));
   }
-}
-
-function bindingsAvailableAfterOr(args: readonly unknown[], bound: ReadonlySet<Var>): Set<Var> {
-  const branchBindings = args.map((arg) => assertSafeBody(arg, new Set(bound)));
-  const next = new Set(bound);
-
-  for (const candidate of uniqueVariables(branchBindings.flatMap((branch) => [...branch]))) {
-    if (branchBindings.length > 0 && branchBindings.every((branch) => branch.has(candidate))) {
-      next.add(candidate);
-    }
-  }
-
-  return next;
 }
 
 function assertVariablesBound(variables: readonly Var[], bound: ReadonlySet<Var>): void {
