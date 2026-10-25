@@ -75,7 +75,6 @@ export const emptySumTestCases: readonly DslTestSpec[] = [
       "An empty closed-world number relation must supply a zero compatible with number arithmetic.",
     narration:
       "There is no income. Adding a 250 allowance yields 250 and rejects 251 without mixing bigint and number.",
-    fails: "The empty number sum becomes bigint zero and number addition throws.",
     queryAtoms: [emptyNumber.atom(250), emptyNumber.atom(251)],
     expectedProofs: [emptyNumber.proof(250, "true", 0), emptyNumber.proof(251, "false", 0)],
   },
@@ -85,7 +84,6 @@ export const emptySumTestCases: readonly DslTestSpec[] = [
     invariant:
       "An unbound output must discover the allowance even when the summed relation is empty.",
     narration: "The empty number sum plus 250 produces exactly one true candidate, 250.",
-    fails: "The empty number sum becomes bigint zero during candidate discovery.",
     queryAtoms: emptyNumber.pattern,
     expectedProofs: [emptyNumber.proof(250, "true", 0)],
   },
