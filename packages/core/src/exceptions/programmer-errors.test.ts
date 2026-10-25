@@ -3,7 +3,9 @@
  * and that primitive arithmetic errors retain operation, operands, and goal.
  */
 import { describe, expect, it } from "vitest";
-import { predicate } from "../dsl";
+import { ceilTo, closedPredicate, floorTo, gte, letIn, predicate, roundTo, variable } from "../dsl";
+import { KnowledgeBase } from "../knowledge-base";
+import { queryAll } from "../query";
 import { Var } from "../types/variable";
 import {
   ExclusiveDefinitionProgrammerError,
@@ -67,4 +69,34 @@ describe("programmer errors", () => {
     expect(error.predicate).toBe(eligible);
     expect(error.rules).toBe(rules);
   });
+});
+
+describe("PrimitiveArithmeticProgrammerError", () => {
+  it.each([roundTo, floorTo, ceilTo])(
+    "retains %s operands and goal for invalid decimal places",
+    (operator) => {
+      // Arrange
+      const kb = new KnowledgeBase();
+      const result = closedPredicate("result", { value: Number });
+      const V = variable("V");
+      kb.rule(result({ value: V })).iff(letIn(V, operator(10, 0.5), gte(V, 0)));
+
+      // Act
+      let error: unknown;
+      try {
+        queryAll(kb, result({ value: V }));
+      } catch (caught) {
+        error = caught;
+      }
+
+      // Assert
+      expect(error).toBeInstanceOf(PrimitiveArithmeticProgrammerError);
+      expect(error).toMatchObject({
+        operation: operator.name,
+        operands: [10, 0.5],
+        goal: { kind: operator.name, bind: V, left: 10, right: 0.5 },
+        message: `${operator.name} expected numeric operands and a whole number of decimal places`,
+      });
+    },
+  );
 });

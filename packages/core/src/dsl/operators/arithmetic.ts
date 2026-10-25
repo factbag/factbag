@@ -67,3 +67,99 @@ export function div(
   assertSupportedValue(right);
   return { kind: "div", args: [left, right] };
 }
+
+/**
+ * The lesser of two numeric terms.
+ *
+ * @example
+ * ```ts
+ * // Deduction reduction cannot exceed 80% of the deductions.
+ * letIn(R, min(mul(0.03, Excess), mul(0.8, Deductions)), gte(R, 0))
+ * ```
+ */
+export function min(
+  left: NumericTerm,
+  right: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
+  return { kind: "min", args: [left, right] };
+}
+
+/**
+ * The greater of two numeric terms.
+ *
+ * @example
+ * ```ts
+ * // The remaining allowance cannot be negative.
+ * letIn(A, max(sub(2000, Reduction), 0), gte(A, 0))
+ * ```
+ */
+export function max(
+  left: NumericTerm,
+  right: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
+  return { kind: "max", args: [left, right] };
+}
+
+/**
+ * Round to a whole number of decimal places, with halves away from zero.
+ * Negative places round to tens, hundreds, and so on. Decimal exponent shifting
+ * avoids multiplication artifacts such as `1.005 * 100`, so `roundTo(1.005, 2)`
+ * yields `1.01`. Inputs and results still have JavaScript number precision;
+ * this does not recover precision already lost in an earlier expression.
+ *
+ * @example
+ * ```ts
+ * // Tax is 15% of taxable income, in whole dollars.
+ * letIn(Tax, roundTo(mul(Income, 0.15), 0), gte(Tax, 0))
+ * ```
+ */
+export function roundTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(value);
+  assertSupportedValue(places);
+  return { kind: "roundTo", args: [value, places] };
+}
+
+/**
+ * Round toward negative infinity at a whole number of decimal places.
+ * Negative places and decimal exponent shifting work as in {@link roundTo}.
+ *
+ * @example
+ * ```ts
+ * // Only complete thousands of eligible expenses count.
+ * letIn(Eligible, floorTo(Expenses, -3), gte(Eligible, 0))
+ * ```
+ */
+export function floorTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(value);
+  assertSupportedValue(places);
+  return { kind: "floorTo", args: [value, places] };
+}
+
+/**
+ * Round toward positive infinity at a whole number of decimal places.
+ * Negative places and decimal exponent shifting work as in {@link roundTo}.
+ *
+ * @example
+ * ```ts
+ * // Two percentage points for each $2,500, or fraction thereof, of the excess.
+ * letIn(Points, mul(2, ceilTo(div(Excess, 2500), 0)), lte(Points, 100))
+ * ```
+ */
+export function ceilTo(
+  value: NumericTerm,
+  places: NumericTerm,
+): Formula<number, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(value);
+  assertSupportedValue(places);
+  return { kind: "ceilTo", args: [value, places] };
+}

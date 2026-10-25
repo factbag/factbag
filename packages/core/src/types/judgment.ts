@@ -1,5 +1,6 @@
 import type {
   AnyAtomGoal,
+  ArithmeticKind,
   AtomGoal,
   CompoundGoal,
   Goal,
@@ -114,7 +115,7 @@ export type CountPrimitiveSupport = Readonly<{
 /** Proof support for a primitive goal, narrowed to the support shape for the goal's kind. */
 export type PrimitiveSupportFor<GoalType extends PrimitiveGoal> =
   | PrimitiveSupport
-  | (GoalType["kind"] extends "add" | "sub" | "mul" | "div"
+  | (GoalType["kind"] extends ArithmeticKind
       ? ArithmeticPrimitiveSupport
       : GoalType["kind"] extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte"
         ? ComparisonPrimitiveSupport
