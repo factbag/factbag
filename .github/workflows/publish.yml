@@ -152,9 +152,43 @@ jobs:
           node-version: "24"
           package-manager-cache: false
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install npm with OIDC dist-tag support
+        run: npm install --global npm@12.2.0 --ignore-scripts
       # Changesets publishes the same immutable artifact checked by the verify job.
       # No package build or lifecycle scripts run in this job.
       - name: Publish packages and create GitHub releases
+        id: publish
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.artifact-id }}
+      - name: Promote the published release to latest
+        env:
+          PUBLISHED: ${{ steps.publish.outputs.published }}
+          PUBLISHED_PACKAGES: ${{ steps.publish.outputs.published-packages }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { readFileSync } from 'node:fs';
+
+          const expected = JSON.parse(readFileSync('packages/factbag/package.json', 'utf8'));
+          const published = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
+          if (expected.name !== 'factbag' || typeof expected.version !== 'string') {
+            throw new Error('Expected the canonical factbag release manifest');
+          }
+          if (process.env.PUBLISHED === 'true') {
+            if (published.length !== 1 || published[0].name !== expected.name ||
+                published[0].version !== expected.version) {
+              throw new Error('Published packages do not match the reviewed release');
+            }
+          } else if (process.env.PUBLISHED !== 'false' || published.length !== 0) {
+            throw new Error('Unexpected Changesets publication result');
+          }
+
+          // A retry may find the artifact's version already published. Confirm
+          // that exact version exists before retrying the idempotent tag update.
+          const spec = `${expected.name}@${expected.version}`;
+          const version = JSON.parse(execFileSync('npm',
+            ['view', spec, 'version', '--json', '--prefer-online'], { encoding: 'utf8' }));
+          if (version !== expected.version) throw new Error('Published version mismatch');
+          execFileSync('npm', ['dist-tag', 'add', spec, 'latest'], { stdio: 'inherit' });
+          NODE
