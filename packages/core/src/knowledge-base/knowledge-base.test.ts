@@ -13,7 +13,7 @@ const P = variable("P");
 describe("KnowledgeBase", () => {
   describe("accepted evidence snapshots", () => {
     for (const operation of ["asserts", "denies"] as const) {
-      it.fails(`${operation} snapshots caller-owned fields across forks`, () => {
+      it(`${operation} snapshots caller-owned fields across forks`, () => {
         // Arrange
         const kb = new KnowledgeBase();
         const status = predicate("status", { value: String });
@@ -33,7 +33,7 @@ describe("KnowledgeBase", () => {
         }
       });
 
-      it.fails(`${operation} snapshots provenance and nested annotations across forks`, () => {
+      it(`${operation} snapshots provenance and nested annotations across forks`, () => {
         // Arrange
         const kb = new KnowledgeBase();
         const status = predicate("status", { value: String });
@@ -60,7 +60,7 @@ describe("KnowledgeBase", () => {
         }
       });
 
-      it.fails(`${operation} snapshots caller-owned dates across forks`, () => {
+      it(`${operation} snapshots caller-owned dates across forks`, () => {
         // Arrange
         const kb = new KnowledgeBase();
         const recorded = predicate("recorded", { date: Date });
