@@ -1,5 +1,6 @@
 import { isAtomLike } from "../../types/atom";
 import { isFormula } from "../../dsl/types";
+import { ARITHMETIC_KINDS } from "../../types/goal";
 import type { AnyLiteral } from "../../types/literal";
 import type { PredicateDeclaration } from "../../types/predicate";
 import type { AnyRule } from "../../types/rule";
@@ -144,7 +145,7 @@ export function isCompleteWhenOption(value: unknown): value is Readonly<{ comple
 export function isPrimitiveFormula(value: unknown): boolean {
   return (
     isFormula(value) &&
-    ["add", "sub", "mul", "div", "eq", "neq", "lt", "lte", "gt", "gte"].includes(value.kind)
+    [...ARITHMETIC_KINDS, "eq", "neq", "lt", "lte", "gt", "gte"].includes(value.kind)
   );
 }
 
