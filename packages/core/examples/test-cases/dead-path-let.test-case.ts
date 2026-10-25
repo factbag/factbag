@@ -44,7 +44,6 @@ export const deadPathLetTestCases: readonly DslTestSpec[] = [
       "Copying an unavailable value after a failed lookup must not throw or invent a value.",
     narration:
       "There is no measurement. The grounded report is false, not an assertion error or a true report from a default zero.",
-    fails: "A let binding stores the unbound marker, and its later comparison throws.",
     queryAtoms: reported({ thing: x1 }),
     expectedProofs: ruleProof(reported({ thing: x1 }), "false", rule, [[X, x1]]),
   },
@@ -55,7 +54,6 @@ export const deadPathLetTestCases: readonly DslTestSpec[] = [
       "An unavailable alias must not crash candidate discovery or manufacture a ground result.",
     narration:
       "No measurement can supply the report's thing, so a variable query returns an empty list.",
-    fails: "Candidate discovery stores the unbound marker in the let binding.",
     queryAtoms: reported({ thing: X }),
     expectedProofs: [],
   },
