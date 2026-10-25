@@ -1,5 +1,18 @@
 # factbag
 
+## 0.0.0-alpha.2
+
+### Major Changes
+
+- e212a94: Remove bigint support from predicate schemas, numeric expressions, aggregates, and numeric proof ranges. Numeric values now use JavaScript number exclusively, and an empty sum returns 0. The DSL rejects BigInt schemas and bigint operands rather than coercing them.
+
+  Migrate BigInt fields to Number and bigint literals to numbers. Division now uses number semantics (fractional results rather than bigint truncation); values outside the safe integer range can lose precision. Date support is unchanged.
+
+### Patch Changes
+
+- bc114ed: Add npm alpha version, CI status, and license badges to the README.
+- a3583ab: Publish the full project README on npm, including the document-to-conclusion walkthrough.
+
 ## 0.0.0-alpha.1
 
 ### Patch Changes
