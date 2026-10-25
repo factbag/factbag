@@ -17,6 +17,7 @@ export type {
   ComparisonGoal,
   CompoundGoal,
   CountGoal,
+  DaysBetweenGoal,
   DivGoal,
   EqGoal,
   ExistsGoal,
@@ -39,6 +40,7 @@ export type {
   RoundToGoal,
   SubGoal,
   SumGoal,
+  YearsBetweenGoal,
 } from "../types/goal";
 export type {
   ArithmeticPrimitiveSupport,

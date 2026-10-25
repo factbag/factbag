@@ -8,6 +8,7 @@ import {
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
+import { daysBetween, yearsBetween } from "./calendar";
 import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
@@ -1656,22 +1657,17 @@ function calculateValue(
     return UNBOUND;
   }
 
-  if (left instanceof Date && typeof right === "number") {
-    switch (kind) {
-      case "sub":
-        return new Date(left.getTime() - right);
-      case "add":
-      case "mul":
-      case "div":
-      case "min":
-      case "max":
-      case "roundTo":
-      case "floorTo":
-      case "ceilTo":
-        break;
-      default:
-        return assertNever(kind, "Unhandled arithmetic kind");
+  if (left instanceof Date && right instanceof Date) {
+    if (kind === "daysBetween") {
+      return daysBetween(left, right);
     }
+    if (kind === "yearsBetween") {
+      return yearsBetween(left, right);
+    }
+  }
+
+  if (left instanceof Date && typeof right === "number" && kind === "sub") {
+    return new Date(left.getTime() - right);
   }
 
   if (typeof left === "number" && typeof right === "number") {
@@ -1684,6 +1680,9 @@ function calculateValue(
         return left * right;
       case "div":
         return left / right;
+      case "daysBetween":
+      case "yearsBetween":
+        break;
       case "min":
         return Math.min(left, right);
       case "max":

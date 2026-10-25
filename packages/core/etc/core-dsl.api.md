@@ -65,6 +65,9 @@ export function count(value: Term): AggregateBuilder;
 export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
 
 // @public
+export function daysBetween(later: DateTerm, earlier: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;
+
+// @public
 export function div(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
@@ -221,10 +224,10 @@ export type RuntimeType<T> = EnumType | RuntimeConstructor<T & Entity> | Boolean
 export type Scalar = string | number | boolean | Date;
 
 // @public
-export function sub(left: DateTerm, right: NumericTerm): Formula<Date, readonly [DateTerm, NumericTerm]>;
+export function sub(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
-export function sub(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+export function sub(left: DateTerm, right: NumericTerm): Formula<Date, readonly [DateTerm, NumericTerm]>;
 
 // @public
 export function sum(value: NumericTerm): AggregateBuilder;
@@ -240,6 +243,9 @@ export class Var<Name extends string = string> {
 
 // @public
 export function variable<const Name extends string>(name: Name): Var<Name>;
+
+// @public
+export function yearsBetween(later: DateTerm, earlier: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;
 
 // Warnings were encountered during analysis:
 //
