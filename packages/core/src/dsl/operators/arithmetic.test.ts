@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { daysBetween, gte, letIn, mul, sub, variable, yearsBetween } from "../index";
 import type { DateTerm, Formula, NumericTerm } from "../types";
+import { ceilTo, floorTo, max, min, roundTo } from "./arithmetic";
 
 describe("sub", () => {
   it("infers numeric subtraction on a variable inside nested arithmetic", () => {
@@ -44,3 +45,30 @@ for (const operator of [daysBetween, yearsBetween]) {
     });
   });
 }
+describe.each([min, max, roundTo, floorTo, ceilTo])("%s", (operator) => {
+  it("constructs a number-valued formula with both operands", () => {
+    // Arrange
+    const left = 118;
+    const right = 2;
+
+    // Act
+    const formula = operator(left, right);
+
+    // Assert
+    expect(formula).toEqual({ kind: operator.name, args: [left, right] });
+    expectTypeOf(formula).toExtend<Formula<number, readonly [NumericTerm, NumericTerm]>>();
+  });
+
+  it.each([0, 1])("rejects bigint in operand %s without coercion", (index) => {
+    // Arrange
+    const operands: [NumericTerm, NumericTerm] = [10, 0];
+    // @ts-expect-error -- Simulate an untyped JavaScript caller supplying a removed scalar type.
+    operands[index] = 1n;
+
+    // Act
+    const construct = () => operator(...operands);
+
+    // Assert
+    expect(construct).toThrow(TypeError);
+  });
+});

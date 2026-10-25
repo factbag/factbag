@@ -23,6 +23,7 @@ import type {
   OrGoal,
   SumGoal,
 } from "../types/goal";
+import { ARITHMETIC_KINDS } from "../types/goal";
 import type { Bindings, GoalValue } from "../types/common";
 import type {
   Judgment,
@@ -1562,15 +1563,6 @@ function primitiveRangeForExact(value: unknown): Partial<PrimitiveEvaluation> {
 }
 
 // Type guards. Formula guards use `is<Kind>Formula`; structural shape guards use `is<Shape>Like`.
-const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
-  "add",
-  "sub",
-  "mul",
-  "div",
-  "daysBetween",
-  "yearsBetween",
-];
-
 type ArithmeticFormula = Readonly<{
   kind: ArithmeticKind;
   args: readonly [unknown, unknown];
@@ -1596,7 +1588,7 @@ type AggregateFormula = Readonly<{
 function isArithmeticFormula(value: unknown): value is ArithmeticFormula {
   return (
     isFormula(value) &&
-    (ARITHMETIC_KINDS as readonly string[]).includes(value.kind) &&
+    ARITHMETIC_KINDS.some((kind) => kind === value.kind) &&
     value.args.length === 2
   );
 }
@@ -1668,12 +1660,77 @@ function calculateValue(
       case "daysBetween":
       case "yearsBetween":
         break;
+      case "min":
+        return Math.min(left, right);
+      case "max":
+        return Math.max(left, right);
+      case "roundTo":
+      case "floorTo":
+      case "ceilTo":
+        if (!Number.isInteger(right)) {
+          throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+        }
+        return roundAtPlaces(left, right, kind);
       default:
         return assertNever(kind, "Unhandled arithmetic kind");
     }
   }
 
   throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+}
+
+/**
+ * Shift the shortest decimal representation, avoiding multiplication artifacts
+ * at decimal boundaries (1.005 becomes 100.5, not 100.49999999999999).
+ * Earlier arithmetic and the final conversion still use number precision.
+ */
+function shiftDecimal(value: number, places: number): number {
+  if (value === 0 || !Number.isFinite(value)) {
+    return value;
+  }
+  const [coefficient, exponent = "0"] = String(value).split("e");
+  const shiftedExponent = Number(exponent) + places;
+  if (shiftedExponent > 308) {
+    return Math.sign(value) * Infinity;
+  }
+  if (shiftedExponent < -324) {
+    return Math.sign(value) * 0;
+  }
+  return Number(`${coefficient}e${shiftedExponent}`);
+}
+
+function roundAtPlaces(
+  value: number,
+  places: number,
+  kind: "roundTo" | "floorTo" | "ceilTo",
+): number {
+  if (value === 0 || !Number.isFinite(value)) {
+    return value;
+  }
+  let shifted = shiftDecimal(value, places);
+  // A finer scale than number can represent cannot change the original value.
+  if (!Number.isFinite(shifted)) {
+    return value;
+  }
+  // Preserve direction if a very coarse scale underflows a nonzero operand.
+  if (shifted === 0) {
+    shifted = Math.sign(value) * Number.MIN_VALUE;
+  }
+  let rounded: number;
+  switch (kind) {
+    case "roundTo":
+      rounded = Math.sign(shifted) * Math.round(Math.abs(shifted));
+      break;
+    case "floorTo":
+      rounded = Math.floor(shifted);
+      break;
+    case "ceilTo":
+      rounded = Math.ceil(shifted);
+      break;
+    default:
+      return assertNever(kind, "Unhandled rounding kind");
+  }
+  return shiftDecimal(rounded, -places);
 }
 
 function compareValues(

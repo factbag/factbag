@@ -45,6 +45,9 @@ export function assertGroundAtom<Schema extends PredicateSchema>(atom: Atom<Sche
 export type Atom<Schema extends PredicateSchema = PredicateSchema> = GroundAtom<Schema> | NonGroundAtom<Schema>;
 
 // @public
+export function ceilTo(value: NumericTerm, places: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+
+// @public
 export function closedPredicate<const Schema extends PredicateSchema>(name: string, params: Schema, metadata?: PredicateMetadata): ClosedWorldPredicate<Schema>;
 
 // @public
@@ -87,6 +90,9 @@ export type EnumType<Value extends string = string> = Readonly<{
 export function exists<const Args extends readonly unknown[]>(...args: Args & ExistsArgs<Args>): Formula<boolean, Args>;
 
 // @public
+export function floorTo(value: NumericTerm, places: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+
+// @public
 export type Formula<Value, Args extends readonly unknown[]> = Readonly<{
     readonly kind: string;
     readonly args: Args;
@@ -121,6 +127,12 @@ export function letIn<const Value, const Body>(variable: Var, value: Value & For
 
 // @public
 export function lte(left: ComparableTerm, right: ComparableTerm): Formula<boolean, readonly [ComparableTerm, ComparableTerm]>;
+
+// @public
+export function max(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+
+// @public
+export function min(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
 export function mul(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
@@ -186,6 +198,9 @@ export type PredicateSchema = Readonly<Record<string, BooleanConstructor | DateC
 
 // @public
 export type PredicateWorld = "open" | "closed";
+
+// @public
+export function roundTo(value: NumericTerm, places: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
 export type RuntimeConstructor<T> = (abstract new (...args: never[]) => T) & Readonly<{

@@ -69,9 +69,45 @@ export type DivGoal = ArithmeticGoal<"div">;
 export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
 /** Arithmetic goal binding whole anniversary years from the right date to the left. */
 export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
+/** Arithmetic goal binding the lesser of two numeric expressions. */
+export type MinGoal = ArithmeticGoal<"min">;
+/** Arithmetic goal binding the greater of two numeric expressions. */
+export type MaxGoal = ArithmeticGoal<"max">;
+/** Arithmetic goal rounding halves away from zero at the right operand's decimal places. */
+export type RoundToGoal = ArithmeticGoal<"roundTo">;
+/** Arithmetic goal rounding toward negative infinity at the right operand's decimal places. */
+export type FloorToGoal = ArithmeticGoal<"floorTo">;
+/** Arithmetic goal rounding toward positive infinity at the right operand's decimal places. */
+export type CeilToGoal = ArithmeticGoal<"ceilTo">;
 
 /** The primitive arithmetic operations. */
-export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween";
+export type ArithmeticKind =
+  | "add"
+  | "sub"
+  | "mul"
+  | "div"
+  | "daysBetween"
+  | "yearsBetween"
+  | "min"
+  | "max"
+  | "roundTo"
+  | "floorTo"
+  | "ceilTo";
+
+/** Shared runtime classification for arithmetic formulas. */
+export const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
+  "add",
+  "sub",
+  "mul",
+  "div",
+  "daysBetween",
+  "yearsBetween",
+  "min",
+  "max",
+  "roundTo",
+  "floorTo",
+  "ceilTo",
+];
 
 /** Bind the result of a primitive arithmetic operation. */
 export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
@@ -132,6 +168,11 @@ export type Goal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal
@@ -152,6 +193,11 @@ export type PrimitiveGoal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | MinGoal
+  | MaxGoal
+  | RoundToGoal
+  | FloorToGoal
+  | CeilToGoal
   | EqGoal
   | NeqGoal
   | LtGoal

@@ -7,7 +7,19 @@
 export { and, exists, letIn, not, or } from "./formula";
 export { count, sum } from "./operators/aggregate";
 export type { AggregateBuilder, ComparableTerm, DateTerm, NumericTerm } from "./types";
-export { add, daysBetween, div, mul, sub, yearsBetween } from "./operators/arithmetic";
+export {
+  add,
+  ceilTo,
+  daysBetween,
+  div,
+  floorTo,
+  max,
+  min,
+  mul,
+  roundTo,
+  sub,
+  yearsBetween,
+} from "./operators/arithmetic";
 export { gt, gte, lte } from "./operators/comparison";
 export { closedPredicate, predicate } from "./predicate";
 export { enumeration } from "./enumeration";

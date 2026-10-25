@@ -25,8 +25,9 @@ export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
     operands: readonly [unknown, unknown],
     goal: ArithmeticGoal<ArithmeticKind>,
   ) {
+    const rounding = operation === "roundTo" || operation === "floorTo" || operation === "ceilTo";
     super(
-      `${operation} expected ${operation === "daysBetween" || operation === "yearsBetween" ? "date" : "numeric"} operands`,
+      `${operation} expected ${operation === "daysBetween" || operation === "yearsBetween" ? "date" : "numeric"} operands${rounding ? " and a whole number of decimal places" : ""}`,
     );
     this.name = "PrimitiveArithmeticProgrammerError";
     this.operation = operation;
