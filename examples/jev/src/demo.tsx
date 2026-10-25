@@ -711,7 +711,7 @@ type Meter = Readonly<{
   };
   started: number;
   requests: () => number;
-  inputTokens: () => number;
+  inputTokens: () => number | null;
   elapsed: () => number;
 }>;
 
@@ -720,7 +720,7 @@ function createMeter(): Meter {
   // The SDK's 10s default is tight for requests carrying many questions or passages.
   const sdk = new TypeSafeClient({ timeout: 60_000 });
   let requests = 0;
-  let inputTokens = 0;
+  let inputTokens: number | null = 0;
   let finished = Date.now();
   const started = Date.now();
   return {
@@ -731,7 +731,10 @@ function createMeter(): Meter {
       ) => {
         const result = await sdk.systemOne(request, options);
         requests += 1;
-        inputTokens += result.usage.input_tokens;
+        inputTokens =
+          inputTokens === null || result.usage.input_tokens === null
+            ? null
+            : inputTokens + result.usage.input_tokens;
         finished = Date.now();
         return result;
       },
@@ -745,16 +748,24 @@ function createMeter(): Meter {
 
 function Summary({ meter }: { meter: Meter }): ReactElement {
   const tokens = meter.inputTokens();
-  const cost = tokens * dollarsPerInputToken;
+  const cost = tokens === null ? null : tokens * dollarsPerInputToken;
   return (
     <Box marginTop={1} paddingX={2} gap={2}>
       <Text dimColor>{meter.requests()} requests</Text>
       <Text dimColor>·</Text>
-      <Text dimColor>{tokens.toLocaleString("en")} input tokens</Text>
+      <Text dimColor>
+        {tokens === null
+          ? "input tokens unavailable"
+          : `${tokens.toLocaleString("en")} input tokens`}
+      </Text>
       <Text dimColor>·</Text>
       <Text dimColor>{(meter.elapsed() / 1000).toFixed(1)}s</Text>
       <Text dimColor>·</Text>
-      <Text dimColor>~${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(2)}</Text>
+      <Text dimColor>
+        {cost === null
+          ? "cost unavailable"
+          : `~$${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(2)}`}
+      </Text>
     </Box>
   );
 }

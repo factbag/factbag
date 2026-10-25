@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
+import { zstdDecompressSync } from "node:zlib";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import type { SystemOneRequest } from "@typesafe-ai/sdk";
 import { query } from "@factbag/core/query";
 import { guard } from "@factbag/guards";
 import { classifier } from "@factbag/jev/classifier";
@@ -29,64 +29,76 @@ it.each(["positive", "negative", "contradictory", "contradictory-document", "neu
     const requested = new Set<string>();
     // Scripted model responses are independent of the document annotations.
     server.use(
-      http.post<never, SystemOneRequest>(
-        "https://jev.example.invalid/v1/systemone",
-        async ({ request }) => {
-          const body = await request.json();
-          const state = body.state;
-          assert.ok(state !== null && typeof state === "object" && !Array.isArray(state));
-          const passage = state["document"];
-          assert.ok(passage !== null && typeof passage === "object" && !Array.isArray(passage));
-          const text = passage["text"];
-          assert.ok(typeof text === "string");
-          // Requests carry no document IDs, so the passage is identified by its text.
-          const document = corpus.documents().find((candidate) => candidate.text === text);
-          assert.ok(document !== undefined);
-          requested.add(document.documentId);
-          // The complete payload contains the passage text and candidate fields—not identifiers or labels.
-          expect(body.state).toEqual({
-            document: { text: document.text },
-            candidates: [
-              {
-                id: "candidate_0",
-                fields: {
-                  person: {
-                    id: scenario.applicant.id,
-                    name: scenario.applicant.name,
-                    type: "Person",
-                  },
+      http.post("https://jev.example.invalid/v1/systemone", async ({ request }) => {
+        // SDK 0.7 compresses requests on runtimes with Zstandard support.
+        const body: unknown =
+          request.headers.get("content-encoding") === "zstd"
+            ? JSON.parse(zstdDecompressSync(Buffer.from(await request.arrayBuffer())).toString())
+            : await request.json();
+        assert.ok(body !== null && typeof body === "object" && "state" in body);
+        const state = body.state;
+        assert.ok(
+          state !== null &&
+            typeof state === "object" &&
+            !Array.isArray(state) &&
+            "document" in state,
+        );
+        const passage = state["document"];
+        assert.ok(
+          passage !== null &&
+            typeof passage === "object" &&
+            !Array.isArray(passage) &&
+            "text" in passage,
+        );
+        const text = passage["text"];
+        assert.ok(typeof text === "string");
+        // Requests carry no document IDs, so the passage is identified by its text.
+        const document = corpus.documents().find((candidate) => candidate.text === text);
+        assert.ok(document !== undefined);
+        requested.add(document.documentId);
+        // The complete payload contains the passage text and candidate fields—not identifiers or labels.
+        expect(body.state).toEqual({
+          document: { text: document.text },
+          candidates: [
+            {
+              id: "candidate_0",
+              fields: {
+                person: {
+                  id: scenario.applicant.id,
+                  name: scenario.applicant.name,
+                  type: "Person",
                 },
               },
-            ],
-          });
-          const choice =
-            document.documentId === "j1/document-1"
-              ? "ASSERT"
-              : document.documentId === "j1/document-2"
-                ? "DENY"
-                : "IRRELEVANT";
-          const conflicting = document.documentId === "j1/document-5";
-          return HttpResponse.json({
-            model: "test-model",
-            usage: { input_tokens: 0, output_tokens: 0 },
-            answers: {
-              candidate_0: {
-                type: "choice",
-                choice: conflicting ? "ASSERT" : choice,
-                confidence: conflicting ? 0.5 : 0.98,
-                // The existing default admission policy admits both sides of an exact 0.5 tie.
-                probabilities: conflicting
-                  ? { ASSERT: 0.5, DENY: 0.5, IRRELEVANT: 0 }
-                  : {
-                      ASSERT: choice === "ASSERT" ? 0.98 : 0.01,
-                      DENY: choice === "DENY" ? 0.98 : 0.01,
-                      IRRELEVANT: choice === "IRRELEVANT" ? 0.98 : 0.01,
-                    },
-              },
             },
-          });
-        },
-      ),
+          ],
+        });
+        const choice =
+          document.documentId === "j1/document-1"
+            ? "ASSERT"
+            : document.documentId === "j1/document-2"
+              ? "DENY"
+              : "IRRELEVANT";
+        const conflicting = document.documentId === "j1/document-5";
+        return HttpResponse.json({
+          model: "test-model",
+          usage: { input_tokens: 0, output_tokens: 0 },
+          answers: {
+            candidate_0: {
+              type: "choice",
+              choice: conflicting ? "ASSERT" : choice,
+              confidence: conflicting ? 0.5 : 0.98,
+              // The existing default admission policy admits both sides of an exact 0.5 tie.
+              probabilities: conflicting
+                ? { ASSERT: 0.5, DENY: 0.5, IRRELEVANT: 0 }
+                : {
+                    ASSERT: choice === "ASSERT" ? 0.98 : 0.01,
+                    DENY: choice === "DENY" ? 0.98 : 0.01,
+                    IRRELEVANT: choice === "IRRELEVANT" ? 0.98 : 0.01,
+                  },
+            },
+          },
+        });
+      }),
     );
 
     // ACT — The consumer chooses permissions and execution order.
