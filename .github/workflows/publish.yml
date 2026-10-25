@@ -167,8 +167,9 @@ jobs:
           PUBLISHED_PACKAGES: ${{ steps.publish.outputs.published-packages }}
         run: |
           node --input-type=module <<'NODE'
-          import { execFileSync } from 'node:child_process';
+          import { execFileSync, spawnSync } from 'node:child_process';
           import { readFileSync } from 'node:fs';
+          import { setTimeout } from 'node:timers/promises';
 
           const expected = JSON.parse(readFileSync('packages/factbag/package.json', 'utf8'));
           const published = JSON.parse(process.env.PUBLISHED_PACKAGES || '[]');
@@ -187,8 +188,24 @@ jobs:
           // A retry may find the artifact's version already published. Confirm
           // that exact version exists before retrying the idempotent tag update.
           const spec = `${expected.name}@${expected.version}`;
-          const version = JSON.parse(execFileSync('npm',
-            ['view', spec, 'version', '--json', '--prefer-online'], { encoding: 'utf8' }));
+          let version;
+          for (let attempt = 0; attempt < 6; attempt++) {
+            const lookup = spawnSync('npm',
+              ['view', spec, 'version', '--json', '--prefer-online'], { encoding: 'utf8' });
+            if (lookup.error) throw lookup.error;
+            if (lookup.status === 0) {
+              const response = JSON.parse(lookup.stdout);
+              version = Array.isArray(response) && response.length === 1 ? response[0] : response;
+              break;
+            }
+            const error = JSON.parse(lookup.stdout || '{}').error;
+            if (error?.code !== 'E404' || attempt === 5) {
+              throw new Error(lookup.stderr || `Registry lookup failed for ${spec}`);
+            }
+            const delay = Math.min(2000 * 2 ** attempt, 30000);
+            console.error(`${spec} is not visible yet; retrying in ${delay / 1000}s`);
+            await setTimeout(delay);
+          }
           if (version !== expected.version) throw new Error('Published version mismatch');
           execFileSync('npm', ['dist-tag', 'add', spec, 'latest'], { stdio: 'inherit' });
           NODE
