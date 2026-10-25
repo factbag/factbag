@@ -1077,7 +1077,11 @@ function evaluateExpressionInto(
     ? valueForVariable(bindings, expression)
     : definedValue(expression, "Expression values must be defined");
   const nextBindings = new Map(bindings);
-  nextBindings.set(variable, value);
+  // A variable left unbound by a failed earlier conjunct binds nothing, as arithmetic
+  // over it would, so the body is judged with the variable unavailable.
+  if (value !== UNBOUND) {
+    nextBindings.set(variable, value);
+  }
 
   return { value, expression: variable, bindings: nextBindings, judgments: [] };
 }
