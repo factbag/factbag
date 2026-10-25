@@ -1,6 +1,10 @@
 # Factbag
 
-<img src="docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
+[![npm alpha](https://img.shields.io/npm/v/factbag/alpha)](https://www.npmjs.com/package/factbag)
+[![CI](https://img.shields.io/github/actions/workflow/status/factbag/factbag/ci.yml?branch=main&event=push&label=CI)](https://github.com/factbag/factbag/actions/workflows/ci.yml?query=branch%3Amain)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/factbag/factbag/blob/main/LICENSE)
+
+<img src="https://raw.githubusercontent.com/factbag/factbag/main/docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
 
 Turn documents into evidence and conclusions with [Jev](https://typesafe.ai/) and TypeScript.
 
@@ -13,8 +17,7 @@ can be **true**, **false**, **conflicted**, or **unknown**. When documents disag
 you can inspect the conflicting evidence, correct a particular fact, and query
 the rules again.
 
-> [!IMPORTANT]
-> Factbag is an early alpha release and still pretty rough - APIs will definitely change.
+> **Important:** Factbag is an early alpha release and still pretty rough - APIs will definitely change.
 
 ## How it works
 
@@ -29,7 +32,7 @@ the rules again.
 ## Install
 
 ```sh
-npm install factbag @typesafe-ai/sdk@^0.6.0
+npm install factbag@alpha @typesafe-ai/sdk@^0.6.0
 ```
 
 ESM only. Requires Node 22.18+ on the 22.x line, or Node 24 or 26.
