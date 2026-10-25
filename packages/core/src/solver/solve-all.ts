@@ -345,7 +345,15 @@ function evaluateRuleBodyMany(
   pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
   if (isAtomLike(body)) {
-    return evaluateAtomBody(literals, rules, erasedAtom(body), bindings, active, context);
+    return evaluateAtomBody(
+      literals,
+      rules,
+      erasedAtom(body),
+      bindings,
+      active,
+      context,
+      pathCanHaveUnavailableBindings,
+    );
   }
 
   if (isLiteralLike(body) && body.sign === "-") {
@@ -687,6 +695,7 @@ function evaluateAtomBody(
   bindings: ReadonlyMap<Var, unknown>,
   active: ReadonlySet<string>,
   context: EvaluationContext,
+  pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
   const evaluateGrounded = (environment: ReadonlyMap<Var, unknown>): BodyResult => {
     const grounded = groundAtom(atom, environment);
@@ -718,7 +727,14 @@ function evaluateAtomBody(
       ]),
     ),
   };
-  const candidateBindings = candidateGroundAtoms(literals, rules, pattern, active, context.search)
+  const candidateBindings = candidateGroundAtoms(
+    literals,
+    rules,
+    pattern,
+    active,
+    context.search,
+    pathCanHaveUnavailableBindings,
+  )
     .map((candidate) => extendBindings(atom, candidate, bindings))
     .filter((candidate): candidate is ReadonlyMap<Var, unknown> => candidate !== undefined);
 
@@ -2003,22 +2019,30 @@ function candidateGroundAtoms<Schema extends PredicateSchema>(
   atom: Atom<Schema>,
   active: ReadonlySet<string>,
   search: SearchContext,
+  pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   return search.candidates
     .candidates(atom, matchingGroundAtoms(literals, atom), () =>
-      deriveCandidateAtoms(literals, rules, atom, active, search),
+      deriveCandidateAtoms(literals, rules, atom, active, search, pathCanHaveUnavailableBindings),
     )
     .filter((candidate): candidate is GroundAtom<Schema> =>
       isAtomForPredicate(candidate, atom.predicate),
     );
 }
 
+/**
+ * Enumerate the ground atoms a pattern's rules can derive. On a path where an earlier
+ * conjunct already failed and left a pattern variable unbound, the rule bodies are
+ * evaluated tolerantly: a comparison on that variable is unknown rather than a programmer
+ * error, and a head it leaves unground yields no candidate.
+ */
 function deriveCandidateAtoms<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: Atom<Schema>,
   active: ReadonlySet<string>,
   search: SearchContext,
+  pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   const atoms: GroundAtom<Schema>[] = [];
   for (const rule of rules) {
@@ -2033,7 +2057,15 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
     }
 
     const context: EvaluationContext = { nextTemp: 0, search, candidatePredicate: atom.predicate };
-    const bodies = evaluateRuleBodyMany(literals, rules, rule.body, bindings, active, context);
+    const bodies = evaluateRuleBodyMany(
+      literals,
+      rules,
+      rule.body,
+      bindings,
+      active,
+      context,
+      pathCanHaveUnavailableBindings,
+    );
     for (const body of bodies) {
       // A false body cannot introduce a candidate. Recursive atoms in the component
       // being discovered are unknown placeholders, not closed-world false; evidence
