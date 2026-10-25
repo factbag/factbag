@@ -1,3 +1,4 @@
+import { assertSupportedValue } from "./assert-supported-value";
 import type { Atom, PatternFields } from "../types/atom";
 import type {
   ClosedWorldPredicate,
@@ -16,12 +17,15 @@ function makePredicate<const Schema extends PredicateSchema, const World extends
 ): PredicateBase<Schema> & Readonly<{ world: World }> {
   type DeclaredPredicate = PredicateBase<Schema> & Readonly<{ world: World }>;
 
+  Object.values(params).forEach(assertSupportedValue);
+
   const holder: { current?: DeclaredPredicate } = {};
   const construct = (fields: PatternFields<Schema>): Atom<Schema> => {
     const current = holder.current;
     if (current === undefined) {
       throw new Error(`Predicate ${name} was called before initialization`);
     }
+    Object.values(fields).forEach(assertSupportedValue);
     return { predicate: current, fields };
   };
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime properties complete the callable predicate object below.

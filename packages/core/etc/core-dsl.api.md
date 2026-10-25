@@ -5,10 +5,10 @@
 ```ts
 
 // @public
-export function add(left: NumericTerm, right: NumericTerm): Formula<number | bigint, readonly [NumericTerm, NumericTerm]>;
+export function add(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
-export type AggregateBuilder<Value extends number | bigint = number> = Readonly<{
+export type AggregateBuilder<Value extends number = number> = Readonly<{
     where: (<const Body>(body: Body & RuleBodyInput<Body>) => Formula<Value, readonly [Body]>) & (<const Body, const CompleteWhen>(body: Body & RuleBodyInput<Body>, options: Readonly<{
         completeWhen: CompleteWhen & RuleBodyInput<CompleteWhen>;
     }>) => Formula<Value, readonly [Body, Readonly<{
@@ -62,7 +62,7 @@ export function count(value: Term): AggregateBuilder;
 export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
 
 // @public
-export function div(left: NumericTerm, right: NumericTerm): Formula<number | bigint, readonly [NumericTerm, NumericTerm]>;
+export function div(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
 export type Entity = Readonly<{
@@ -107,7 +107,7 @@ export function gt(left: ComparableTerm, right: ComparableTerm): Formula<boolean
 export function gte(left: ComparableTerm, right: ComparableTerm): Formula<boolean, readonly [ComparableTerm, ComparableTerm]>;
 
 // @public
-export type InferRuntime<T> = T extends EnumType<infer Value> ? Value : T extends StringConstructor ? string : T extends NumberConstructor ? number : T extends BooleanConstructor ? boolean : T extends BigIntConstructor ? bigint : T extends DateConstructor ? Date : T extends {
+export type InferRuntime<T> = T extends EnumType<infer Value> ? Value : T extends StringConstructor ? string : T extends NumberConstructor ? number : T extends BooleanConstructor ? boolean : T extends DateConstructor ? Date : T extends {
     prototype: infer Value;
 } ? RuntimeConstructor<Entity> extends T ? unknown : Value : never;
 
@@ -120,7 +120,7 @@ export function letIn<const Value, const Body>(variable: Var, value: Value & For
 export function lte(left: ComparableTerm, right: ComparableTerm): Formula<boolean, readonly [ComparableTerm, ComparableTerm]>;
 
 // @public
-export function mul(left: NumericTerm, right: NumericTerm): Formula<number | bigint, readonly [NumericTerm, NumericTerm]>;
+export function mul(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
 export type NonGroundAtom<Schema extends PredicateSchema = PredicateSchema> = AtomForState<Schema, "non-ground">;
@@ -131,7 +131,7 @@ export type NonGroundAtom<Schema extends PredicateSchema = PredicateSchema> = At
 export function not<Schema extends PredicateSchema>(atom: Atom<Schema>): NegativeLiteral<Schema>;
 
 // @public
-export type NumericTerm = number | bigint | Var | Formula<number | bigint, readonly unknown[]>;
+export type NumericTerm = number | Var | Formula<number, readonly unknown[]>;
 
 // @public
 export type OpenWorldPredicate<Schema extends PredicateSchema = PredicateSchema> = PredicateBase<Schema> & {
@@ -176,7 +176,7 @@ export type PredicateMetadata = Readonly<{
 }>;
 
 // @public
-export type PredicateSchema = Readonly<Record<string, BigIntConstructor | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | EnumType | ((abstract new (...args: never[]) => Entity) & Readonly<{
+export type PredicateSchema = Readonly<Record<string, BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor | EnumType | ((abstract new (...args: never[]) => Entity) & Readonly<{
     prototype: Entity;
     name: string;
 }>)>>;
@@ -191,19 +191,19 @@ export type RuntimeConstructor<T> = (abstract new (...args: never[]) => T) & Rea
 }>;
 
 // @public
-export type RuntimeType<T> = EnumType | RuntimeConstructor<T & Entity> | BigIntConstructor | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor;
+export type RuntimeType<T> = EnumType | RuntimeConstructor<T & Entity> | BooleanConstructor | DateConstructor | NumberConstructor | StringConstructor;
 
 // @public
-export type Scalar = string | number | bigint | boolean | Date;
+export type Scalar = string | number | boolean | Date;
 
 // @public
 export function sub(left: DateTerm, right: NumericTerm): Formula<Date, readonly [DateTerm, NumericTerm]>;
 
 // @public
-export function sub(left: NumericTerm, right: NumericTerm): Formula<number | bigint, readonly [NumericTerm, NumericTerm]>;
+export function sub(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
-export function sum(value: NumericTerm): AggregateBuilder<number | bigint>;
+export function sum(value: NumericTerm): AggregateBuilder;
 
 // @public
 export type Term<Value = Scalar | Entity> = Value | Var;

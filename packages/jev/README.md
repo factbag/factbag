@@ -86,12 +86,12 @@ field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
 
-| Schema field                         | Candidate values                      |
-| ------------------------------------ | ------------------------------------- |
-| `Boolean`                            | `false`, `true`                       |
-| `enumeration("a", "b", ...)`         | Explicit enum members                 |
-| Entity constructor                   | Instances registered in `kb.entities` |
-| `String`, `Number`, `BigInt`, `Date` | Unsupported open-ended domains        |
+| Schema field                 | Candidate values                      |
+| ---------------------------- | ------------------------------------- |
+| `Boolean`                    | `false`, `true`                       |
+| `enumeration("a", "b", ...)` | Explicit enum members                 |
+| Entity constructor           | Instances registered in `kb.entities` |
+| `String`, `Number`, `Date`   | Unsupported open-ended domains        |
 
 An entity domain must contain registered instances. Existing scalar facts do not
 turn an open-ended schema into an enum. To model a fixed value, declare it explicitly
