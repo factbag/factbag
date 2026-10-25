@@ -49,7 +49,7 @@ import { CandidateSearch } from "./candidate-search";
 
 const UNBOUND: unique symbol = Symbol("factbag.unbound");
 type Unbound = typeof UNBOUND;
-type DefinedValue = string | number | bigint | boolean | object;
+type DefinedValue = string | number | boolean | object;
 type SolverValue = DefinedValue | Unbound;
 
 type NumericRangeValue = Readonly<{
@@ -345,7 +345,15 @@ function evaluateRuleBodyMany(
   pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
   if (isAtomLike(body)) {
-    return evaluateAtomBody(literals, rules, erasedAtom(body), bindings, active, context);
+    return evaluateAtomBody(
+      literals,
+      rules,
+      erasedAtom(body),
+      bindings,
+      active,
+      context,
+      pathCanHaveUnavailableBindings,
+    );
   }
 
   if (isLiteralLike(body) && body.sign === "-") {
@@ -687,6 +695,7 @@ function evaluateAtomBody(
   bindings: ReadonlyMap<Var, unknown>,
   active: ReadonlySet<string>,
   context: EvaluationContext,
+  pathCanHaveUnavailableBindings = false,
 ): readonly BodyResult[] {
   const evaluateGrounded = (environment: ReadonlyMap<Var, unknown>): BodyResult => {
     const grounded = groundAtom(atom, environment);
@@ -718,7 +727,14 @@ function evaluateAtomBody(
       ]),
     ),
   };
-  const candidateBindings = candidateGroundAtoms(literals, rules, pattern, active, context.search)
+  const candidateBindings = candidateGroundAtoms(
+    literals,
+    rules,
+    pattern,
+    active,
+    context.search,
+    pathCanHaveUnavailableBindings,
+  )
     .map((candidate) => extendBindings(atom, candidate, bindings))
     .filter((candidate): candidate is ReadonlyMap<Var, unknown> => candidate !== undefined);
 
@@ -933,7 +949,6 @@ function isDefinedValue(value: unknown): value is DefinedValue {
   return (
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     (typeof value === "object" && value !== null)
   );
@@ -944,7 +959,6 @@ function isGoalExpression(value: unknown): value is GoalExpression {
     isVar(value) ||
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     value instanceof Date ||
     (typeof value === "object" && value !== null && "id" in value && typeof value.id === "string")
@@ -956,14 +970,13 @@ function isScalarGoalExpression(value: GoalExpression): value is GoalExpression<
     isVar(value) ||
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     value instanceof Date
   );
 }
 
-function isNumericGoalExpression(value: unknown): value is GoalExpression<number | bigint> {
-  return isVar(value) || typeof value === "number" || typeof value === "bigint";
+function isNumericGoalExpression(value: unknown): value is GoalExpression<number> {
+  return isVar(value) || typeof value === "number";
 }
 
 function evaluateExpression(
@@ -1202,7 +1215,7 @@ function evaluateAggregateInto(
   const target = existing === UNBOUND ? variable : new Var(`$tmp${context.nextTemp++}`);
   const nextBindings = new Map(bindings);
   const values = rows.map((row) => resolveAggregateValue(valueExpression, row.bindings));
-  let value: number | bigint | NumericRangeValue;
+  let value: number | NumericRangeValue;
   let judgment: Judgment<SumGoal> | Judgment<CountGoal>;
 
   switch (aggregate.kind) {
@@ -1290,12 +1303,11 @@ function aggregateValueIsAvailable(
   return valueForVariable(bindings, expression) !== UNBOUND;
 }
 
-function sumValues(values: readonly DefinedValue[]): number | bigint {
-  if (values.every((value) => typeof value === "bigint")) {
-    return values.reduce((total, value) => total + value, 0n);
-  }
-
-  return values.reduce<number>((total, value) => total + Number(value), 0);
+function sumValues(values: readonly DefinedValue[]): number {
+  return values.reduce<number>((total, value) => {
+    assert(typeof value === "number", "Sum values must be numbers");
+    return total + value;
+  }, 0);
 }
 
 function aggregateWhereGoal(judgments: readonly Judgment[]): Goal {
@@ -1537,7 +1549,7 @@ function primitiveUncertaintyForComparison(
 }
 
 function primitiveRangeForExact(value: unknown): Partial<PrimitiveEvaluation> {
-  if (typeof value !== "number" && typeof value !== "bigint") {
+  if (typeof value !== "number") {
     return {};
   }
   return { range: { lower: value, upper: value } };
@@ -1641,21 +1653,6 @@ function calculateValue(
     }
   }
 
-  if (typeof left === "bigint" && typeof right === "bigint") {
-    switch (kind) {
-      case "add":
-        return left + right;
-      case "sub":
-        return left - right;
-      case "mul":
-        return left * right;
-      case "div":
-        return left / right;
-      default:
-        return assertNever(kind, "Unhandled arithmetic kind");
-    }
-  }
-
   throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
 }
 
@@ -1696,11 +1693,7 @@ function compareOrderedValues(
   left: DefinedValue,
   right: DefinedValue,
 ): GoalValue {
-  assert(
-    (typeof left === "number" || typeof left === "bigint") &&
-      (typeof right === "number" || typeof right === "bigint"),
-    "Values must be comparable",
-  );
+  assert(typeof left === "number" && typeof right === "number", "Values must be comparable");
 
   switch (kind) {
     case "lt":
@@ -1999,22 +1992,30 @@ function candidateGroundAtoms<Schema extends PredicateSchema>(
   atom: Atom<Schema>,
   active: ReadonlySet<string>,
   search: SearchContext,
+  pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   return search.candidates
     .candidates(atom, matchingGroundAtoms(literals, atom), () =>
-      deriveCandidateAtoms(literals, rules, atom, active, search),
+      deriveCandidateAtoms(literals, rules, atom, active, search, pathCanHaveUnavailableBindings),
     )
     .filter((candidate): candidate is GroundAtom<Schema> =>
       isAtomForPredicate(candidate, atom.predicate),
     );
 }
 
+/**
+ * Enumerate the ground atoms a pattern's rules can derive. On a path where an earlier
+ * conjunct already failed and left a pattern variable unbound, the rule bodies are
+ * evaluated tolerantly: a comparison on that variable is unknown rather than a programmer
+ * error, and a head it leaves unground yields no candidate.
+ */
 function deriveCandidateAtoms<Schema extends PredicateSchema>(
   literals: readonly AnyLiteral[],
   rules: readonly AnyRule[],
   atom: Atom<Schema>,
   active: ReadonlySet<string>,
   search: SearchContext,
+  pathCanHaveUnavailableBindings = false,
 ): GroundAtom<Schema>[] {
   const atoms: GroundAtom<Schema>[] = [];
   for (const rule of rules) {
@@ -2029,9 +2030,20 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
     }
 
     const context: EvaluationContext = { nextTemp: 0, search, candidatePredicate: atom.predicate };
-    const bodies = evaluateRuleBodyMany(literals, rules, rule.body, bindings, active, context);
+    const bodies = evaluateRuleBodyMany(
+      literals,
+      rules,
+      rule.body,
+      bindings,
+      active,
+      context,
+      pathCanHaveUnavailableBindings,
+    );
     for (const body of bodies) {
-      if (!canGroundAtom(ruleHead, body.bindings)) {
+      // A false body cannot introduce a candidate. Recursive atoms in the component
+      // being discovered are unknown placeholders, not closed-world false; evidence
+      // seeds and candidates supported by other rule bodies remain available.
+      if (body.judgment.value === "false" || !canGroundAtom(ruleHead, body.bindings)) {
         continue;
       }
 

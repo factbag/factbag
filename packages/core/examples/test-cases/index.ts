@@ -1,4 +1,6 @@
 import { emptySumTestCases } from "./empty-number-sum.test-case";
+import { deadPathComparisonTestCases } from "./dead-path-comparison.test-case";
+import { regressionExamples as regressionFalseCandidates } from "./false-candidates.test-case";
 import { orAfterFailedPathTestCases } from "./or-after-failed-path.test-case";
 import { orArithmeticTestCases } from "./or-arithmetic.test-case";
 import { orBindingValidationTestCases } from "./or-binding-validation.test-case";
@@ -50,6 +52,8 @@ import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
   ...emptySumTestCases,
+  ...deadPathComparisonTestCases,
+  ...regressionFalseCandidates,
   ...orAfterFailedPathTestCases,
   ...orArithmeticTestCases,
   ...orBindingValidationTestCases,

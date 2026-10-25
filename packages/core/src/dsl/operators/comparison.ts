@@ -1,3 +1,4 @@
+import { assertSupportedValue } from "../assert-supported-value";
 import type { ComparableTerm, Formula } from "../types";
 
 // Comparison operators for rule-body side constraints.
@@ -13,6 +14,8 @@ export function gt(
   left: ComparableTerm,
   right: ComparableTerm,
 ): Formula<boolean, readonly [ComparableTerm, ComparableTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "gt", args: [left, right] };
 }
 
@@ -21,6 +24,8 @@ export function gte(
   left: ComparableTerm,
   right: ComparableTerm,
 ): Formula<boolean, readonly [ComparableTerm, ComparableTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "gte", args: [left, right] };
 }
 
@@ -29,5 +34,7 @@ export function lte(
   left: ComparableTerm,
   right: ComparableTerm,
 ): Formula<boolean, readonly [ComparableTerm, ComparableTerm]> {
+  assertSupportedValue(left);
+  assertSupportedValue(right);
   return { kind: "lte", args: [left, right] };
 }

@@ -31,6 +31,31 @@ const judgment = kb.query(hasAccount({ person: alice }));
 console.log(judgment.value);
 ```
 
+## Candidate enumeration
+
+`queryAll` discovers candidates from stored evidence and rule bodies. A rule body
+that evaluates to `false` does not introduce a candidate. For example, if Alice
+is an applicant but lacks required closed-world approval, a rule defining
+eligibility from both facts will not enumerate Alice as eligible.
+
+A grounded `query` for Alice's eligibility still returns `false` with its proof.
+Candidates from explicit evidence (including denials), other supporting rules,
+and `unknown` or `conflicted` rule bodies remain discoverable. Consequently,
+`queryAll` is not a filter that returns only true judgments, nor does it enumerate
+every possible false proposition.
+
+## Numeric values
+
+Numeric fields use `Number`, and arithmetic and sums use JavaScript `number`.
+An empty sum is `0`. `BigInt` schemas and bigint values are unsupported and are
+rejected by the DSL; migrate `BigInt` fields to `Number` and literals such as
+`100n` to `100`.
+
+Number division can produce fractions rather than truncating to an integer.
+Numbers use floating-point arithmetic; exact integers are limited to
+`Number.MAX_SAFE_INTEGER` (2⁵³ − 1). Check values before converting existing bigint
+data if precision matters. Date fields and date-offset arithmetic remain supported.
+
 ## Predicate guidance and evidence annotations
 
 An optional third argument to `predicate` or `closedPredicate` describes the

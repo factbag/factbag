@@ -13,15 +13,12 @@ const X = variable("X");
 const T = variable("T");
 const A = variable("A");
 
-function scenario(
-  type: NumberConstructor | BigIntConstructor,
-  amounts: readonly (number | bigint)[],
-) {
-  const zero = type === Number ? 0 : 0n;
-  const allowance = type === Number ? 250 : 250n;
-  const income = closedPredicate("income", { person: Person, amount: type });
-  const total = closedPredicate("total_income", { person: Person, amount: type });
-  const padded = closedPredicate("padded_income", { person: Person, amount: type });
+function scenario(amounts: readonly number[]) {
+  const zero = 0;
+  const allowance = 250;
+  const income = closedPredicate("income", { person: Person, amount: Number });
+  const total = closedPredicate("total_income", { person: Person, amount: Number });
+  const padded = closedPredicate("padded_income", { person: Person, amount: Number });
   const totalRule = {
     kind: "iff",
     head: { sign: "+", atom: total({ person: P, amount: T }) },
@@ -50,9 +47,9 @@ function scenario(
         rules: [totalRule, paddedRule],
       },
     },
-    atom: (amount: number | bigint) => padded({ person: alice, amount }),
+    atom: (amount: number) => padded({ person: alice, amount }),
     pattern: padded({ person: alice, amount: A }),
-    proof(amount: number | bigint, value: "true" | "false", sumValue: number | bigint) {
+    proof(amount: number, value: "true" | "false", sumValue: number) {
       return ruleProof(padded({ person: alice, amount }), value, paddedRule, [
         [P, alice],
         [A, amount],
@@ -62,11 +59,8 @@ function scenario(
   } as const;
 }
 
-const emptyNumber = scenario(Number, []);
-const populatedNumber = scenario(Number, [100, 25]);
-const emptyBigInt = scenario(BigInt, []);
-const populatedBigInt = scenario(BigInt, [100n, 25n]);
-
+const emptyNumber = scenario([]);
+const populatedNumber = scenario([100, 25]);
 export const emptySumTestCases: readonly DslTestSpec[] = [
   {
     ...emptyNumber.fixture,
@@ -74,7 +68,7 @@ export const emptySumTestCases: readonly DslTestSpec[] = [
     invariant:
       "An empty closed-world number relation must supply a zero compatible with number arithmetic.",
     narration:
-      "There is no income. Adding a 250 allowance yields 250 and rejects 251 without mixing bigint and number.",
+      "There is no income. Adding a 250 allowance yields 250 and rejects 251 using number arithmetic.",
     queryAtoms: [emptyNumber.atom(250), emptyNumber.atom(251)],
     expectedProofs: [emptyNumber.proof(250, "true", 0), emptyNumber.proof(251, "false", 0)],
   },
@@ -105,32 +99,5 @@ export const emptySumTestCases: readonly DslTestSpec[] = [
     narration: "The number total is 125, so enumeration returns the allowance-adjusted 375.",
     queryAtoms: populatedNumber.pattern,
     expectedProofs: [populatedNumber.proof(375, "true", 125)],
-  },
-  {
-    ...emptyBigInt.fixture,
-    name: "empty sum control: empty bigint arithmetic continues to work",
-    invariant: "Repairing empty number sums must not break an existing empty bigint sum.",
-    narration: "There is no bigint income. Adding a bigint allowance yields 250n, not 251n.",
-    queryAtoms: [emptyBigInt.atom(250n), emptyBigInt.atom(251n)],
-    expectedProofs: [emptyBigInt.proof(250n, "true", 0n), emptyBigInt.proof(251n, "false", 0n)],
-  },
-  {
-    ...emptyBigInt.fixture,
-    name: "empty sum control: discovers the bigint allowance without income rows",
-    invariant: "The empty bigint relation must remain enumerable through bigint arithmetic.",
-    narration: "The bigint allowance is the single true candidate, 250n.",
-    queryAtoms: emptyBigInt.pattern,
-    expectedProofs: [emptyBigInt.proof(250n, "true", 0n)],
-  },
-  {
-    ...populatedBigInt.fixture,
-    name: "empty sum control: populated bigint sums retain bigint arithmetic",
-    invariant: "A number-sum correction must not coerce populated bigint amounts to numbers.",
-    narration: "Income of 100n and 25n plus 250n yields 375n and rejects 376n.",
-    queryAtoms: [populatedBigInt.atom(375n), populatedBigInt.atom(376n)],
-    expectedProofs: [
-      populatedBigInt.proof(375n, "true", 125n),
-      populatedBigInt.proof(376n, "false", 125n),
-    ],
   },
 ];
