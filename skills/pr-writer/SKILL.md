@@ -5,23 +5,6 @@ description: Write or refresh concise, reviewer-focused PR titles and descriptio
 
 # PR Writer
 
-Adapted and modified for Factbag from
-[Sentry's pr-writer skill](https://github.com/getsentry/skills/blob/d12f250460ffd961f549dbebf7eeb0cf4afd4c2e/skills/pr-writer/SKILL.md).
-Changes cover Factbag titles, repository context, and authorization before publishing;
-upstream draft requirements and unrelated policies are not carried over.
-
-Copyright 2025 Functional Software, Inc. dba Sentry
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License in [LICENSE](../../LICENSE) or at
-<https://www.apache.org/licenses/LICENSE-2.0>.
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
 Write the description as a cover note for reviewers, not a changelog, validation log,
 or file-by-file summary.
 
@@ -108,3 +91,22 @@ When authorized, use the repository's available PR tooling to create or update t
 with the intended base, title, and body. Verify the resulting remote PR and return its
 URL. Refresh an existing description when the full diff materially changes what
 reviewers need to know.
+
+## Attribution
+
+Adapted and modified for Factbag from
+[Sentry's pr-writer skill](https://github.com/getsentry/skills/blob/d12f250460ffd961f549dbebf7eeb0cf4afd4c2e/skills/pr-writer/SKILL.md).
+Changes cover Factbag titles, repository context, and authorization before publishing;
+upstream draft requirements and unrelated policies are not carried over.
+
+Copyright 2025 Functional Software, Inc. dba Sentry
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License in [LICENSE](../../LICENSE) or at
+<https://www.apache.org/licenses/LICENSE-2.0>.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
