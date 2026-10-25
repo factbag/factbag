@@ -49,7 +49,7 @@ import { CandidateSearch } from "./candidate-search";
 
 const UNBOUND: unique symbol = Symbol("factbag.unbound");
 type Unbound = typeof UNBOUND;
-type DefinedValue = string | number | bigint | boolean | object;
+type DefinedValue = string | number | boolean | object;
 type SolverValue = DefinedValue | Unbound;
 
 type NumericRangeValue = Readonly<{
@@ -949,7 +949,6 @@ function isDefinedValue(value: unknown): value is DefinedValue {
   return (
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     (typeof value === "object" && value !== null)
   );
@@ -960,7 +959,6 @@ function isGoalExpression(value: unknown): value is GoalExpression {
     isVar(value) ||
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     value instanceof Date ||
     (typeof value === "object" && value !== null && "id" in value && typeof value.id === "string")
@@ -972,14 +970,13 @@ function isScalarGoalExpression(value: GoalExpression): value is GoalExpression<
     isVar(value) ||
     typeof value === "string" ||
     typeof value === "number" ||
-    typeof value === "bigint" ||
     typeof value === "boolean" ||
     value instanceof Date
   );
 }
 
-function isNumericGoalExpression(value: unknown): value is GoalExpression<number | bigint> {
-  return isVar(value) || typeof value === "number" || typeof value === "bigint";
+function isNumericGoalExpression(value: unknown): value is GoalExpression<number> {
+  return isVar(value) || typeof value === "number";
 }
 
 function evaluateExpression(
@@ -1222,7 +1219,7 @@ function evaluateAggregateInto(
   const target = existing === UNBOUND ? variable : new Var(`$tmp${context.nextTemp++}`);
   const nextBindings = new Map(bindings);
   const values = rows.map((row) => resolveAggregateValue(valueExpression, row.bindings));
-  let value: number | bigint | NumericRangeValue;
+  let value: number | NumericRangeValue;
   let judgment: Judgment<SumGoal> | Judgment<CountGoal>;
 
   switch (aggregate.kind) {
@@ -1310,12 +1307,11 @@ function aggregateValueIsAvailable(
   return valueForVariable(bindings, expression) !== UNBOUND;
 }
 
-function sumValues(values: readonly DefinedValue[]): number | bigint {
-  if (values.every((value) => typeof value === "bigint")) {
-    return values.reduce((total, value) => total + value, 0n);
-  }
-
-  return values.reduce<number>((total, value) => total + Number(value), 0);
+function sumValues(values: readonly DefinedValue[]): number {
+  return values.reduce<number>((total, value) => {
+    assert(typeof value === "number", "Sum values must be numbers");
+    return total + value;
+  }, 0);
 }
 
 function aggregateWhereGoal(judgments: readonly Judgment[]): Goal {
@@ -1557,7 +1553,7 @@ function primitiveUncertaintyForComparison(
 }
 
 function primitiveRangeForExact(value: unknown): Partial<PrimitiveEvaluation> {
-  if (typeof value !== "number" && typeof value !== "bigint") {
+  if (typeof value !== "number") {
     return {};
   }
   return { range: { lower: value, upper: value } };
@@ -1661,21 +1657,6 @@ function calculateValue(
     }
   }
 
-  if (typeof left === "bigint" && typeof right === "bigint") {
-    switch (kind) {
-      case "add":
-        return left + right;
-      case "sub":
-        return left - right;
-      case "mul":
-        return left * right;
-      case "div":
-        return left / right;
-      default:
-        return assertNever(kind, "Unhandled arithmetic kind");
-    }
-  }
-
   throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
 }
 
@@ -1716,11 +1697,7 @@ function compareOrderedValues(
   left: DefinedValue,
   right: DefinedValue,
 ): GoalValue {
-  assert(
-    (typeof left === "number" || typeof left === "bigint") &&
-      (typeof right === "number" || typeof right === "bigint"),
-    "Values must be comparable",
-  );
+  assert(typeof left === "number" && typeof right === "number", "Values must be comparable");
 
   switch (kind) {
     case "lt":

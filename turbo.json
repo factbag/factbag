@@ -15,6 +15,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "storybook-static/**"]
     },
+    "factbag#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!README.md", "$TURBO_ROOT$/README.md"],
+      "outputs": ["dist/**", "README.md"]
+    },
     "//#oxlint": {},
     "test": {
       "dependsOn": ["^build"],

@@ -10,7 +10,7 @@ export type { Entity };
 export type LiteralFilter = (literal: AnyLiteral) => boolean;
 
 /** A scalar value accepted in example expressions. */
-export type Scalar = string | number | bigint | boolean | Date;
+export type Scalar = string | number | boolean | Date;
 
 /** A concrete value or logic variable used in formulas and examples. */
 export type Term<Value = Scalar | Entity> = Value | Var;
@@ -81,7 +81,7 @@ export type LiteralArgs<Args extends readonly unknown[]> = {
 };
 
 /** Numeric term accepted by arithmetic, comparisons, and aggregate helpers. */
-export type NumericTerm = number | bigint | Var | Formula<number | bigint, readonly unknown[]>;
+export type NumericTerm = number | Var | Formula<number, readonly unknown[]>;
 
 /** Date term accepted by date comparisons and date-offset arithmetic. */
 export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
@@ -90,7 +90,7 @@ export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
 export type ComparableTerm = NumericTerm | DateTerm;
 
 /** Aggregate builder returned by sum(...) and count(...). */
-export type AggregateBuilder<Value extends number | bigint = number> = Readonly<{
+export type AggregateBuilder<Value extends number = number> = Readonly<{
   where: (<const Body>(body: Body & RuleBodyInput<Body>) => Formula<Value, readonly [Body]>) &
     (<const Body, const CompleteWhen>(
       body: Body & RuleBodyInput<Body>,

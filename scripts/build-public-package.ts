@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript6";
@@ -17,6 +17,9 @@ const destination = path.join(root, "packages/factbag/dist");
 const components = ["core", "corpus", "guards", "jev"];
 const targets = new Map<string, { types: string; import: string }>();
 const publicManifest = await manifest("factbag");
+
+// The root README is shared by GitHub and npm; keep its links absolute.
+await copyFile(path.join(root, "README.md"), path.join(root, "packages/factbag/README.md"));
 
 // Keep each component's module graph intact, including one shared copy of core.
 // Only package specifiers change to relative paths inside the public tarball.

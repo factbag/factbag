@@ -133,7 +133,7 @@ export function fieldIdentityToken(value: unknown): unknown {
     return ["entity", value.constructor.name, value.id];
   }
   if (typeof value === "bigint") {
-    return ["bigint", value.toString()];
+    throw new TypeError("bigint is not supported; use number values");
   }
 
   return value;

@@ -193,7 +193,7 @@ describe("classifier registration", () => {
     expect(Object.keys(await import("./resolve"))).toEqual(["resolver"]);
   });
 
-  it.each([String, Number, BigInt, Date])(
+  it.each([String, Number, Date])(
     "rejects open-ended %s synchronously, even when the KB has values",
     (type) => {
       const { kb, corpus } = setup();

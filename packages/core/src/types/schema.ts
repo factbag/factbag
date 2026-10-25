@@ -24,7 +24,6 @@ export type RuntimeConstructor<T> = (abstract new (...args: never[]) => T) &
 export type RuntimeType<T> =
   | EnumType
   | RuntimeConstructor<T & Entity>
-  | BigIntConstructor
   | BooleanConstructor
   | DateConstructor
   | NumberConstructor
@@ -34,7 +33,6 @@ export type RuntimeType<T> =
 export type PredicateSchema = Readonly<
   Record<
     string,
-    | BigIntConstructor
     | BooleanConstructor
     | DateConstructor
     | NumberConstructor
@@ -62,12 +60,10 @@ export type InferRuntime<T> =
         ? number
         : T extends BooleanConstructor
           ? boolean
-          : T extends BigIntConstructor
-            ? bigint
-            : T extends DateConstructor
-              ? Date
-              : T extends { prototype: infer Value }
-                ? RuntimeConstructor<Entity> extends T
-                  ? unknown
-                  : Value
-                : never;
+          : T extends DateConstructor
+            ? Date
+            : T extends { prototype: infer Value }
+              ? RuntimeConstructor<Entity> extends T
+                ? unknown
+                : Value
+              : never;
