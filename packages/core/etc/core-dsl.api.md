@@ -78,6 +78,12 @@ export type EnumType<Value extends string = string> = Readonly<{
     values: readonly Value[];
 }>;
 
+// @public
+export function eq(left: EqualityTerm, right: EqualityTerm): Formula<boolean, readonly [EqualityTerm, EqualityTerm]>;
+
+// @public
+export type EqualityTerm = ComparableTerm | string | boolean | Entity;
+
 // Warning: (ae-forgotten-export) The symbol "ExistsArgs" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -121,6 +127,9 @@ export function lte(left: ComparableTerm, right: ComparableTerm): Formula<boolea
 
 // @public
 export function mul(left: NumericTerm, right: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
+
+// @public
+export function neq(left: EqualityTerm, right: EqualityTerm): Formula<boolean, readonly [EqualityTerm, EqualityTerm]>;
 
 // @public
 export type NonGroundAtom<Schema extends PredicateSchema = PredicateSchema> = AtomForState<Schema, "non-ground">;
@@ -219,6 +228,6 @@ export function variable<const Name extends string>(name: Name): Var<Name>;
 
 // Warnings were encountered during analysis:
 //
-// dist/dsl/types.d.ts:49:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
+// dist/dsl/types.d.ts:51:5 - (ae-forgotten-export) The symbol "RuleBodyInput" needs to be exported by the entry point index.d.ts
 
 ```

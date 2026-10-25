@@ -90,8 +90,8 @@ export type GteGoal = ComparisonGoal<"gte">;
 /** Compare two value-producing expressions. */
 export type ComparisonGoal<Kind extends "eq" | "neq" | "lt" | "lte" | "gt" | "gte"> = Readonly<{
   readonly kind: Kind;
-  readonly left: GoalExpression<Scalar>;
-  readonly right: GoalExpression<Scalar>;
+  readonly left: GoalExpression;
+  readonly right: GoalExpression;
 }>;
 
 /** Sum a numeric expression over rows matched by a body goal. */

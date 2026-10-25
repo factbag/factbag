@@ -89,6 +89,9 @@ export type DateTerm = Date | Var | Formula<Date, readonly unknown[]>;
 /** Term accepted by comparison helpers. */
 export type ComparableTerm = NumericTerm | DateTerm;
 
+/** Term accepted by equality: a comparable term, a string, a boolean, or an entity. */
+export type EqualityTerm = ComparableTerm | string | boolean | Entity;
+
 /** Aggregate builder returned by sum(...) and count(...). */
 export type AggregateBuilder<Value extends number = number> = Readonly<{
   where: (<const Body>(body: Body & RuleBodyInput<Body>) => Formula<Value, readonly [Body]>) &
