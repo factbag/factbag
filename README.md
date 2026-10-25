@@ -1,3 +1,5 @@
+<img src="docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
+
 # Factbag
 
 Turn documents into evidence and conclusions with [Jev](https://typesafe.ai/) and TypeScript.
