@@ -1,4 +1,9 @@
-import { regressionExamples as regressionDeadPathLet } from "./dead-path-let.test-case";
+import { deadPathLetTestCases } from "./dead-path-let.test-case";
+import { orAfterFailedPathTestCases } from "./or-after-failed-path.test-case";
+import { orArithmeticTestCases } from "./or-arithmetic.test-case";
+import { orBindingValidationTestCases } from "./or-binding-validation.test-case";
+import { orEnvironmentTestCases } from "./or-environments.test-case";
+import { boundValuesTestCases } from "./bound-values.test-case";
 import { aggregateCompletenessTestCases } from "./aggregate-completeness.test-case";
 import { aggregateCountIntervalTestCases } from "./aggregate-count-interval.test-case";
 import { closedWorldNegationTestCase } from "./closed-world-negation.test-case";
@@ -44,7 +49,12 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
-  ...regressionDeadPathLet,
+  ...deadPathLetTestCases,
+  ...orAfterFailedPathTestCases,
+  ...orArithmeticTestCases,
+  ...orBindingValidationTestCases,
+  ...orEnvironmentTestCases,
+  ...boundValuesTestCases,
   ...smokeGoalValueTestCases,
   ...goalValueTruthTableTestCases,
   derivedPredicateBoundaryTestCase,
