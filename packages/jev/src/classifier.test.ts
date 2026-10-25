@@ -56,7 +56,7 @@ function nextJob(run: Iterator<ClassificationJob>): ClassificationJob {
 }
 
 describe("classifier registration", () => {
-  it.fails("classifies reflexive relations in the candidate Cartesian product", async () => {
+  it("classifies reflexive relations in the candidate Cartesian product", async () => {
     const kb = new KnowledgeBase();
     const corpus = new Corpus();
     corpus.add({ documentId: "record", text: "Both references identify Alice." });
