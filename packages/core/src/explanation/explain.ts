@@ -191,6 +191,8 @@ function formatGoal(goal: Goal): string {
     case "sub":
     case "mul":
     case "div":
+    case "daysBetween":
+    case "yearsBetween":
     case "min":
     case "max":
     case "roundTo":
