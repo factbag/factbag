@@ -1,62 +1,60 @@
 # Releasing Factbag
 
-Only the `factbag` package is published. The component packages (`@factbag/core`, `@factbag/corpus`, `@factbag/guards`, `@factbag/jev`), widgets, examples, tooling, and the repository root are private workspaces and are never published.
+Only `factbag` is published. Component packages, widgets, examples, tooling, and the repository root remain private.
 
-Releases are published from reviewed tarballs to the `latest` dist-tag. The current line is `0.0.0-alpha.N`: every version is a prerelease and APIs may change between any two releases.
+## Release changes
 
-## Publishing workflow
+1. Include a changeset with each user-visible change:
 
-The **Publish** workflow builds and tests the package, then waits for approval through the `npm` environment. Approval publishes the tested tarball using OpenID Connect (OIDC) and creates its Git tag.
+   ```sh
+   pnpm changeset
+   ```
 
-Dry runs exercise the same artifact handoff and verification as live releases, without publishing permissions or environment approval. They do not test npm authentication.
+   Select `factbag`, choose the appropriate bump, and describe the change. Use an empty changeset for changes that require no release.
 
-The publish job verifies artifact integrity, installs no project dependencies, and disables package scripts. It runs `npm publish` once; errors fail the job.
+2. Merge the change PR after CI passes. The **Release** workflow uses Changesets to open or update a `chore: release packages` PR with the version and changelog changes.
+3. If GitHub shows **Approve workflows to run** on the release PR, approve its CI runs. Review and merge the release PR once its checks pass.
+4. The workflow builds, packs, and tests the versioned package. Confirm the source commit and successful checks, then approve the `npm` environment deployment.
+5. Changesets publishes the tested tarball and creates its Git tag and GitHub Release.
 
-## Artifact verification
+The workflow uses Changesets' standard select-mode, version, pack, and publish actions. Only the publish job has OIDC permission. Dependency installation in the version and publish jobs uses the frozen lockfile with install scripts disabled; the publish job performs no build. Your environment approval remains required for publication.
 
-Run `pnpm build && pnpm build:verify` to test the current checkout. This packs
-`factbag` with pnpm into a temporary directory and checks the tarball and isolated
-consumers, regardless of whether its version is already published. CI uses this
-path. It does not create or modify the release publish plan.
+See [Changesets automation](https://changesets.dev/guide/automating) for the standard workflow and [GitHub's bot-created PR behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) for CI approval.
 
-`pnpm release:verify` instead checks the Changesets publish plan and its exact
-tarballs in `.release/`, using the same artifact and consumer checks. An empty
-publish plan is an error in this release-only workflow.
+## Prereleases
 
-## Release notes
+This repository is in Changesets prerelease mode with the `alpha` tag, recorded in `.changeset/pre.json`. Use the normal changeset and release PR flow; do not edit version numbers or changelogs manually. Changesets retains consumed prerelease notes in `.changeset/pre/` for the eventual normal release.
 
-Add a changeset for every user-visible change:
+Alpha releases are published under the `alpha` npm tag:
 
 ```sh
-pnpm changeset
+npm install factbag@alpha
 ```
 
-Use an empty changeset when a change intentionally requires no release. Changesets only version `factbag`; private workspaces are left untouched.
+The existing `latest` release remains available through `npm install factbag`.
 
-## Alpha releases
+To leave prerelease mode, run the following command and merge the resulting state change through a PR:
 
-1. Prepare a version bump in `packages/factbag/package.json` and move the changeset notes into `packages/factbag/CHANGELOG.md`. The `0.0.0-alpha.N` line uses manual versioning because Changesets cannot compute these versions outside prerelease mode.
-2. Merge the version and changelog pull request after review and CI pass.
-3. In GitHub Actions, run **Publish** on `main` with the committed version. Disable **Build and verify without publishing** for a live release. Leave it enabled if you only want to test the release workflow.
-4. When the workflow requests approval, confirm the version, source commit, and successful checks, then approve the `npm` environment deployment.
-5. Check that the workflow succeeded. The package is published under `latest`, with a `factbag@<version>` Git tag.
+```sh
+pnpm release:pre-exit
+```
 
-The workflow uses the commit selected when you start the run and serializes releases. Release artifacts are retained for 14 days for investigation or recovery. A dry run requires an unpublished version; use `pnpm build:verify` to check an already-published version.
+Changesets then prepares a release PR without the prerelease suffix. Once that PR is merged and publication approved, the normal version is published under `latest`. To start a later alpha cycle, use `pnpm release:pre-enter`.
 
-## Leaving the alpha line
+See [Changesets prereleases](https://changesets.dev/guide/prereleases) for details.
 
-When the API is ready for ordinary semver, run `pnpm release:prepare` with a changeset to produce the first non-prerelease version (for example `0.1.0`), then follow the alpha release procedure from step 2. From that point Changesets computes versions and changelogs automatically.
+## Dry runs and local checks
 
-## Deprecation
+Run **Release** manually on `main` with **Verify the release without publishing** enabled. If changesets are pending, it updates the release PR. If a version is ready to publish, it packs the release and verifies its artifact and isolated consumers, then skips publication. If nothing needs releasing, it does nothing. Dry runs do not test npm authentication.
 
-Use `npm deprecate` with a migration message. Do not unpublish a release except for an immediate security or legal emergency and only within npm policy. During `0.x`, deprecation periods are encouraged but not guaranteed.
+Use `pnpm check && pnpm build:verify` locally to check any checkout, including an already-published version. Use `pnpm release:verify` to pack and test the current Changesets publish plan. Release-only verification requires exactly one unpublished `factbag` version.
 
 ## Failed releases
 
-Inspect the failed job before retrying. Published versions are immutable.
+Check npm and the workflow result before retrying; published versions are immutable. Use **Re-run failed jobs** to retain the run's original artifact. Changesets handles publication and tag creation. If publication succeeded but the GitHub Release or tag is missing, recover that metadata against the published source commit rather than changing or republishing the package. Never overwrite an existing release tag.
 
-- **Version absent from npm:** fix the cause and select **Re-run failed jobs** to reuse the original artifact.
-- **Version already published:** do not rerun publication. Compare npm's `dist.integrity` with the retained `release.json` and check `latest`. If only tagging failed and the tag is absent, rerun the tag job. If npm accepted the release but reported an error, verify the registry result and create the missing tag at the commit recorded in `release.json`.
-- **Artifact changed or expired:** prepare a new version. Investigate unexpected integrity, dist-tag, or Git tag values; do not overwrite an existing release tag.
+If the artifact must change, add a changeset and prepare a new release.
 
-Avoid **Re-run all jobs** after publication: Changesets omits published versions from a new release plan.
+## Deprecation
+
+Use `npm deprecate` with a migration message. Do not unpublish except for an immediate security or legal emergency and within npm policy.
