@@ -1,5 +1,11 @@
 # Contributing
 
+## Package README
+
+Edit the root `README.md`; the package build copies it to
+`packages/factbag/README.md` for npm. Use absolute links and image URLs so they
+work in both locations. Run `pnpm build` and commit the generated copy.
+
 ## Pull request titles
 
 Use a [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
