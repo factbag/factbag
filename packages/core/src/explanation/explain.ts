@@ -9,9 +9,19 @@ import { isFormula } from "../dsl/types";
 import { AssertionError } from "../utils/assert";
 import type { Explanation, EvidenceReason } from "./types";
 
+type ExplanationContext = {
+  explanations: WeakMap<Judgment, Explanation>;
+  contentKeys: WeakMap<Explanation, number>;
+  keyIds: Map<string, number>;
+};
+
 /**
- * Convert a judgment's proof-support tree into a compact, LLM-readable
+ * Convert a judgment's proof-support graph into a compact, LLM-readable
  * {@link Explanation} of what was concluded and why.
+ *
+ * The result is a directed acyclic graph (DAG): reused judgment objects share
+ * explanation nodes within this call. Serializing the result as JSON still
+ * expands shared nodes at every path to them.
  *
  * @example
  * ```ts
@@ -27,6 +37,23 @@ import type { Explanation, EvidenceReason } from "./types";
  * ```
  */
 export function explainJudgment(judgment: Judgment): Explanation {
+  return explainWithContext(judgment, {
+    explanations: new WeakMap(),
+    contentKeys: new WeakMap(),
+    keyIds: new Map(),
+  });
+}
+
+function explainWithContext(judgment: Judgment, context: ExplanationContext): Explanation {
+  let explanation = context.explanations.get(judgment);
+  if (explanation === undefined) {
+    explanation = explainOnce(judgment, context);
+    context.explanations.set(judgment, explanation);
+  }
+  return explanation;
+}
+
+function explainOnce(judgment: Judgment, context: ExplanationContext): Explanation {
   if (isClosedWorldAbsence(judgment)) {
     const atom = judgment.goal.goal.atom;
     return {
@@ -41,7 +68,7 @@ export function explainJudgment(judgment: Judgment): Explanation {
     return {
       claim: claimForJudgment(judgment),
       because: formatRuleApplication(ruleSupport.rule, ruleSupport.body.bindings),
-      given: [explainJudgment(ruleSupport.body)],
+      given: [explainWithContext(ruleSupport.body, context)],
     };
   }
 
@@ -63,7 +90,10 @@ export function explainJudgment(judgment: Judgment): Explanation {
   if (subgoals.length > 0) {
     return {
       claim: claimForJudgment(judgment),
-      given: uniqueExplanations(subgoals.map(explainJudgment)),
+      given: uniqueExplanations(
+        subgoals.map((subgoal) => explainWithContext(subgoal, context)),
+        context,
+      ),
     };
   }
 
@@ -81,12 +111,15 @@ export function explainJudgment(judgment: Judgment): Explanation {
   };
 }
 
-function uniqueExplanations(explanations: readonly Explanation[]): readonly Explanation[] {
-  const seen = new Set<string>();
+function uniqueExplanations(
+  explanations: readonly Explanation[],
+  context: ExplanationContext,
+): readonly Explanation[] {
+  const seen = new Set<number>();
   const unique: Explanation[] = [];
 
   for (const explanation of explanations) {
-    const key = JSON.stringify(explanation);
+    const key = contentKey(explanation, context);
     if (!seen.has(key)) {
       seen.add(key);
       unique.push(explanation);
@@ -94,6 +127,30 @@ function uniqueExplanations(explanations: readonly Explanation[]): readonly Expl
   }
 
   return unique;
+}
+
+/**
+ * Equal serialized content gets the same ID; different derivations of the same
+ * claim remain distinct. Child IDs keep each key local to a node rather than expanding
+ * the subtree; the per-call table releases its strings after rendering.
+ */
+function contentKey(explanation: Explanation, context: ExplanationContext): number {
+  let id = context.contentKeys.get(explanation);
+  if (id === undefined) {
+    const given =
+      "given" in explanation
+        ? explanation.given.map((child) => contentKey(child, context))
+        : undefined;
+    const because = "because" in explanation ? explanation.because : undefined;
+    const key = JSON.stringify([explanation.claim, because, given]);
+    id = context.keyIds.get(key);
+    if (id === undefined) {
+      id = context.keyIds.size;
+      context.keyIds.set(key, id);
+    }
+    context.contentKeys.set(explanation, id);
+  }
+  return id;
 }
 
 function supportsForValue(judgment: Judgment): readonly JudgmentSupportFor<Goal>[] {
