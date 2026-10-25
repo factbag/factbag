@@ -15,9 +15,14 @@ Only `factbag` is published. Component packages, widgets, examples, tooling, and
 2. Merge the change PR after CI passes. The **Release** workflow uses Changesets to open or update a `chore: release packages` PR with the version and changelog changes.
 3. If GitHub shows **Approve workflows to run** on the release PR, approve its CI runs. Review and merge the release PR once its checks pass.
 4. The workflow builds, packs, and tests the versioned package. Confirm the source commit and successful checks, then approve the `npm` environment deployment.
-5. Changesets publishes the tested tarball and creates its Git tag and GitHub Release.
+5. Changesets publishes the tested tarball and creates its Git tag and GitHub Release. The workflow then promotes that exact version to the `latest` npm tag.
 
 The workflow uses Changesets' standard select-mode, version, pack, and publish actions. Only the publish job has OIDC permission. Dependency installation in the version and publish jobs uses the frozen lockfile with install scripts disabled; the publish job performs no build. Your environment approval remains required for publication.
+
+The npm trusted publisher for `publish.yml` and the `npm` environment must allow
+both direct publishing and **Allow npm dist-tag**. Tag management is a separate,
+opt-in permission. The workflow installs npm 12.2.0 for OIDC tag updates; no
+long-lived npm token is required. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/#managing-dist-tags-with-trusted-publishing).
 
 See [Changesets automation](https://changesets.dev/guide/automating) for the standard workflow and [GitHub's bot-created PR behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow) for CI approval.
 
@@ -31,7 +36,9 @@ Alpha releases are published under the `alpha` npm tag:
 npm install factbag@alpha
 ```
 
-The existing `latest` release remains available through `npm install factbag`.
+The workflow also points `latest` at each successfully published release, so
+`npm install factbag` receives the same current alpha. The prerelease version
+still communicates its alpha status. Dry runs do not publish or change tags.
 
 To leave prerelease mode, run the following command and merge the resulting state change through a PR:
 
@@ -52,6 +59,12 @@ Use `pnpm check && pnpm build:verify` locally to check any checkout, including a
 ## Failed releases
 
 Check npm and the workflow result before retrying; published versions are immutable. Use **Re-run failed jobs** to retain the run's original artifact. Changesets handles publication and tag creation. If publication succeeded but the GitHub Release or tag is missing, recover that metadata against the published source commit rather than changing or republishing the package. Never overwrite an existing release tag.
+
+If only promotion to `latest` failed, fix the reported authentication or permission
+issue and re-run the failed publish job. The promotion step accepts an already
+published version from that run, checks its exact version in npm, and retries the
+tag update without republishing the package. It never resolves a moving npm tag
+to choose the promotion target.
 
 If the artifact must change, add a changeset and prepare a new release.
 
