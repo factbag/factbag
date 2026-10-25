@@ -94,11 +94,12 @@ export type PositiveLiteral<Schema extends PredicateSchema = PredicateSchema> = 
 
 // @public
 export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
-    constructor(operation: "add" | "sub" | "mul" | "div", operands: readonly [unknown, unknown], goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">);
+    constructor(operation: ArithmeticKind, operands: readonly [unknown, unknown], goal: ArithmeticGoal<ArithmeticKind>);
     // Warning: (ae-forgotten-export) The symbol "ArithmeticGoal" needs to be exported by the entry point index.d.ts
-    readonly goal: ArithmeticGoal<"add" | "sub" | "mul" | "div">;
+    readonly goal: ArithmeticGoal<ArithmeticKind>;
     readonly operands: readonly [unknown, unknown];
-    readonly operation: "add" | "sub" | "mul" | "div";
+    // Warning: (ae-forgotten-export) The symbol "ArithmeticKind" needs to be exported by the entry point index.d.ts
+    readonly operation: ArithmeticKind;
 }
 
 // @public

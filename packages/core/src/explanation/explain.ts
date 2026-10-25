@@ -191,6 +191,11 @@ function formatGoal(goal: Goal): string {
     case "sub":
     case "mul":
     case "div":
+    case "min":
+    case "max":
+    case "roundTo":
+    case "floorTo":
+    case "ceilTo":
       return `${goal.bind.name} = ${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
     case "eq":
     case "neq":
