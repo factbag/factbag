@@ -109,16 +109,12 @@ export const orAfterFailedPathTestCases: readonly DslTestSpec[] = [
     name: "or failed paths: discovers the inner amount directly",
     invariant: "The stated-amount route must retain its output while alternatives are explored.",
     narration:
-      "Alice's stated amount is 2,000. The inactive fallback computes base plus dependents (4,000), which must stay false rather than borrow the stated route's truth.",
+      "Alice's stated amount is 2,000. The inactive fallback computes base plus dependents (4,000), which is omitted rather than borrowing the stated route's truth.",
     queryAtoms: main({ person: alice, amount: A }),
     expectedProofs: [
       ruleProof(main({ person: alice, amount: 2000 }), "true", mainRule, [
         [P, alice],
         [A, 2000],
-      ]),
-      ruleProof(main({ person: alice, amount: 4000 }), "false", mainRule, [
-        [P, alice],
-        [A, 4000],
       ]),
     ],
   },
@@ -128,21 +124,9 @@ export const orAfterFailedPathTestCases: readonly DslTestSpec[] = [
     invariant:
       "A failed route with missing bindings must not prevent a later route from binding an output.",
     narration:
-      "Alice has no joint partner. Joint sums of the inner candidates (2,000 and 4,000) remain false at 4,000, 6,000, and 8,000. The individual route still discovers a true 2,000.",
+      "Alice has no joint partner. Unsupported joint sums are omitted. The individual route still discovers a true 2,000.",
     queryAtoms: ret({ person: alice, amount: A }),
     expectedProofs: [
-      ruleProof(ret({ person: alice, amount: 4000 }), "false", returnRule, [
-        [P, alice],
-        [A, 4000],
-      ]),
-      ruleProof(ret({ person: alice, amount: 6000 }), "false", returnRule, [
-        [P, alice],
-        [A, 6000],
-      ]),
-      ruleProof(ret({ person: alice, amount: 8000 }), "false", returnRule, [
-        [P, alice],
-        [A, 8000],
-      ]),
       ruleProof(ret({ person: alice, amount: 2000 }), "true", returnRule, [
         [P, alice],
         [A, 2000],
@@ -159,5 +143,27 @@ export const orAfterFailedPathTestCases: readonly DslTestSpec[] = [
       [P, alice],
       [A, 2000],
     ]),
+  },
+  {
+    ...scenario,
+    name: "or failed paths: omitted fallback remains false when grounded",
+    invariant: "Discarding unsupported candidates must preserve direct negative answers.",
+    narration: "The inactive fallback's 4,000 is false, as are the unsupported joint totals.",
+    queryAtoms: [
+      main({ person: alice, amount: 4000 }),
+      ...[4000, 6000, 8000].map((amount) => ret({ person: alice, amount })),
+    ],
+    expectedProofs: [
+      ruleProof(main({ person: alice, amount: 4000 }), "false", mainRule, [
+        [P, alice],
+        [A, 4000],
+      ]),
+      ...[4000, 6000, 8000].map((amount) =>
+        ruleProof(ret({ person: alice, amount }), "false", returnRule, [
+          [P, alice],
+          [A, amount],
+        ]),
+      ),
+    ],
   },
 ];

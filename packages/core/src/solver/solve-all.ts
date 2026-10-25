@@ -2031,7 +2031,10 @@ function deriveCandidateAtoms<Schema extends PredicateSchema>(
     const context: EvaluationContext = { nextTemp: 0, search, candidatePredicate: atom.predicate };
     const bodies = evaluateRuleBodyMany(literals, rules, rule.body, bindings, active, context);
     for (const body of bodies) {
-      if (!canGroundAtom(ruleHead, body.bindings)) {
+      // A false body cannot introduce a candidate. Recursive atoms in the component
+      // being discovered are unknown placeholders, not closed-world false; evidence
+      // seeds and candidates supported by other rule bodies remain available.
+      if (body.judgment.value === "false" || !canGroundAtom(ruleHead, body.bindings)) {
         continue;
       }
 
