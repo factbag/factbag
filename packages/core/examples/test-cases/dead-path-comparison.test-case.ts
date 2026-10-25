@@ -84,7 +84,6 @@ export const deadPathComparisonTestCases: readonly DslTestSpec[] = [
     invariant: "A missing event date must not crash candidate derivation on a failed branch.",
     narration:
       "No death date exists. The failed route leaves D unbound; the year-end alternative must still decide whether the wedding has happened.",
-    fails: "Candidate derivation compares the missing death date on a failed path.",
     queryAtoms: atom,
     expectedProofs: proof(value === "true" ? "true" : "false"),
   })),
@@ -94,7 +93,6 @@ export const deadPathComparisonTestCases: readonly DslTestSpec[] = [
     invariant: "Variable queries must also recover from a failed date-binding route.",
     narration:
       "The year-end fact supplies 2013; the marriage holds at that date despite no death fact.",
-    fails: "Candidate derivation compares the missing death date on a failed path.",
     queryAtoms: marriedIn({ a: alice, b: bob, year: Y }),
     expectedProofs: [proof("true")],
   },
