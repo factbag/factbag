@@ -1,3 +1,4 @@
+import { deadPathLetTestCases } from "./dead-path-let.test-case";
 import { deadPathComparisonTestCases } from "./dead-path-comparison.test-case";
 import { regressionExamples as regressionFalseCandidates } from "./false-candidates.test-case";
 import { orAfterFailedPathTestCases } from "./or-after-failed-path.test-case";
@@ -50,6 +51,7 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
+  ...deadPathLetTestCases,
   ...deadPathComparisonTestCases,
   ...regressionFalseCandidates,
   ...orAfterFailedPathTestCases,
