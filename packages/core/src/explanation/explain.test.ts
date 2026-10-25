@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { closedPredicate, not, predicate, variable } from "../dsl";
 import { KnowledgeBase } from "../knowledge-base";
 import { query } from "../query";
-import type { Explanation } from "./types";
+import type { EvidenceReason, Explanation } from "./types";
 import { explainJudgment } from "./explain";
 
 class Person {
@@ -24,7 +24,74 @@ const bob = new Person("bob");
 const cara = new Person("cara");
 const drew = new Person("drew");
 
+/** Collect structured evidence leaves without depending on rule narration layout. */
+function evidenceReasons(explanation: Explanation): readonly EvidenceReason[] {
+  const because = explanation.because;
+  const own = typeof because === "object" ? ("length" in because ? because : [because]) : [];
+  return [...own, ...("given" in explanation ? explanation.given.flatMap(evidenceReasons) : [])];
+}
+
 describe("explainJudgment", () => {
+  it.fails("retains counter-evidence when explaining a rule/evidence conflict", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const eligible = predicate("eligible", { person: Person });
+    const licensed = predicate("licensed", { person: Person });
+    kb.asserts(licensed({ person: alice }), { source: "license-register" });
+    kb.rule(eligible({ person: alice })).if(licensed({ person: alice }));
+    kb.denies(eligible({ person: alice }), { source: "disqualification-notice" });
+
+    // Act
+    const judgment = query(kb, eligible({ person: alice }));
+    const explanation = explainJudgment(judgment);
+
+    // Assert
+    expect(judgment.value).toBe("conflicted");
+    expect(explanation.claim).toBe("eligible(alice) = conflicted");
+    expect(evidenceReasons(explanation)).toEqual(
+      expect.arrayContaining([
+        { claim: "licensed(alice) = true", source: "license-register" },
+        { claim: "eligible(alice) = false", source: "disqualification-notice" },
+      ]),
+    );
+  });
+
+  it("retains the supporting source for an unopposed rule", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const eligible = predicate("eligible", { person: Person });
+    const licensed = predicate("licensed", { person: Person });
+    kb.asserts(licensed({ person: alice }), { source: "license-register" });
+    kb.rule(eligible({ person: alice })).if(licensed({ person: alice }));
+
+    // Act
+    const explanation = explainJudgment(query(kb, eligible({ person: alice })));
+
+    // Assert
+    expect(explanation.claim).toBe("eligible(alice) = true");
+    expect(evidenceReasons(explanation)).toEqual([
+      { claim: "licensed(alice) = true", source: "license-register" },
+    ]);
+  });
+
+  it("retains both sources for a direct evidence conflict", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const eligible = predicate("eligible", { person: Person });
+    kb.asserts(eligible({ person: alice }), { source: "approval" });
+    kb.denies(eligible({ person: alice }), { source: "disqualification-notice" });
+
+    // Act
+    const explanation = explainJudgment(query(kb, eligible({ person: alice })));
+
+    // Assert
+    expect(explanation.claim).toBe("eligible(alice) = conflicted");
+    expect(evidenceReasons(explanation)).toEqual([
+      { claim: "eligible(alice) = true", source: "approval" },
+      { claim: "eligible(alice) = false", source: "disqualification-notice" },
+    ]);
+  });
+
   describe("direct atom evidence", () => {
     const activeSanction = predicate("active_sanction", { person: Person });
 
