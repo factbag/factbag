@@ -1,6 +1,6 @@
 # Factbag
 
-<img src="docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
+<img src="https://raw.githubusercontent.com/factbag/factbag/main/docs/assets/factbag.png" alt="An open canvas bag" align="right" width="180" />
 
 Turn documents into evidence and conclusions with [Jev](https://typesafe.ai/) and TypeScript.
 
@@ -13,8 +13,7 @@ can be **true**, **false**, **conflicted**, or **unknown**. When documents disag
 you can inspect the conflicting evidence, correct a particular fact, and query
 the rules again.
 
-> [!IMPORTANT]
-> Factbag is an early alpha release and still pretty rough - APIs will definitely change.
+> **Important:** Factbag is an early alpha release and still pretty rough - APIs will definitely change.
 
 ## How it works
 
