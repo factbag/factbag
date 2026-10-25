@@ -1,6 +1,7 @@
-import { regressionExamples as regressionOrAfterFailedPath } from "./or-after-failed-path.test-case";
-import { regressionExamples as regressionOrArithmetic } from "./or-arithmetic.test-case";
-import { regressionExamples as regressionOrEnvironments } from "./or-environments.test-case";
+import { orAfterFailedPathTestCases } from "./or-after-failed-path.test-case";
+import { orArithmeticTestCases } from "./or-arithmetic.test-case";
+import { orBindingValidationTestCases } from "./or-binding-validation.test-case";
+import { orEnvironmentTestCases } from "./or-environments.test-case";
 import { boundValuesTestCases } from "./bound-values.test-case";
 import { aggregateCompletenessTestCases } from "./aggregate-completeness.test-case";
 import { aggregateCountIntervalTestCases } from "./aggregate-count-interval.test-case";
@@ -47,9 +48,10 @@ import {
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 export const testCases: readonly DslTestSpec[] = [
-  ...regressionOrAfterFailedPath,
-  ...regressionOrArithmetic,
-  ...regressionOrEnvironments,
+  ...orAfterFailedPathTestCases,
+  ...orArithmeticTestCases,
+  ...orBindingValidationTestCases,
+  ...orEnvironmentTestCases,
   ...boundValuesTestCases,
   ...smokeGoalValueTestCases,
   ...goalValueTruthTableTestCases,

@@ -1,21 +1,8 @@
 import { expect } from "vitest";
-import type { QueryJudgment } from "../../src/query";
-import type { GroundAtom } from "../../src/types/atom";
-import type { DslTestSpec } from "../test-runner/test-runner";
-
-/** Match the public proof root; internal arithmetic temporaries are not this contract. */
-function proof(atom: GroundAtom, value: QueryJudgment["value"]): QueryJudgment {
-  const support: unknown = expect.arrayContaining([expect.objectContaining({ source: "rule" })]);
-  // oxlint-disable-next-line typescript/no-unsafe-return -- Vitest's asymmetric matcher checks these proof fields in the existing harness.
-  return expect.objectContaining({
-    value,
-    goal: { kind: "atom", atom },
-    bindings: [],
-    [value === "false" ? "negative" : "positive"]: support,
-  });
-}
 import { add, and, closedPredicate, gte, letIn, mul, or, sub, sum, variable } from "../../src/dsl";
 import type { KnowledgeBase } from "../../src/knowledge-base";
+import { ruleProof } from "../test-runner/rule-proof";
+import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {
   constructor(readonly id: string) {}
@@ -30,61 +17,93 @@ const X = variable("X");
 const T = variable("T");
 const A = variable("A");
 const E = variable("E");
+const V = variable("V");
 
-function build(kb: KnowledgeBase) {
-  const amounts = [17_330, 100];
-  kb.entities.add(alice);
-  for (const amount of amounts) {
-    kb.asserts(income({ person: alice, amount }));
-  }
-  const rule0 = kb
-    .rule(total({ person: P, amount: T }))
-    .iff(letIn(T, sum(X).where(income({ person: P, amount: X })), gte(T, 0)));
+const totalRule = {
+  kind: "iff",
+  head: { sign: "+", atom: total({ person: P, amount: T }) },
+  body: letIn(T, sum(X).where(income({ person: P, amount: X })), gte(T, 0)),
+} as const;
+const taxRule = {
+  kind: "iff",
+  head: { sign: "+", atom: tax({ person: P, amount: A }) },
   // 15% up to 36,900; 5,535 plus 28% of the excess above it.
-  const rule1 = kb
-    .rule(tax({ person: P, amount: A }))
-    .iff(
-      and(
-        total({ person: P, amount: T }),
-        or(
-          and(gte(36_900, T), letIn(A, mul(T, 0.15), gte(A, 0))),
-          and(
-            gte(T, 36_901),
-            letIn(E, sub(T, 36_900), letIn(A, add(5_535, mul(0.28, E)), gte(A, 0))),
-          ),
-        ),
-      ),
-    );
+  body: and(
+    total({ person: P, amount: T }),
+    or(
+      and(gte(36_900, T), letIn(A, mul(T, 0.15), gte(A, 0))),
+      and(gte(T, 36_901), letIn(E, sub(T, 36_900), letIn(A, add(5_535, mul(0.28, E)), gte(A, 0)))),
+    ),
+  ),
+} as const;
+
+function scenario(amounts: readonly number[]) {
   return {
-    literals: amounts.map((amount) => ({
-      sign: "+" as const,
-      atom: income({ person: alice, amount }),
-    })),
-    rules: [rule0, rule1],
-  };
+    build(kb: KnowledgeBase) {
+      kb.entities.add(alice);
+      for (const amount of amounts) {
+        kb.asserts(income({ person: alice, amount }));
+      }
+      kb.rule(totalRule.head.atom).iff(totalRule.body);
+      kb.rule(taxRule.head.atom).iff(taxRule.body);
+    },
+    expectedKnowledgeBase: {
+      literals: amounts.map((amount) => ({
+        sign: "+" as const,
+        atom: income({ person: alice, amount }),
+      })),
+      rules: [totalRule, taxRule],
+    },
+  } as const;
 }
 
-export const regressionExamples: readonly DslTestSpec[] = [
+function proof(amount: number, value: "true" | "false", totalAmount: number) {
+  return ruleProof(tax({ person: alice, amount }), value, taxRule, [
+    [P, alice],
+    [T, totalAmount],
+    [A, amount],
+  ]);
+}
+
+// Match decimal arithmetic to six places rather than fixing its binary rounding.
+// oxlint-disable-next-line typescript/no-unsafe-assignment -- This matcher is only used in expected numeric fields and bindings.
+const upperAmount: number = expect.closeTo(7_208.28, 6);
+// oxlint-disable-next-line typescript/no-unsafe-assignment -- The inactive upper formula gives 83.4, subject to the same binary rounding.
+const inactiveUpperAmount: number = expect.closeTo(83.4, 6);
+
+export const orArithmeticTestCases: readonly DslTestSpec[] = [
   {
-    name: "Regression: arithmetic alternatives retain their branch bindings",
-    invariant:
-      "Income totals 17,430. The lower rate branch yields 2,614.5 despite temporary bindings introduced by multiplication.",
+    ...scenario([17_330, 100]),
+    name: "or arithmetic: accepts the lower branch amount and rejects a different amount",
+    invariant: "Arithmetic temporaries must not prevent judging a branch in its own environment.",
+    narration: "Income totals 17,430. The lower rate yields 2,614.5, not 2,600.",
+    queryAtoms: [tax({ person: alice, amount: 2_614.5 }), tax({ person: alice, amount: 2_600 })],
+    expectedProofs: [proof(2_614.5, "true", 17_430), proof(2_600, "false", 17_430)],
+  },
+  {
+    ...scenario([17_330, 100]),
+    name: "or arithmetic: discovers the lower branch amount",
+    invariant: "An unbound output must retain the amount computed by the successful lower branch.",
     narration:
-      "Income totals 17,430. The lower rate branch yields 2,614.5 despite temporary bindings introduced by multiplication.",
-    build(kb) {
-      return build(kb);
-    },
-    queryAtoms: tax({ person: alice, amount: 2614.5 }),
-    expected(handles) {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- build returns these exact handles to the declarative harness.
-      const expectedKnowledgeBase = handles as {
-        literals: ReturnType<KnowledgeBase["literals"]>;
-        rules: ReturnType<KnowledgeBase["rules"]>;
-      };
-      return {
-        expectedKnowledgeBase,
-        expectedProofs: proof(tax({ person: alice, amount: 2614.5 }), "true"),
-      };
-    },
+      "For income of 17,430, the lower formula yields a true 2,614.5. The inactive upper formula yields 83.4 (5,535 minus 5,451.6), which remains false.",
+    queryAtoms: tax({ person: alice, amount: V }),
+    expectedProofs: [proof(2_614.5, "true", 17_430), proof(inactiveUpperAmount, "false", 17_430)],
+  },
+  {
+    ...scenario([42_876]),
+    name: "or arithmetic: discovers the upper branch amount",
+    invariant: "Nested arithmetic in the upper branch must also preserve its output binding.",
+    narration:
+      "Income is 42,876. The inactive lower formula gives a false 6,431.4. The upper branch yields 5,535 plus 1,673.28, or a true 7,208.28.",
+    queryAtoms: tax({ person: alice, amount: V }),
+    expectedProofs: [proof(6_431.4, "false", 42_876), proof(upperAmount, "true", 42_876)],
+  },
+  {
+    ...scenario([42_876]),
+    name: "or arithmetic: rejects the lower scenario's amount for upper bracket income",
+    invariant: "The lower scenario's result must not become true when only the upper guard holds.",
+    narration: "For income of 42,876, a grounded query for 2,614.5 is false.",
+    queryAtoms: tax({ person: alice, amount: 2_614.5 }),
+    expectedProofs: proof(2_614.5, "false", 42_876),
   },
 ];
