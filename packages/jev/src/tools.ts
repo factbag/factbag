@@ -102,13 +102,7 @@ function assertSupportedType(
 ): asserts predicate is SupportedPredicate {
   for (const name of predicate.paramNames) {
     const type = predicate.params[name];
-    if (
-      type === String ||
-      type === Number ||
-      type === BigInt ||
-      type === Date ||
-      type === undefined
-    ) {
+    if (type === String || type === Number || type === Date || type === undefined) {
       throw new UnsupportedPredicateError(
         `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), or registered entities.`,
         predicate,

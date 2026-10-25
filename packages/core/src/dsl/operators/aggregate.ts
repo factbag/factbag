@@ -1,3 +1,4 @@
+import { assertSupportedValue } from "../assert-supported-value";
 import type { AggregateBuilder, Formula, NumericTerm, Term } from "../types";
 
 /**
@@ -22,7 +23,7 @@ import type { AggregateBuilder, Formula, NumericTerm, Term } from "../types";
  * );
  * ```
  */
-export function sum(value: NumericTerm): AggregateBuilder<number | bigint> {
+export function sum(value: NumericTerm): AggregateBuilder {
   return aggregateBuilder("sum", value);
 }
 
@@ -40,10 +41,11 @@ export function count(value: Term): AggregateBuilder {
  * aggregate body, and any completeness condition. Both arguments are preserved so
  * that `completeWhen` stays attached to the aggregate rather than the rule.
  */
-function aggregateBuilder<Value extends number | bigint>(
+function aggregateBuilder<Value extends number>(
   kind: string,
   value: NumericTerm | Term,
 ): AggregateBuilder<Value> {
+  assertSupportedValue(value);
   const where = (
     body: unknown,
     options?: Readonly<{ completeWhen: unknown }>,

@@ -1,35 +1,81 @@
-name: Publish
-
-run-name: Publish factbag@${{ inputs.version }} (dry run=${{ inputs.dry-run }})
+name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      version:
-        description: Exact version already committed in packages/factbag/package.json
-        required: true
-        type: string
       dry-run:
-        description: Build and verify without publishing
-        default: true
+        description: Verify the release without publishing
         type: boolean
+        default: true
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
-  group: factbag-npm-publish
+  group: factbag-release
   cancel-in-progress: false
 
 jobs:
-  build:
+  select:
     if: github.repository == 'factbag/factbag' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    permissions:
+      contents: read
     outputs:
-      version: ${{ steps.release.outputs.version }}
-      integrity: ${{ steps.release.outputs.integrity }}
-      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      mode: ${{ steps.changesets.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.changesets.outputs.publish-plan-artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Select release mode
+        id: changesets
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+
+  version:
+    needs: select
+    if: needs.select.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Create or update the release PR
+        uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          script: pnpm release:prepare
+          commit-message: "chore: release packages"
+          pr-title: "chore: release packages"
+
+  pack:
+    needs: select
+    if: needs.select.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.changesets.outputs.pack-dir-artifact-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,8 +89,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Check source and build
         run: pnpm check
-      - name: Pack and verify release consumers
-        run: pnpm release:verify
+      - name: Verify build artifacts
+        run: node scripts/verify-artifacts.ts
       - name: Check generated files
         run: |
           if [ -n "$(git status --porcelain)" ]; then
@@ -52,25 +98,16 @@ jobs:
             echo "::error::Generated files changed during the build."
             exit 1
           fi
-      - name: Prepare immutable release artifact
-        id: release
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-        run: node scripts/release-artifact.ts prepare .release "$RELEASE_VERSION"
-      - name: Upload verified tarball and release metadata
-        id: upload
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Pack releases
+        id: changesets
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          name: factbag-release-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .release/publish/*
-          if-no-files-found: error
-          retention-days: 14
+          publish-plan-artifact-id: ${{ needs.select.outputs.publish-plan-artifact-id }}
 
-  dry-run:
-    needs: build
-    if: inputs.dry-run
+  verify:
+    needs: pack
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -78,62 +115,46 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-          sparse-checkout: |
-            scripts/release-artifact.ts
-            tooling/github/verify-release/action.yml
-          sparse-checkout-cone-mode: false
-          path: release-tools
-      - name: Verify release artifact
-        uses: ./release-tools/tooling/github/verify-release
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          artifact-id: ${{ needs.build.outputs.artifact-id }}
-          version: ${{ needs.build.outputs.version }}
-          integrity: ${{ needs.build.outputs.integrity }}
+          node-version: "24"
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pack.outputs.artifact-id }}
+          path: .release
+          merge-multiple: true
+      - name: Verify the packed release and consumers
+        run: pnpm release:verify-packed
 
   publish:
-    needs: build
-    if: ${{ !inputs.dry-run }}
+    needs: [pack, verify]
+    if: ${{ github.event_name == 'push' || !inputs.dry-run }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     environment: npm
     permissions:
-      contents: read
+      contents: write
       id-token: write
+    env:
+      PNPM_CONFIG_PROVENANCE: "true"
+      PNPM_CONFIG_IGNORE_SCRIPTS: "true"
     steps:
-      # Only trusted release tooling is checked out. No dependencies or build caches
-      # enter the job with publishing authority, and package scripts never run.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-          sparse-checkout: |
-            scripts/release-artifact.ts
-            tooling/github/verify-release/action.yml
-          sparse-checkout-cone-mode: false
-          path: release-tools
-      - name: Verify approved artifact
-        uses: ./release-tools/tooling/github/verify-release
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          artifact-id: ${{ needs.build.outputs.artifact-id }}
-          version: ${{ needs.build.outputs.version }}
-          integrity: ${{ needs.build.outputs.integrity }}
-      - name: Publish with OIDC
-        run: npm publish ./candidate/factbag.tgz --access=public --tag=latest --ignore-scripts --provenance --registry=https://registry.npmjs.org
-
-  tag:
-    needs: [build, publish]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - name: Create release tag after publication
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_VERSION: ${{ needs.build.outputs.version }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="factbag@$RELEASE_VERSION"
-          gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA"
+          node-version: "24"
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # Changesets publishes the same immutable artifact checked by the verify job.
+      # No package build or lifecycle scripts run in this job.
+      - name: Publish packages and create GitHub releases
+        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.artifact-id }}

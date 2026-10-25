@@ -67,6 +67,7 @@ const recursiveRule = {
 } as const;
 
 const Tmp0 = variable("$tmp0");
+const Tmp1 = variable("$tmp1");
 
 const directOwnershipJudgment = {
   value: "true",
@@ -126,6 +127,7 @@ const recursiveBodyBindings = [
   [ParentBps, 7_500],
   [ChildBps, 7_000],
   [Tmp0, 52_500_000],
+  [Tmp1, 5_250],
 ] as const;
 
 const recursiveOwnershipJudgment = {
@@ -175,9 +177,14 @@ const recursiveOwnershipJudgment = {
                 },
                 {
                   kind: "div",
-                  bind: EffectiveBps,
+                  bind: Tmp1,
                   left: Tmp0,
                   right: 10_000,
+                },
+                {
+                  kind: "eq",
+                  left: EffectiveBps,
+                  right: Tmp1,
                 },
                 {
                   kind: "gt",
@@ -237,9 +244,14 @@ const recursiveOwnershipJudgment = {
                     },
                     {
                       kind: "div",
-                      bind: EffectiveBps,
+                      bind: Tmp1,
                       left: Tmp0,
                       right: 10_000,
+                    },
+                    {
+                      kind: "eq",
+                      left: EffectiveBps,
+                      right: Tmp1,
                     },
                     {
                       kind: "gt",
@@ -280,7 +292,7 @@ const recursiveOwnershipJudgment = {
                         value: "true",
                         goal: {
                           kind: "div",
-                          bind: EffectiveBps,
+                          bind: Tmp1,
                           left: Tmp0,
                           right: 10_000,
                         },
@@ -293,8 +305,23 @@ const recursiveOwnershipJudgment = {
                               operands: [52_500_000, 10_000],
                               value: "true",
                               result: 5_250,
-                              results: [[EffectiveBps, 5_250]],
+                              results: [[Tmp1, 5_250]],
                               range: { lower: 5_250, upper: 5_250 },
+                            },
+                          },
+                        ],
+                      },
+                      {
+                        value: "true",
+                        goal: { kind: "eq", left: EffectiveBps, right: Tmp1 },
+                        bindings: recursiveBodyBindings,
+                        positive: [
+                          {
+                            source: "primitive",
+                            evaluation: {
+                              operation: "eq",
+                              operands: [5_250, 5_250],
+                              value: "true",
                             },
                           },
                         ],
