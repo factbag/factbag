@@ -40,6 +40,10 @@
     "./resolve": {
       "types": "./dist/resolve.d.ts",
       "import": "./dist/resolve.js"
+    },
+    "./staged": {
+      "types": "./dist/staged.d.ts",
+      "import": "./dist/staged.js"
     }
   },
   "engines": {
@@ -49,10 +53,11 @@
     "access": "public"
   },
   "scripts": {
-    "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json",
-    "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json",
-    "build": "node ../../scripts/clean-output.ts dist && tsup src/classifier.ts src/errors.ts src/resolve.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json && api-extractor run --local --config api-extractor.staged.json",
+    "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json && api-extractor run --config api-extractor.staged.json",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/classifier.ts src/errors.ts src/resolve.ts src/staged.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "demo": "tsx examples/run.ts",
+    "demo:staged": "tsx examples/staged-comparison.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

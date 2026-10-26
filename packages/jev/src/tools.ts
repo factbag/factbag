@@ -12,7 +12,7 @@ import type {
   Tool,
 } from "./types";
 
-type CandidateValue = boolean | string | number | Date | Entity;
+export type CandidateValue = boolean | string | number | Date | Entity;
 
 /**
  * How many candidates one request may ask about. Accuracy holds to roughly a hundred
@@ -61,7 +61,7 @@ function batches(
   return slices;
 }
 
-function validatePredicate(
+export function validatePredicate(
   predicate: PredicateDeclaration,
   kb: KnowledgeBase,
   domains: ScalarDomains,
@@ -208,7 +208,7 @@ function enumerateCandidates(
 }
 
 /** Field values as JSON: dates as ISO strings, entities as snapshots, other scalars as is. */
-function encodeValue(value: CandidateValue): JsonValue {
+export function encodeValue(value: CandidateValue): JsonValue {
   if (value instanceof Date) {
     return value.toISOString();
   }
@@ -223,7 +223,7 @@ function encodeValue(value: CandidateValue): JsonValue {
  * a transfer from a party to itself, is not a proposition worth a question: it spends budget
  * and competes with the real candidates for the model's attention.
  */
-function distinctEntities(fields: Readonly<Record<string, CandidateValue>>): boolean {
+export function distinctEntities(fields: Readonly<Record<string, CandidateValue>>): boolean {
   const entities = Object.values(fields).filter(
     (value) => typeof value === "object" && !(value instanceof Date),
   );
@@ -237,7 +237,7 @@ function encodeEntity(entity: Entity): JsonValue {
 }
 
 /** The candidate values of one field, named so a scalar field can take values by name. */
-function fieldValues(
+export function fieldValues(
   type: SupportedField,
   name: string,
   kb: KnowledgeBase,
