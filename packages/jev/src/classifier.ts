@@ -15,7 +15,13 @@ import { prepareTools } from "./tools";
 
 export type { ClassifierClient, ClassificationQuestions } from "./client";
 export type { AdmissionPolicy, Assessment, ClassificationJob, RequestConfig } from "./jobs";
-export type { EvidenceChoice, Outcome, SupportedField, SupportedPredicate } from "./types";
+export type {
+  EvidenceChoice,
+  Outcome,
+  ScalarDomains,
+  SupportedField,
+  SupportedPredicate,
+} from "./types";
 
 /**
  * A single-cursor stream of jobs and their shared, independently stored output.
@@ -41,7 +47,7 @@ export function classifier<M extends Metadata = Metadata>(
   const admission = admissionPolicy(config.admission);
   // A bare KB carries no permission policy, so normalize it to unrestricted access.
   const baseline = (input instanceof GuardedKB ? input : guard(input).permit("*")).fork();
-  const tools = prepareTools(baseline);
+  const tools = prepareTools(baseline, config.domains ?? {});
   const output = baseline.kb.fork();
   // The whole corpus, as its documents at construction time.
   const documents = corpus.documents();

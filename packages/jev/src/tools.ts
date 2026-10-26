@@ -3,9 +3,16 @@ import type { KnowledgeBase } from "@factbag/core/kb";
 import type { GuardedKB } from "@factbag/guards";
 import type { JsonValue } from "@typesafe-ai/sdk";
 import { UnsupportedPredicateError } from "./errors";
-import type { Action, Candidate, SupportedField, SupportedPredicate, Tool } from "./types";
+import type {
+  Action,
+  Candidate,
+  ScalarDomains,
+  SupportedField,
+  SupportedPredicate,
+  Tool,
+} from "./types";
 
-type CandidateValue = boolean | string | Entity;
+type CandidateValue = boolean | string | number | Date | Entity;
 
 /**
  * How many candidates one request may ask about. Accuracy holds to roughly a hundred
@@ -17,11 +24,11 @@ const maximumCandidatesPerRequest = 64;
 
 /**
  * Validate all exposed predicates before any corpus traversal or remote requests,
- * and enumerate each one's candidates once against the KB. A predicate with more
- * candidates than one request may carry becomes several tools, each with a slice of
- * them. Query grants are excluded.
+ * and enumerate each one's candidates once against the KB and the scalar domains. A
+ * predicate with more candidates than one request may carry becomes several tools, each
+ * with a slice of them. Query grants are excluded.
  */
-export function prepareTools(access: GuardedKB): readonly Tool[] {
+export function prepareTools(access: GuardedKB, domains: ScalarDomains): readonly Tool[] {
   const actions = new Map<PredicateDeclaration, Set<Action>>();
   for (const { operation, predicate } of access.resolve()) {
     if (operation !== "query") {
@@ -29,8 +36,8 @@ export function prepareTools(access: GuardedKB): readonly Tool[] {
     }
   }
   return [...actions].flatMap(([predicate, permitted]) => {
-    const supported = validatePredicate(predicate, access.kb);
-    const candidates = enumerateCandidates(supported, access.kb);
+    const supported = validatePredicate(predicate, access.kb, domains);
+    const candidates = enumerateCandidates(supported, access.kb, domains);
     return batches(candidates, maximumCandidatesPerRequest).map((slice) => ({
       predicate: supported,
       actions: permitted,
@@ -54,7 +61,11 @@ function batches(
   return slices;
 }
 
-function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): SupportedPredicate {
+function validatePredicate(
+  predicate: PredicateDeclaration,
+  kb: KnowledgeBase,
+  domains: ScalarDomains,
+): SupportedPredicate {
   if (predicate.metadata === undefined || predicate.metadata.description.trim().length === 0) {
     throw new UnsupportedPredicateError(
       `Cannot classify predicate "${predicate.name}": metadata needs a description`,
@@ -64,7 +75,7 @@ function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): 
   if (Object.keys(predicate.params).length !== predicate.paramNames.length) {
     throw new UnsupportedPredicateError(`Invalid schema for ${predicate.name}`, predicate);
   }
-  assertSupportedType(predicate);
+  assertSupportedType(predicate, domains);
   for (const name of predicate.paramNames) {
     const type = predicate.params[name];
     if (type === undefined) {
@@ -86,6 +97,14 @@ function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): 
           name,
         );
       }
+    } else if (isScalarConstructor(type)) {
+      if (scalarDomain(type, name, domains).length === 0) {
+        throw new UnsupportedPredicateError(
+          `No candidate values for ${predicate.name}.${name}: supply domains.${type.name} or domains.fields.${name}`,
+          predicate,
+          name,
+        );
+      }
     } else if (type !== Boolean && kb.entities.ids(type).length === 0) {
       throw new UnsupportedPredicateError(
         `No registered entities for ${predicate.name}.${name}`,
@@ -99,12 +118,16 @@ function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): 
 
 function assertSupportedType(
   predicate: PredicateDeclaration,
+  domains: ScalarDomains,
 ): asserts predicate is SupportedPredicate {
   for (const name of predicate.paramNames) {
     const type = predicate.params[name];
-    if (type === String || type === Number || type === Date || type === undefined) {
+    if (
+      type === undefined ||
+      (isScalarConstructor(type) && !(type.name in domains) && domains.fields?.[name] === undefined)
+    ) {
       throw new UnsupportedPredicateError(
-        `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), or registered entities.`,
+        `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), registered entities, or supply candidate values in domains.`,
         predicate,
         name,
       );
@@ -112,9 +135,57 @@ function assertSupportedType(
   }
 }
 
+type ScalarConstructor = DateConstructor | NumberConstructor | StringConstructor;
+
+function isScalarConstructor(type: unknown): type is ScalarConstructor {
+  return type === Date || type === Number || type === String;
+}
+
+/**
+ * The deduplicated candidate values supplied for one scalar field: the values given under
+ * its name, else the values given for its constructor. A value of another type than the
+ * field's is a configuration error, not a candidate.
+ */
+function scalarDomain(
+  type: ScalarConstructor,
+  name: string,
+  domains: ScalarDomains,
+): readonly CandidateValue[] {
+  const values: readonly (Date | number | string)[] =
+    domains.fields?.[name] ??
+    (type === Date
+      ? (domains.Date ?? [])
+      : type === Number
+        ? (domains.Number ?? [])
+        : (domains.String ?? []));
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    if (!(type === Date ? value instanceof Date : typeof value === type.name.toLowerCase())) {
+      throw new Error(`domains.fields.${name} holds a value that is not a ${type.name}`);
+    }
+    const key = scalarKey(value);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function scalarKey(value: CandidateValue): string {
+  if (value instanceof Date) {
+    return `date:${value.getTime()}`;
+  }
+  if (typeof value === "number" || typeof value === "string") {
+    return `${typeof value}:${value}`;
+  }
+  throw new Error("Scalar domains hold only dates, numbers and strings");
+}
+
 function enumerateCandidates(
   predicate: SupportedPredicate,
   kb: KnowledgeBase,
+  domains: ScalarDomains,
 ): readonly Candidate[] {
   let combinations: Readonly<Record<string, CandidateValue>>[] = [{}];
   for (const name of predicate.paramNames) {
@@ -122,21 +193,29 @@ function enumerateCandidates(
     if (type === undefined) {
       throw new Error("A registered predicate's schema was modified");
     }
-    const values = fieldValues(type, kb);
+    const values = fieldValues(type, name, kb, domains);
     combinations = combinations.flatMap((fields) =>
       values.map((value) => ({ ...fields, [name]: value })),
     );
   }
   return combinations.filter(distinctEntities).map((fields, index) => {
     const encoded = Object.fromEntries(
-      Object.entries(fields).map(([name, value]) => [
-        name,
-        typeof value === "object" ? encodeEntity(value) : value,
-      ]),
+      Object.entries(fields).map(([name, value]) => [name, encodeValue(value)]),
     );
     const atom: GroundAtom = { predicate, fields: fields satisfies GroundFields };
     return { id: `candidate_${index}`, atom, fields: encoded };
   });
+}
+
+/** Field values as JSON: dates as ISO strings, entities as snapshots, other scalars as is. */
+function encodeValue(value: CandidateValue): JsonValue {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof value === "object") {
+    return encodeEntity(value);
+  }
+  return value;
 }
 
 /**
@@ -145,7 +224,9 @@ function enumerateCandidates(
  * and competes with the real candidates for the model's attention.
  */
 function distinctEntities(fields: Readonly<Record<string, CandidateValue>>): boolean {
-  const entities = Object.values(fields).filter((value) => typeof value === "object");
+  const entities = Object.values(fields).filter(
+    (value) => typeof value === "object" && !(value instanceof Date),
+  );
   return new Set(entities).size === entities.length;
 }
 
@@ -155,12 +236,21 @@ function encodeEntity(entity: Entity): JsonValue {
   return JSON.parse(JSON.stringify({ ...entity, type: entity.constructor.name })) as JsonValue;
 }
 
-function fieldValues(type: SupportedField, kb: KnowledgeBase): readonly CandidateValue[] {
+/** The candidate values of one field, named so a scalar field can take values by name. */
+function fieldValues(
+  type: SupportedField,
+  name: string,
+  kb: KnowledgeBase,
+  domains: ScalarDomains,
+): readonly CandidateValue[] {
   if (type === Boolean) {
     return [false, true];
   }
   if (typeof type === "object") {
     return type.values;
+  }
+  if (isScalarConstructor(type)) {
+    return scalarDomain(type, name, domains);
   }
   return kb.entities.ids(type).map((id) => {
     const entity = kb.entities.get(type, id);
