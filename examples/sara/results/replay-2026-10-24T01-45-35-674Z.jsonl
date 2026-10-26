@@ -1,0 +1,9 @@
+{"id":"remove_added_0","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":67.565625}
+{"id":"remove_added_1","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":48.255334000000005}
+{"id":"remove_added_2","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":42.81491700000001}
+{"id":"remove_added_3","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":44.808167000000026}
+{"id":"remove_added_4","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":40.52562499999999}
+{"id":"remove_added_5","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Contradiction","value":"false","solverMs":38.321541000000025}
+{"id":"remove_added_6","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":37.264707999999985}
+{"id":"remove_added_7","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":36.674041999999986}
+{"id":"remove_added_8","citation":"7703(b)(3)","gold":"Contradiction","before":"Entailment","predicted":"Entailment","value":"true","solverMs":36.57441700000004}

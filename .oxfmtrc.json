@@ -5,7 +5,9 @@
   "overrides": [
     {
       "files": ["./README.md"],
-      "options": { "printWidth": 80 }
+      "options": {
+        "printWidth": 80
+      }
     }
   ],
   "ignorePatterns": [
@@ -13,6 +15,7 @@
     "**/dist/**",
     "**/etc/*.api.md",
     "**/node_modules/**",
+    "**/results/**",
     ".turbo/**",
     "pnpm-lock.yaml"
   ]

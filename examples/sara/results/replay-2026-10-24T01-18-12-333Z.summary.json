@@ -1,0 +1,39 @@
+{
+  "facts": "train-2026-10-24T00-54-31-152Z.jsonl",
+  "extraction": "explicit-2026-10-24",
+  "run": {
+    "cases": 80,
+    "correct": 62,
+    "unanswered": 3,
+    "accuracy": 0.775,
+    "interval": [
+      0.675,
+      0.8625
+    ]
+  },
+  "before": {
+    "cases": 80,
+    "correct": 67,
+    "unanswered": 1,
+    "accuracy": 0.8375,
+    "interval": [
+      0.75,
+      0.9125
+    ]
+  },
+  "changed": {
+    "tax_case_19": "16664 -> 40676 (gold 16664)",
+    "tax_case_20": "96173 -> 98129 (gold 90683)",
+    "tax_case_29": "40889 -> none (gold 40741)",
+    "tax_case_59": "15236 -> 70474 (gold 15236)",
+    "tax_case_94": "63345 -> 64065 (gold 63345)",
+    "tax_case_97": "33069 -> 81425 (gold 33069)",
+    "tax_case_98": "14296 -> 37165 (gold 14296)",
+    "tax_case_91": "245271 -> none (gold 247432)"
+  },
+  "solverMs": {
+    "median": 140,
+    "max": 5789
+  },
+  "ranAt": "2026-10-24T01:18:12.333Z"
+}

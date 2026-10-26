@@ -1,0 +1,30 @@
+{
+  "facts": "train-2026-10-23T22-54-41-918Z.jsonl",
+  "extraction": "em-2026-10-23",
+  "run": {
+    "cases": 176,
+    "correct": 170,
+    "unanswered": 1,
+    "accuracy": 0.9659090909090909,
+    "interval": [
+      0.9375,
+      0.9886363636363636
+    ]
+  },
+  "before": {
+    "cases": 176,
+    "correct": 170,
+    "unanswered": 1,
+    "accuracy": 0.9659090909090909,
+    "interval": [
+      0.9375,
+      0.9886363636363636
+    ]
+  },
+  "changed": {},
+  "solverMs": {
+    "median": 31,
+    "max": 179
+  },
+  "ranAt": "2026-10-23T23:48:56.392Z"
+}

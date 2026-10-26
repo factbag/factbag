@@ -1,0 +1,93 @@
+{
+  "split": "train",
+  "model": "jev-1.13.0",
+  "extraction": "em-2026-10-23",
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "citations": [
+    "151(a)",
+    "63(c)(1)",
+    "63(c)(3)",
+    "3306(b)(15)",
+    "63(a)"
+  ],
+  "run": {
+    "cases": 10,
+    "correct": 9,
+    "unanswered": 0,
+    "accuracy": 0.9,
+    "interval": [
+      0.7,
+      1
+    ]
+  },
+  "entailment": {
+    "cases": 10,
+    "correct": 9,
+    "unanswered": 0,
+    "accuracy": 0.9,
+    "interval": [
+      0.7,
+      1
+    ]
+  },
+  "numeric": {
+    "cases": 0,
+    "correct": 0,
+    "unanswered": 0,
+    "accuracy": 0,
+    "interval": [
+      0,
+      0
+    ]
+  },
+  "numericNear": {
+    "withinOneDollar": 0,
+    "withinOnePercent": 0
+  },
+  "withSkipped": {
+    "cases": 10,
+    "correct": 9,
+    "unanswered": 0,
+    "accuracy": 0.9,
+    "interval": [
+      0.7,
+      1
+    ]
+  },
+  "skipped": {},
+  "byCitation": {
+    "151(a)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "63(a)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(15)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(3)": {
+      "cases": 2,
+      "correct": 2
+    }
+  },
+  "requests": 586,
+  "inputTokens": 1462560,
+  "usdPerCase": 0.0061427520000000005,
+  "latencyMs": {
+    "median": 1135,
+    "max": 2306
+  },
+  "solverMs": {
+    "median": 52,
+    "max": 86
+  },
+  "wallMs": 5626.414625,
+  "ranAt": "2026-10-23T23:00:56.481Z"
+}

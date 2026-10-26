@@ -1,0 +1,560 @@
+{
+  "split": "train",
+  "model": "jev-1.13.0",
+  "extraction": "explicit-2026-10-24",
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "citations": "all",
+  "run": {
+    "cases": 176,
+    "correct": 169,
+    "unanswered": 0,
+    "accuracy": 0.9602272727272727,
+    "interval": [
+      0.9261363636363636,
+      0.9886363636363636
+    ]
+  },
+  "entailment": {
+    "cases": 176,
+    "correct": 169,
+    "unanswered": 0,
+    "accuracy": 0.9602272727272727,
+    "interval": [
+      0.9261363636363636,
+      0.9886363636363636
+    ]
+  },
+  "numeric": {
+    "cases": 0,
+    "correct": 0,
+    "unanswered": 0,
+    "accuracy": 0,
+    "interval": [
+      0,
+      0
+    ]
+  },
+  "numericNear": {
+    "withinOneDollar": 0,
+    "withinOnePercent": 0
+  },
+  "withSkipped": {
+    "cases": 256,
+    "correct": 169,
+    "unanswered": 80,
+    "accuracy": 0.66015625,
+    "interval": [
+      0.60546875,
+      0.71875
+    ]
+  },
+  "skipped": {
+    "tax_case_1": "numeric, not run (none)",
+    "tax_case_10": "numeric, not run (none)",
+    "tax_case_100": "numeric, not run (none)",
+    "tax_case_11": "numeric, not run (none)",
+    "tax_case_12": "numeric, not run (none)",
+    "tax_case_13": "numeric, not run (none)",
+    "tax_case_14": "numeric, not run (none)",
+    "tax_case_15": "numeric, not run (none)",
+    "tax_case_16": "numeric, not run (none)",
+    "tax_case_17": "numeric, not run (none)",
+    "tax_case_18": "numeric, not run (none)",
+    "tax_case_19": "numeric, not run (none)",
+    "tax_case_2": "numeric, not run (none)",
+    "tax_case_20": "numeric, not run (none)",
+    "tax_case_21": "numeric, not run (none)",
+    "tax_case_22": "numeric, not run (none)",
+    "tax_case_23": "numeric, not run (none)",
+    "tax_case_24": "numeric, not run (none)",
+    "tax_case_25": "numeric, not run (none)",
+    "tax_case_26": "numeric, not run (none)",
+    "tax_case_27": "numeric, not run (none)",
+    "tax_case_29": "numeric, not run (none)",
+    "tax_case_3": "numeric, not run (none)",
+    "tax_case_32": "numeric, not run (none)",
+    "tax_case_33": "numeric, not run (none)",
+    "tax_case_35": "numeric, not run (none)",
+    "tax_case_36": "numeric, not run (none)",
+    "tax_case_37": "numeric, not run (none)",
+    "tax_case_38": "numeric, not run (none)",
+    "tax_case_39": "numeric, not run (none)",
+    "tax_case_4": "numeric, not run (none)",
+    "tax_case_40": "numeric, not run (none)",
+    "tax_case_41": "numeric, not run (none)",
+    "tax_case_42": "numeric, not run (none)",
+    "tax_case_44": "numeric, not run (none)",
+    "tax_case_45": "numeric, not run (none)",
+    "tax_case_47": "numeric, not run (none)",
+    "tax_case_5": "numeric, not run (none)",
+    "tax_case_50": "numeric, not run (none)",
+    "tax_case_51": "numeric, not run (none)",
+    "tax_case_52": "numeric, not run (none)",
+    "tax_case_54": "numeric, not run (none)",
+    "tax_case_55": "numeric, not run (none)",
+    "tax_case_56": "numeric, not run (none)",
+    "tax_case_58": "numeric, not run (none)",
+    "tax_case_59": "numeric, not run (none)",
+    "tax_case_6": "numeric, not run (none)",
+    "tax_case_60": "numeric, not run (none)",
+    "tax_case_61": "numeric, not run (none)",
+    "tax_case_62": "numeric, not run (none)",
+    "tax_case_63": "numeric, not run (none)",
+    "tax_case_64": "numeric, not run (none)",
+    "tax_case_65": "numeric, not run (none)",
+    "tax_case_66": "numeric, not run (none)",
+    "tax_case_67": "numeric, not run (none)",
+    "tax_case_7": "numeric, not run (none)",
+    "tax_case_70": "numeric, not run (none)",
+    "tax_case_71": "numeric, not run (none)",
+    "tax_case_72": "numeric, not run (none)",
+    "tax_case_73": "numeric, not run (none)",
+    "tax_case_74": "numeric, not run (none)",
+    "tax_case_76": "numeric, not run (none)",
+    "tax_case_79": "numeric, not run (none)",
+    "tax_case_8": "numeric, not run (none)",
+    "tax_case_80": "numeric, not run (none)",
+    "tax_case_81": "numeric, not run (none)",
+    "tax_case_83": "numeric, not run (none)",
+    "tax_case_84": "numeric, not run (none)",
+    "tax_case_86": "numeric, not run (none)",
+    "tax_case_87": "numeric, not run (none)",
+    "tax_case_88": "numeric, not run (none)",
+    "tax_case_89": "numeric, not run (none)",
+    "tax_case_91": "numeric, not run (none)",
+    "tax_case_92": "numeric, not run (none)",
+    "tax_case_94": "numeric, not run (none)",
+    "tax_case_95": "numeric, not run (none)",
+    "tax_case_96": "numeric, not run (none)",
+    "tax_case_97": "numeric, not run (none)",
+    "tax_case_98": "numeric, not run (none)",
+    "tax_case_99": "numeric, not run (none)"
+  },
+  "byCitation": {
+    "151(a)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "151(b)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "151(c)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "151(d)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "151(d)(3)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(b)(1)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "152(b)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(1)(E)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(c)(3)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(D)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(E)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(F)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)(i)": {
+      "cases": 4,
+      "correct": 4
+    },
+    "1(a)(ii)": {
+      "cases": 4,
+      "correct": 4
+    },
+    "1(a)(iii)": {
+      "cases": 4,
+      "correct": 4
+    },
+    "1(a)(iv)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)(v)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)(iii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)(iv)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)(v)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)(iv)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)(v)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)(iii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)(iv)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)(v)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(a)(1)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(a)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(a)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(1)(A)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "2(b)(1)(B)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "2(b)(1)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "2(b)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(2)(C)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(3)(B)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "3306(a)(1)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(a)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(a)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(a)(2)(B)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "3306(b)(10)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(10)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(11)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(15)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "3306(b)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(7)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(10)(A)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(10)(A)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(13)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(1)(A)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(21)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(5)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(a)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(2)(C)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(3)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(5)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(6)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(7)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(d)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(d)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(f)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(f)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(f)(3)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(a)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(b)(1)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(b)(1)(D)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(f)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "7703(a)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "7703(b)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "7703(b)(3)": {
+      "cases": 2,
+      "correct": 2
+    }
+  },
+  "failures": {},
+  "unclassified": {
+    "additional_amount_63f": 121,
+    "additional_amount_63f_in": 121,
+    "aged": 56,
+    "agricultural_labor": 65,
+    "blind_since": 73,
+    "blind_until": 73,
+    "born": 73,
+    "child_of": 65,
+    "committed_to_penal_institution_since": 73,
+    "committed_to_penal_institution_until": 73,
+    "deduction_151c": 65,
+    "deduction_151c_in": 65,
+    "dependent_152": 65,
+    "dependent_152_in": 65,
+    "died": 73,
+    "disabled_since": 73,
+    "disabled_until": 73,
+    "domestic_service": 65,
+    "employed": 65,
+    "employed_in": 65,
+    "employed_on": 75,
+    "employed_since": 75,
+    "employed_until": 75,
+    "enrolled_at_nursing_school_since": 73,
+    "enrolled_at_nursing_school_until": 73,
+    "enrolled_at_school_since": 73,
+    "enrolled_at_school_until": 73,
+    "exemption_151b": 65,
+    "exemption_151b_in": 65,
+    "gross_income": 56,
+    "home_cost_share": 56,
+    "hospital_patient_since": 73,
+    "hospital_patient_until": 73,
+    "joint_gross_income": 56,
+    "legally_separated": 75,
+    "maintains_home_since": 73,
+    "maintains_home_until": 73,
+    "married_on": 75,
+    "married_undated": 65,
+    "nonresident_alien_since": 73,
+    "nonresident_alien_until": 73,
+    "own_additional_amount_63f": 56,
+    "own_additional_amount_63f_in": 56,
+    "paid": 121,
+    "paid_in": 121,
+    "paid_in_kind": 65,
+    "paid_into_plan": 121,
+    "paid_on": 125,
+    "paid_under_employer_plan": 121,
+    "qualifying_child_152c": 65,
+    "qualifying_child_152c_in": 65,
+    "retired_since": 73,
+    "retired_until": 73,
+    "satisfies_152c2": 65,
+    "satisfies_152c2_in": 65,
+    "satisfies_152c3": 65,
+    "satisfies_152c3_in": 65,
+    "service_abroad": 65,
+    "service_outside_business": 65,
+    "shares_home": 65,
+    "shares_home_in": 65,
+    "shares_home_since": 75,
+    "shares_home_until": 75,
+    "sibling_of": 65,
+    "stated_amount": 56,
+    "stated_amount_in": 56,
+    "stepchild_of": 65,
+    "taxable_income": 56,
+    "termination_payment": 121
+  },
+  "requests": 13334,
+  "inputTokens": 43441999,
+  "usdPerCase": 0.010366840670454546,
+  "latencyMs": {
+    "median": 1909,
+    "max": 4557
+  },
+  "solverMs": {
+    "median": 38,
+    "max": 128
+  },
+  "wallMs": 164156.192041,
+  "ranAt": "2026-10-24T01:25:59.628Z"
+}
