@@ -1,0 +1,221 @@
+{
+  "dataset": {
+    "configuration": "data_089907f8",
+    "split": "test",
+    "files": [
+      "1.2_test.csv",
+      "1.3_test.csv",
+      "1.4_test.csv",
+      "1.5_test.csv",
+      "1.6_test.csv",
+      "1.7_test.csv",
+      "1.8_test.csv",
+      "1.9_test.csv",
+      "1.10_test.csv"
+    ]
+  },
+  "selection": {
+    "offset": 0
+  },
+  "model": "jev-1.13.0",
+  "extraction": "kin-3-2026-10-24",
+  "strategy": "staged",
+  "routing": {
+    "relevanceThreshold": 0.3,
+    "participantThreshold": 0.3,
+    "candidateProductCutoff": 16
+  },
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "run": {
+    "cases": 1146,
+    "correct": 414,
+    "unanswered": 690,
+    "accuracy": 0.3612565445026178,
+    "interval": [
+      0.33420593368237345,
+      0.38917975567190227
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 38,
+      "correct": 31,
+      "unanswered": 7,
+      "accuracy": 0.8157894736842105,
+      "interval": [
+        0.6842105263157895,
+        0.9210526315789473
+      ]
+    },
+    "3": {
+      "cases": 105,
+      "correct": 55,
+      "unanswered": 48,
+      "accuracy": 0.5238095238095238,
+      "interval": [
+        0.42857142857142855,
+        0.6190476190476191
+      ]
+    },
+    "4": {
+      "cases": 190,
+      "correct": 72,
+      "unanswered": 114,
+      "accuracy": 0.37894736842105264,
+      "interval": [
+        0.3105263157894737,
+        0.4473684210526316
+      ]
+    },
+    "5": {
+      "cases": 174,
+      "correct": 77,
+      "unanswered": 89,
+      "accuracy": 0.4425287356321839,
+      "interval": [
+        0.367816091954023,
+        0.5172413793103449
+      ]
+    },
+    "6": {
+      "cases": 107,
+      "correct": 51,
+      "unanswered": 51,
+      "accuracy": 0.4766355140186916,
+      "interval": [
+        0.38317757009345793,
+        0.5700934579439252
+      ]
+    },
+    "7": {
+      "cases": 144,
+      "correct": 55,
+      "unanswered": 79,
+      "accuracy": 0.3819444444444444,
+      "interval": [
+        0.3055555555555556,
+        0.4583333333333333
+      ]
+    },
+    "8": {
+      "cases": 150,
+      "correct": 40,
+      "unanswered": 106,
+      "accuracy": 0.26666666666666666,
+      "interval": [
+        0.2,
+        0.34
+      ]
+    },
+    "9": {
+      "cases": 119,
+      "correct": 21,
+      "unanswered": 95,
+      "accuracy": 0.17647058823529413,
+      "interval": [
+        0.1092436974789916,
+        0.24369747899159663
+      ]
+    },
+    "10": {
+      "cases": 119,
+      "correct": 12,
+      "unanswered": 101,
+      "accuracy": 0.10084033613445378,
+      "interval": [
+        0.05042016806722689,
+        0.15966386554621848
+      ]
+    }
+  },
+  "failures": {
+    "gender conflicting": 5,
+    "gender unknown": 17,
+    "no relation derived": 325,
+    "person not found": 85,
+    "several relations": 258
+  },
+  "attribution": {
+    "ambiguous under the benchmark's rules": 13,
+    "extraction: facts added": 117,
+    "extraction: gender": 9,
+    "extraction: gold facts missed": 72,
+    "extraction: gold facts missed and others added": 365,
+    "scanner: a named person not found": 156
+  },
+  "attributionByLength": {
+    "2": {
+      "extraction: gold facts missed": 7
+    },
+    "3": {
+      "extraction: gold facts missed": 7,
+      "extraction: facts added": 4,
+      "extraction: gold facts missed and others added": 19,
+      "scanner: a named person not found": 8,
+      "ambiguous under the benchmark's rules": 12
+    },
+    "4": {
+      "scanner: a named person not found": 73,
+      "extraction: gold facts missed": 14,
+      "extraction: gold facts missed and others added": 19,
+      "extraction: facts added": 9,
+      "extraction: gender": 2,
+      "ambiguous under the benchmark's rules": 1
+    },
+    "5": {
+      "extraction: gold facts missed and others added": 46,
+      "scanner: a named person not found": 14,
+      "extraction: facts added": 19,
+      "extraction: gold facts missed": 17,
+      "extraction: gender": 1
+    },
+    "6": {
+      "extraction: facts added": 10,
+      "extraction: gold facts missed": 7,
+      "extraction: gold facts missed and others added": 29,
+      "scanner: a named person not found": 9,
+      "extraction: gender": 1
+    },
+    "7": {
+      "extraction: gold facts missed and others added": 51,
+      "extraction: gold facts missed": 7,
+      "extraction: facts added": 20,
+      "scanner: a named person not found": 8,
+      "extraction: gender": 3
+    },
+    "8": {
+      "extraction: gold facts missed and others added": 62,
+      "scanner: a named person not found": 17,
+      "extraction: facts added": 23,
+      "extraction: gold facts missed": 8
+    },
+    "9": {
+      "scanner: a named person not found": 15,
+      "extraction: gold facts missed and others added": 59,
+      "extraction: gold facts missed": 4,
+      "extraction: facts added": 19,
+      "extraction: gender": 1
+    },
+    "10": {
+      "extraction: gold facts missed and others added": 80,
+      "extraction: facts added": 13,
+      "scanner: a named person not found": 12,
+      "extraction: gender": 1,
+      "extraction: gold facts missed": 1
+    }
+  },
+  "unclassified": {},
+  "requests": 11443,
+  "inputTokens": 136135289,
+  "usdPerCase": 0.004989251429319373,
+  "latencyMs": {
+    "median": 991,
+    "max": 8307
+  },
+  "solverMs": {
+    "median": 153,
+    "max": 2960
+  },
+  "wallMs": 566460.334333,
+  "ranAt": "2026-10-25T00:38:11.097Z"
+}

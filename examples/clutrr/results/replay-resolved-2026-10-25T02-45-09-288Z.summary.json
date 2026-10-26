@@ -1,0 +1,329 @@
+{
+  "facts": "test-staged-2026-10-25T00-38-11-097Z.jsonl",
+  "extraction": "kin-3-2026-10-24",
+  "resolution": {
+    "maxRounds": 2,
+    "violations": "stated_twice: two different relations stated between the same two people; conflicting_relations: two relations derived for the queried pair",
+    "storiesWithViolations": 378,
+    "storiesChanged": 98,
+    "retractedFacts": 1651,
+    "keptFacts": 2736,
+    "storiesUnresolved": 80,
+    "requests": 1138,
+    "inputTokens": 2720041,
+    "usdPerStory": 9.968736649214662e-05,
+    "latencyMs": {
+      "median": 5402,
+      "max": 28706
+    }
+  },
+  "run": {
+    "cases": 1146,
+    "correct": 491,
+    "unanswered": 596,
+    "accuracy": 0.42844677137870857,
+    "interval": [
+      0.39965095986038396,
+      0.4572425828970332
+    ]
+  },
+  "before": {
+    "cases": 1146,
+    "correct": 414,
+    "unanswered": 690,
+    "accuracy": 0.3612565445026178,
+    "interval": [
+      0.33420593368237345,
+      0.38917975567190227
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 38,
+      "correct": 31,
+      "unanswered": 7,
+      "accuracy": 0.8157894736842105,
+      "interval": [
+        0.6842105263157895,
+        0.9210526315789473
+      ]
+    },
+    "3": {
+      "cases": 105,
+      "correct": 56,
+      "unanswered": 47,
+      "accuracy": 0.5333333333333333,
+      "interval": [
+        0.4380952380952381,
+        0.6285714285714286
+      ]
+    },
+    "4": {
+      "cases": 190,
+      "correct": 77,
+      "unanswered": 107,
+      "accuracy": 0.4052631578947368,
+      "interval": [
+        0.3368421052631579,
+        0.47368421052631576
+      ]
+    },
+    "5": {
+      "cases": 174,
+      "correct": 90,
+      "unanswered": 74,
+      "accuracy": 0.5172413793103449,
+      "interval": [
+        0.4425287356321839,
+        0.5919540229885057
+      ]
+    },
+    "6": {
+      "cases": 107,
+      "correct": 58,
+      "unanswered": 42,
+      "accuracy": 0.5420560747663551,
+      "interval": [
+        0.4485981308411215,
+        0.6355140186915887
+      ]
+    },
+    "7": {
+      "cases": 144,
+      "correct": 68,
+      "unanswered": 64,
+      "accuracy": 0.4722222222222222,
+      "interval": [
+        0.3888888888888889,
+        0.5555555555555556
+      ]
+    },
+    "8": {
+      "cases": 150,
+      "correct": 55,
+      "unanswered": 88,
+      "accuracy": 0.36666666666666664,
+      "interval": [
+        0.29333333333333333,
+        0.44666666666666666
+      ]
+    },
+    "9": {
+      "cases": 119,
+      "correct": 32,
+      "unanswered": 81,
+      "accuracy": 0.2689075630252101,
+      "interval": [
+        0.19327731092436976,
+        0.35294117647058826
+      ]
+    },
+    "10": {
+      "cases": 119,
+      "correct": 24,
+      "unanswered": 86,
+      "accuracy": 0.20168067226890757,
+      "interval": [
+        0.13445378151260504,
+        0.2773109243697479
+      ]
+    }
+  },
+  "beforeByLength": {
+    "2": {
+      "cases": 38,
+      "correct": 31,
+      "unanswered": 7,
+      "accuracy": 0.8157894736842105,
+      "interval": [
+        0.6842105263157895,
+        0.9210526315789473
+      ]
+    },
+    "3": {
+      "cases": 105,
+      "correct": 55,
+      "unanswered": 48,
+      "accuracy": 0.5238095238095238,
+      "interval": [
+        0.42857142857142855,
+        0.6190476190476191
+      ]
+    },
+    "4": {
+      "cases": 190,
+      "correct": 72,
+      "unanswered": 114,
+      "accuracy": 0.37894736842105264,
+      "interval": [
+        0.3105263157894737,
+        0.4473684210526316
+      ]
+    },
+    "5": {
+      "cases": 174,
+      "correct": 77,
+      "unanswered": 89,
+      "accuracy": 0.4425287356321839,
+      "interval": [
+        0.367816091954023,
+        0.5172413793103449
+      ]
+    },
+    "6": {
+      "cases": 107,
+      "correct": 51,
+      "unanswered": 51,
+      "accuracy": 0.4766355140186916,
+      "interval": [
+        0.38317757009345793,
+        0.5700934579439252
+      ]
+    },
+    "7": {
+      "cases": 144,
+      "correct": 55,
+      "unanswered": 79,
+      "accuracy": 0.3819444444444444,
+      "interval": [
+        0.3055555555555556,
+        0.4583333333333333
+      ]
+    },
+    "8": {
+      "cases": 150,
+      "correct": 40,
+      "unanswered": 106,
+      "accuracy": 0.26666666666666666,
+      "interval": [
+        0.2,
+        0.34
+      ]
+    },
+    "9": {
+      "cases": 119,
+      "correct": 21,
+      "unanswered": 95,
+      "accuracy": 0.17647058823529413,
+      "interval": [
+        0.1092436974789916,
+        0.24369747899159663
+      ]
+    },
+    "10": {
+      "cases": 119,
+      "correct": 12,
+      "unanswered": 101,
+      "accuracy": 0.10084033613445378,
+      "interval": [
+        0.05042016806722689,
+        0.15966386554621848
+      ]
+    }
+  },
+  "changed": {
+    "6029341e-cecf-404c-99f0-1c5f88c3ff65": "none -> father (gold father)",
+    "1b22df18-84ba-4a1f-9a05-6d2380d55f90": "none -> nephew (gold nephew)",
+    "3fb1bc7e-6e4e-428c-b8d7-f31919d824ce": "none -> niece (gold niece)",
+    "7bdc93f7-6bd7-4a00-bd99-11ee8bab9aa9": "none -> brother (gold son)",
+    "7f113cf0-b92e-4b08-8e22-cecf20a64e4e": "none -> aunt (gold aunt)",
+    "ac46362b-345d-4d38-95c2-9eed867c0e6a": "none -> sister (gold sister)",
+    "f16e8463-c244-4570-9ec0-9865d304ab9c": "none -> daughter (gold daughter)",
+    "f842002f-a0b5-46ba-8656-c703a2702af0": "none -> aunt (gold niece)",
+    "0ab3b468-627a-47e7-8059-73915c24abba": "none -> grandfather (gold grandfather)",
+    "0cc7e43b-a3ab-40b1-8427-82800c4150e0": "none -> uncle (gold uncle)",
+    "420fd65b-1e7f-4311-9b73-0c6fe59a391a": "none -> granddaughter (gold granddaughter)",
+    "6fba980d-0349-4851-823d-ae76aba2a689": "none -> nephew (gold nephew)",
+    "80c9dc64-bd02-487a-b6b0-dabb0a924ecf": "none -> brother (gold brother)",
+    "8815fc96-d7b6-4d14-9fec-2e988ea1df0f": "none -> aunt (gold daughter)",
+    "9eea69e6-ad0d-44c5-9fbc-d3b42e097d14": "none -> niece (gold niece)",
+    "ad04f8ca-3a10-4b7e-bf06-987c653c9a75": "none -> grandson (gold brother)",
+    "ada012a3-3a1e-4933-9219-e2709871fcaa": "none -> granddaughter (gold granddaughter)",
+    "b024a934-60ee-4685-9d01-a5db2ad9b334": "none -> nephew (gold nephew)",
+    "bbb236fd-f06a-4271-aecd-5aeed481978b": "none -> aunt (gold aunt)",
+    "cfe4d4a9-42e7-4c28-8211-ef0624f252de": "none -> father (gold father)",
+    "d453ed41-ab11-4a7c-90ef-ea1f41462406": "none -> uncle (gold uncle)",
+    "de8e4c2c-f569-44df-bd5e-d9fec9609bd6": "none -> brother (gold brother)",
+    "f4f140f6-a2d1-48ed-8188-9272a9367f11": "none -> brother (gold brother)",
+    "3d61900e-7317-40d0-a149-67011c3b6465": "none -> granddaughter (gold granddaughter)",
+    "51acfa71-e083-4565-a5cd-682a819b5716": "none -> son (gold grandson)",
+    "61ab6485-902c-4a7b-ad17-bdba53d3d3ea": "none -> niece (gold niece)",
+    "6839f841-c54a-4b1e-a2af-da94fa7c9ebe": "niece -> none (gold niece)",
+    "8790f725-4820-48ae-a122-efbefdf83008": "none -> niece (gold niece)",
+    "8951e13a-a7d1-4af2-ac68-45a97061331c": "none -> niece (gold niece)",
+    "adf5e688-d24e-417b-82c0-1d31c283b2ad": "none -> granddaughter (gold granddaughter)",
+    "c4c981cf-a460-4b6b-b279-00dd7ab784b9": "none -> nephew (gold nephew)",
+    "d3d08cd5-3295-4f6d-853e-f8ece2c6221b": "none -> sister (gold sister)",
+    "dc3054c6-5aa5-487b-9381-05b94a4eaccd": "none -> uncle (gold uncle)",
+    "fed29def-a05e-414c-b17c-e39025a89e52": "none -> sister (gold aunt)",
+    "18f7ff63-06e1-4a15-842f-0486a4e7135c": "none -> niece (gold niece)",
+    "225a74f9-f232-407e-b35c-4d85c40da75a": "none -> nephew (gold nephew)",
+    "2c993d24-fc3d-43ed-9630-dcc674580987": "none -> uncle (gold uncle)",
+    "61b22567-0c5a-4088-8176-791f99b47b3f": "none -> sister (gold sister)",
+    "93c2b9fb-e6bd-4642-b7fb-dd6eb9f30f92": "none -> niece (gold niece)",
+    "a112d13f-1adf-4590-b295-2a94feea55ba": "none -> uncle (gold nephew)",
+    "a60b8e6e-cd44-415e-83ab-4cf54c50e932": "none -> brother (gold brother)",
+    "ce8f3a1b-b849-4d39-a00c-3d955cb894d3": "none -> nephew (gold nephew)",
+    "cf7f99d9-f7b0-4cc7-9f08-864ad835c168": "none -> brother (gold nephew)",
+    "d0944b62-7766-49de-89e3-98a9788b0746": "none -> granddaughter (gold granddaughter)",
+    "d187dddc-0dae-45ab-8c2b-1af7a9c5e7f1": "none -> nephew (gold nephew)",
+    "d54270d3-6375-4bbe-aecb-33c3dc00667e": "none -> grandson (gold grandson)",
+    "d71cd336-43b1-471e-8d73-ef9742e30edc": "none -> grandson (gold grandson)",
+    "e66eebb6-7676-4b2d-b86b-8b1bb9dc6f8e": "none -> daughter-in-law (gold daughter-in-law)",
+    "ea30b20c-fc1d-4793-8d5d-63cc42da9b3f": "none -> granddaughter (gold granddaughter)",
+    "0c195821-c6ea-4c26-a84a-b8b02243cde3": "none -> grandson (gold grandson)",
+    "211b0ab3-4eb4-4012-904c-6f33f4c5a6ea": "none -> grandfather (gold grandfather)",
+    "4df28e84-80b5-4bc0-8c7e-e4c65f743e46": "none -> grandmother (gold grandmother)",
+    "6b117ea4-be13-4a0d-84a3-d1eed485444e": "none -> niece (gold niece)",
+    "956e68a4-f930-4778-a9ae-0589f713e89a": "none -> uncle (gold nephew)",
+    "9b7d2988-8e10-41a7-86ef-191d42c41ff0": "none -> grandfather (gold grandfather)",
+    "9bd72a3f-82fc-45c7-ae18-3a9f62cda1a4": "none -> nephew (gold nephew)",
+    "9ec4b179-8313-4a1a-b868-e072d4c97354": "none -> son (gold grandson)",
+    "a40bb597-31b1-439e-967e-3161f2d608a5": "none -> niece (gold niece)",
+    "a623e290-2498-4c63-9f07-5821683d7ebb": "none -> father (gold nephew)",
+    "ad70aae9-df17-4f61-8a30-641e7fa5207e": "none -> niece (gold niece)",
+    "addf2ae1-07d5-4fc3-85c6-d187f102e349": "none -> brother (gold brother)",
+    "c2bfdfc2-4b34-408d-a028-2d4e9d474de9": "none -> aunt (gold aunt)",
+    "c5f2fbc1-d782-4c3b-b661-162b4df09abc": "none -> nephew (gold nephew)",
+    "dc345f8f-c87d-46b2-8b1e-961c87d65e6d": "none -> grandfather (gold grandfather)",
+    "debc37e9-4fe0-4278-827e-4139c824edd9": "none -> nephew (gold nephew)",
+    "e22c470c-fbbf-4b88-82a0-85615f0efcf6": "none -> niece (gold niece)",
+    "eba28c70-7177-46fc-8f16-0820ec655a85": "none -> aunt (gold aunt)",
+    "041dae7f-849c-41b5-b236-1fb687c7a4d2": "none -> mother (gold mother)",
+    "053d69aa-53df-465e-a8db-a077602f3a7e": "none -> father (gold nephew)",
+    "3d7fcd1f-99e9-4515-b4b9-83d24c0ba9f4": "none -> nephew (gold nephew)",
+    "50ba4cb1-c24d-4e3c-81aa-485cf3d1a040": "none -> brother (gold brother)",
+    "5354ce1c-a8f0-490e-85b5-f06d7d16cd57": "none -> brother (gold brother)",
+    "88584a00-dd6d-456c-873a-8f397726e135": "none -> uncle (gold uncle)",
+    "89812358-b53b-49df-bed3-462f441311f5": "none -> aunt (gold sister)",
+    "8dfa2746-b238-46b9-af9e-e476602c4dba": "none -> aunt (gold aunt)",
+    "93ad5b90-b2ae-4291-8db3-b85bd8907d4c": "none -> uncle (gold uncle)",
+    "9a1c457a-6a1d-43be-8d82-fd249edf88d1": "none -> brother (gold brother)",
+    "9f0b16e0-e757-4d8a-a83b-fc85316c46d0": "none -> father (gold nephew)",
+    "a3d2a0d8-acfa-417d-9d55-d063cc720373": "none -> niece (gold niece)",
+    "c3dc7607-7cdc-4699-a2f6-9ec3b269af38": "none -> brother (gold brother)",
+    "c971c750-f628-4168-ad76-9be67636baf3": "none -> niece (gold niece)",
+    "0fa7af13-53b6-47ab-8555-ab52bd61b366": "none -> aunt (gold aunt)",
+    "182831a7-ebee-42c6-9e28-0ee78c35a022": "none -> nephew (gold nephew)",
+    "2a759e28-4f11-4704-b98d-7a58ce886ab2": "none -> sister (gold aunt)",
+    "32b51f6e-9240-4979-a1c4-2793c9b6578a": "none -> brother (gold brother)",
+    "59c7c514-c4d9-4898-ad07-6d5e1eaf1f52": "none -> uncle (gold uncle)",
+    "6b73ec45-bd7a-48ac-8287-cf769aa1643c": "aunt -> none (gold grandmother)",
+    "86684097-ca77-4a48-bb59-cabc853cadf4": "none -> grandson (gold grandson)",
+    "a2f54750-a00c-4c53-96bf-3ba7dc32b42b": "none -> granddaughter (gold niece)",
+    "a36a37d9-43ef-4662-8efc-1fd1991e02d2": "none -> aunt (gold aunt)",
+    "b1edc5ff-7872-4372-8007-5f5a68b59ccf": "none -> niece (gold niece)",
+    "bb0ebe0e-ae59-471d-9ead-9d1c9b174262": "none -> nephew (gold nephew)",
+    "d224af93-668f-4e45-84fd-681bb735d20a": "none -> granddaughter (gold sister)",
+    "d4164de6-1894-4ce2-8fff-7528f7a26689": "none -> grandmother (gold grandmother)",
+    "e0d417cd-2bf5-4da5-bdd1-58be2df83fda": "none -> brother (gold brother)",
+    "e5da0404-19b5-4278-b033-9f4e35f4b97d": "none -> son (gold son)",
+    "eb2e4d96-b2db-4078-94a4-ee807954ee0f": "none -> grandson (gold grandson)",
+    "f80942ce-590e-4471-9115-6e31d338872e": "none -> father (gold nephew)"
+  },
+  "solverMs": {
+    "median": 140,
+    "max": 2415
+  },
+  "ranAt": "2026-10-25T02:45:09.288Z"
+}

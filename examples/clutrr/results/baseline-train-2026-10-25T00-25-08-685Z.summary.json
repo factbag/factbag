@@ -1,0 +1,81 @@
+{
+  "kind": "direct-baseline",
+  "promptVersion": "direct-1",
+  "dataset": {
+    "configuration": "data_089907f8",
+    "split": "train",
+    "files": [
+      "1.2,1.3_train.csv"
+    ]
+  },
+  "selection": {
+    "perLength": 50,
+    "offset": 50
+  },
+  "model": "jev-1.13.0",
+  "labels": [
+    "son",
+    "daughter",
+    "father",
+    "mother",
+    "husband",
+    "wife",
+    "brother",
+    "sister",
+    "grandson",
+    "granddaughter",
+    "grandfather",
+    "grandmother",
+    "son-in-law",
+    "daughter-in-law",
+    "father-in-law",
+    "mother-in-law",
+    "brother-in-law",
+    "sister-in-law",
+    "nephew",
+    "niece",
+    "uncle",
+    "aunt"
+  ],
+  "run": {
+    "cases": 100,
+    "correct": 81,
+    "unanswered": 0,
+    "accuracy": 0.81,
+    "interval": [
+      0.73,
+      0.88
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 43,
+      "unanswered": 0,
+      "accuracy": 0.86,
+      "interval": [
+        0.76,
+        0.94
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 38,
+      "unanswered": 0,
+      "accuracy": 0.76,
+      "interval": [
+        0.64,
+        0.88
+      ]
+    }
+  },
+  "requests": 100,
+  "inputTokens": 87101,
+  "usdPerCase": 0.000036582420000000005,
+  "latencyMs": {
+    "median": 65,
+    "max": 321
+  },
+  "wallMs": 1911.588167,
+  "ranAt": "2026-10-25T00:25:08.685Z"
+}

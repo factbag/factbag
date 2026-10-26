@@ -1,0 +1,99 @@
+{
+  "dataset": {
+    "configuration": "data_089907f8",
+    "split": "train",
+    "files": [
+      "1.2,1.3_train.csv"
+    ]
+  },
+  "selection": {
+    "perLength": 50,
+    "offset": 50
+  },
+  "model": "jev-1.13.0",
+  "extraction": "kin-4-2026-10-25",
+  "strategy": "staged",
+  "routing": {
+    "relevanceThreshold": 0.3,
+    "participantThreshold": 0.3,
+    "candidateProductCutoff": 16
+  },
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "resolution": "none",
+  "run": {
+    "cases": 100,
+    "correct": 76,
+    "unanswered": 21,
+    "accuracy": 0.76,
+    "interval": [
+      0.68,
+      0.84
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 40,
+      "unanswered": 8,
+      "accuracy": 0.8,
+      "interval": [
+        0.68,
+        0.9
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 36,
+      "unanswered": 13,
+      "accuracy": 0.72,
+      "interval": [
+        0.6,
+        0.84
+      ]
+    }
+  },
+  "failures": {
+    "gender unknown": 4,
+    "no relation derived": 10,
+    "person not found": 2,
+    "several relations": 5
+  },
+  "attribution": {
+    "ambiguous under the benchmark's rules": 1,
+    "extraction: facts added": 3,
+    "extraction: gender": 4,
+    "extraction: gold facts missed": 4,
+    "extraction: gold facts missed and others added": 10,
+    "scanner: a named person not found": 2
+  },
+  "attributionByLength": {
+    "2": {
+      "extraction: gold facts missed": 1,
+      "extraction: gold facts missed and others added": 5,
+      "extraction: gender": 3,
+      "scanner: a named person not found": 1
+    },
+    "3": {
+      "extraction: gender": 1,
+      "scanner: a named person not found": 1,
+      "extraction: gold facts missed and others added": 5,
+      "extraction: facts added": 3,
+      "ambiguous under the benchmark's rules": 1,
+      "extraction: gold facts missed": 3
+    }
+  },
+  "unclassified": {},
+  "requests": 639,
+  "inputTokens": 2461907,
+  "usdPerCase": 0.0010340009400000001,
+  "latencyMs": {
+    "median": 279,
+    "max": 687
+  },
+  "solverMs": {
+    "median": 24,
+    "max": 63
+  },
+  "wallMs": 9979.289707999998,
+  "ranAt": "2026-10-25T01:55:42.266Z"
+}

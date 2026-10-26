@@ -1,0 +1,94 @@
+{
+  "dataset": {
+    "configuration": "data_089907f8",
+    "split": "train",
+    "files": [
+      "1.2,1.3_train.csv"
+    ]
+  },
+  "selection": {
+    "perLength": 50,
+    "offset": 0
+  },
+  "model": "jev-1.13.0",
+  "extraction": "kin-4-2026-10-25",
+  "strategy": "staged",
+  "routing": {
+    "relevanceThreshold": 0.3,
+    "participantThreshold": 0.3,
+    "candidateProductCutoff": 16
+  },
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "resolution": "none",
+  "run": {
+    "cases": 100,
+    "correct": 84,
+    "unanswered": 16,
+    "accuracy": 0.84,
+    "interval": [
+      0.77,
+      0.91
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 44,
+      "unanswered": 6,
+      "accuracy": 0.88,
+      "interval": [
+        0.78,
+        0.96
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 40,
+      "unanswered": 10,
+      "accuracy": 0.8,
+      "interval": [
+        0.68,
+        0.9
+      ]
+    }
+  },
+  "failures": {
+    "gender unknown": 2,
+    "no relation derived": 12,
+    "several relations": 2
+  },
+  "attribution": {
+    "ambiguous under the benchmark's rules": 1,
+    "extraction: facts added": 2,
+    "extraction: gender": 1,
+    "extraction: gold facts missed": 9,
+    "extraction: gold facts missed and others added": 3
+  },
+  "attributionByLength": {
+    "2": {
+      "extraction: gold facts missed": 3,
+      "extraction: gender": 1,
+      "extraction: gold facts missed and others added": 2
+    },
+    "3": {
+      "extraction: gold facts missed": 6,
+      "extraction: gold facts missed and others added": 1,
+      "extraction: facts added": 2,
+      "ambiguous under the benchmark's rules": 1
+    }
+  },
+  "unclassified": {},
+  "requests": 636,
+  "inputTokens": 2513528,
+  "usdPerCase": 0.0010556817600000002,
+  "latencyMs": {
+    "median": 285,
+    "max": 509
+  },
+  "solverMs": {
+    "median": 28,
+    "max": 59
+  },
+  "wallMs": 9908.386667,
+  "ranAt": "2026-10-25T01:55:31.742Z"
+}

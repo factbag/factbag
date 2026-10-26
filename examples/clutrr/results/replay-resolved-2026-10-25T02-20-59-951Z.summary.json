@@ -1,0 +1,95 @@
+{
+  "facts": "train-staged-2026-10-25T01-55-42-266Z.jsonl",
+  "extraction": "kin-4-2026-10-25",
+  "resolution": {
+    "maxRounds": 2,
+    "violations": "stated_twice: two different relations stated between the same two people",
+    "storiesWithViolations": 7,
+    "storiesChanged": 4,
+    "retractedFacts": 8,
+    "keptFacts": 22,
+    "storiesUnresolved": 1,
+    "requests": 14,
+    "inputTokens": 18936,
+    "usdPerStory": 0.00000795312,
+    "latencyMs": {
+      "median": 1291,
+      "max": 4660
+    }
+  },
+  "run": {
+    "cases": 100,
+    "correct": 79,
+    "unanswered": 17,
+    "accuracy": 0.79,
+    "interval": [
+      0.71,
+      0.86
+    ]
+  },
+  "before": {
+    "cases": 100,
+    "correct": 76,
+    "unanswered": 21,
+    "accuracy": 0.76,
+    "interval": [
+      0.68,
+      0.84
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 40,
+      "unanswered": 8,
+      "accuracy": 0.8,
+      "interval": [
+        0.68,
+        0.9
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 39,
+      "unanswered": 9,
+      "accuracy": 0.78,
+      "interval": [
+        0.66,
+        0.88
+      ]
+    }
+  },
+  "beforeByLength": {
+    "2": {
+      "cases": 50,
+      "correct": 40,
+      "unanswered": 8,
+      "accuracy": 0.8,
+      "interval": [
+        0.68,
+        0.9
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 36,
+      "unanswered": 13,
+      "accuracy": 0.72,
+      "interval": [
+        0.6,
+        0.84
+      ]
+    }
+  },
+  "changed": {
+    "2b5611a0-a406-4333-97b5-71cd0ad5c1c1": "none -> daughter (gold sister)",
+    "34e5cf45-f9c7-46b1-9dea-281a58d9a98f": "none -> grandfather (gold grandfather)",
+    "95f22e10-da0c-4adb-b365-173338f528ce": "none -> aunt (gold aunt)",
+    "b746fc30-9f4d-4244-9e7f-77ba450726df": "none -> niece (gold niece)"
+  },
+  "solverMs": {
+    "median": 28,
+    "max": 82
+  },
+  "ranAt": "2026-10-25T02:20:59.951Z"
+}

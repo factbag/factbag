@@ -1,0 +1,29 @@
+{
+  "name": "@factbag/clutrr-eval",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "eval": "tsx src/run.ts",
+    "baseline": "tsx src/baseline.ts",
+    "replay": "tsx src/replay.ts",
+    "compare": "tsx src/compare.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/eval-shared": "workspace:*",
+    "@factbag/jev": "workspace:*",
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@typesafe-ai/sdk": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

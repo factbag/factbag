@@ -1,0 +1,91 @@
+{
+  "dataset": {
+    "configuration": "data_089907f8",
+    "split": "train",
+    "files": [
+      "1.2,1.3_train.csv"
+    ]
+  },
+  "selection": {
+    "perLength": 50,
+    "offset": 0
+  },
+  "model": "jev-1.13.0",
+  "extraction": "kin-1-2026-10-24",
+  "strategy": "staged",
+  "routing": {
+    "relevanceThreshold": 0.3,
+    "participantThreshold": 0.3,
+    "candidateProductCutoff": 16
+  },
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "run": {
+    "cases": 100,
+    "correct": 81,
+    "unanswered": 19,
+    "accuracy": 0.81,
+    "interval": [
+      0.73,
+      0.89
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 43,
+      "unanswered": 7,
+      "accuracy": 0.86,
+      "interval": [
+        0.76,
+        0.94
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 38,
+      "unanswered": 12,
+      "accuracy": 0.76,
+      "interval": [
+        0.64,
+        0.88
+      ]
+    }
+  },
+  "failures": {
+    "gender unknown": 1,
+    "no relation derived": 14,
+    "several relations": 4
+  },
+  "attribution": {
+    "extraction: facts added": 4,
+    "extraction: gender": 1,
+    "extraction: gold facts missed": 11,
+    "extraction: gold facts missed and others added": 3
+  },
+  "attributionByLength": {
+    "2": {
+      "extraction: gold facts missed": 4,
+      "extraction: gender": 1,
+      "extraction: gold facts missed and others added": 2
+    },
+    "3": {
+      "extraction: gold facts missed": 7,
+      "extraction: gold facts missed and others added": 1,
+      "extraction: facts added": 4
+    }
+  },
+  "unclassified": {},
+  "requests": 629,
+  "inputTokens": 2276653,
+  "usdPerCase": 0.0009561942600000001,
+  "latencyMs": {
+    "median": 280,
+    "max": 520
+  },
+  "solverMs": {
+    "median": 26,
+    "max": 58
+  },
+  "wallMs": 9739.131374999999,
+  "ranAt": "2026-10-25T00:21:02.618Z"
+}

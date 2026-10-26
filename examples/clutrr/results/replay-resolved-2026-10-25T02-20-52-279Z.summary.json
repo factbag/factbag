@@ -1,0 +1,92 @@
+{
+  "facts": "train-staged-2026-10-25T01-55-31-742Z.jsonl",
+  "extraction": "kin-4-2026-10-25",
+  "resolution": {
+    "maxRounds": 2,
+    "violations": "stated_twice: two different relations stated between the same two people",
+    "storiesWithViolations": 4,
+    "storiesChanged": 1,
+    "retractedFacts": 4,
+    "keptFacts": 11,
+    "storiesUnresolved": 1,
+    "requests": 9,
+    "inputTokens": 9793,
+    "usdPerStory": 0.00000411306,
+    "latencyMs": {
+      "median": 1945,
+      "max": 4104
+    }
+  },
+  "run": {
+    "cases": 100,
+    "correct": 85,
+    "unanswered": 15,
+    "accuracy": 0.85,
+    "interval": [
+      0.78,
+      0.92
+    ]
+  },
+  "before": {
+    "cases": 100,
+    "correct": 84,
+    "unanswered": 16,
+    "accuracy": 0.84,
+    "interval": [
+      0.77,
+      0.91
+    ]
+  },
+  "byLength": {
+    "2": {
+      "cases": 50,
+      "correct": 44,
+      "unanswered": 6,
+      "accuracy": 0.88,
+      "interval": [
+        0.78,
+        0.96
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 41,
+      "unanswered": 9,
+      "accuracy": 0.82,
+      "interval": [
+        0.7,
+        0.92
+      ]
+    }
+  },
+  "beforeByLength": {
+    "2": {
+      "cases": 50,
+      "correct": 44,
+      "unanswered": 6,
+      "accuracy": 0.88,
+      "interval": [
+        0.78,
+        0.96
+      ]
+    },
+    "3": {
+      "cases": 50,
+      "correct": 40,
+      "unanswered": 10,
+      "accuracy": 0.8,
+      "interval": [
+        0.68,
+        0.9
+      ]
+    }
+  },
+  "changed": {
+    "9e8d3dcc-6376-495e-ae9a-31c50638d8b4": "none -> uncle (gold uncle)"
+  },
+  "solverMs": {
+    "median": 27,
+    "max": 58
+  },
+  "ranAt": "2026-10-25T02:20:52.279Z"
+}
