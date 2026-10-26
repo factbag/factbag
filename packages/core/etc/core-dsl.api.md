@@ -79,7 +79,13 @@ export type Entity = Readonly<{
 export function enumeration<const Value extends string>(first: Value, ...rest: readonly Value[]): EnumType<Value>;
 
 // @public
-export type EnumType<Value extends string = string> = Readonly<{
+export function enumeration<const Value extends number>(first: Value, ...rest: readonly Value[]): EnumType<Value>;
+
+// @public
+export function enumeration(first: Date, ...rest: readonly Date[]): EnumType<Date>;
+
+// @public
+export type EnumType<Value extends string | number | Date = string | number | Date> = Readonly<{
     kind: "enum";
     values: readonly Value[];
 }>;

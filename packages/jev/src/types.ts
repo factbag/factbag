@@ -13,7 +13,7 @@ import type { ChoiceResponse, JsonValue } from "@typesafe-ai/sdk";
  *
  * @beta
  */
-export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+export type SupportedField = BooleanConstructor | EnumType<string> | RuntimeConstructor<Entity>;
 /**
  * A predicate refined during registration to supported finite field domains.
  *

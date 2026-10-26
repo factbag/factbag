@@ -7,8 +7,8 @@ export type Entity = Readonly<{
   id: string;
 }>;
 
-/** An explicit finite domain of string values for a predicate field. */
-export type EnumType<Value extends string = string> = Readonly<{
+/** An explicit finite domain of string, number, or Date values for a predicate field. */
+export type EnumType<Value extends string | number | Date = string | number | Date> = Readonly<{
   kind: "enum";
   values: readonly Value[];
 }>;

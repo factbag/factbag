@@ -74,7 +74,7 @@ export type RequestConfig = {
 };
 
 // @beta
-export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+export type SupportedField = BooleanConstructor | EnumType<string> | RuntimeConstructor<Entity>;
 
 // @beta
 export type SupportedPredicate = PredicateDeclaration<Readonly<Record<string, SupportedField>>>;
