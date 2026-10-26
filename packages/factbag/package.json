@@ -66,6 +66,10 @@
       "types": "./dist/jev/errors.d.ts",
       "import": "./dist/jev/errors.js"
     },
+    "./jev/recheck": {
+      "types": "./dist/jev/recheck.d.ts",
+      "import": "./dist/jev/recheck.js"
+    },
     "./jev/resolve": {
       "types": "./dist/jev/resolve.d.ts",
       "import": "./dist/jev/resolve.js"
