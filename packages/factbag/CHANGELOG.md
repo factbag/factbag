@@ -1,5 +1,18 @@
 # factbag
 
+## 0.0.0-alpha.4
+
+### Minor Changes
+
+- 2814aab: Allow enumerations to hold numbers or dates as well as strings, with one member
+  type per enumeration. Members must be unique; dates compare by instant and are
+  copied on construction. NaN and invalid dates are rejected. Enumeration membership
+  validation at assertion and query time is unchanged.
+- 1f5bb1b: Classify predicates whose fields are number or Date enumerations, alongside
+  string enumerations. Dates are sent to the model as ISO strings and retained as
+  `Date` values in evidence. Open-ended `String`, `Number`, and `Date` fields
+  remain unsupported.
+
 ## 0.0.0-alpha.3
 
 ### Minor Changes
