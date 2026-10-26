@@ -1,0 +1,34 @@
+{
+  "name": "@factbag/eval-shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Benchmark-independent pieces the evaluations share: entity discovery, the staged grounding driver, request metering, scoring and bounded concurrency.",
+  "exports": {
+    "./names": "./src/names.ts",
+    "./staged": "./src/staged.ts",
+    "./meter": "./src/meter.ts",
+    "./metrics": "./src/metrics.ts",
+    "./pool": "./src/pool.ts"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@factbag/jev": "workspace:*",
+    "@typesafe-ai/sdk": "catalog:"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
