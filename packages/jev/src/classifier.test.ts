@@ -211,6 +211,106 @@ describe("classifier registration", () => {
     },
   );
 
+  it("enumerates a Date field over the supplied domain and sends ISO strings", async () => {
+    const { kb, corpus } = setup();
+    const alice = new Person("alice");
+    kb.entities.add(alice);
+    const died = predicate(
+      "died",
+      { person: Person, day: Date },
+      { description: "The person died on the day." },
+    );
+    const july = new Date("2014-07-09T00:00:00Z");
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", died), {
+      client,
+      // The duplicate date is one candidate, not two.
+      domains: { Date: [july, new Date("2015-09-14T00:00:00Z"), new Date(july)] },
+    });
+
+    const result = await nextJob(run).execute();
+
+    expect(result.assessments.map(({ atom }) => atom.fields["day"])).toEqual([
+      july,
+      new Date("2015-09-14T00:00:00Z"),
+    ]);
+    const request = client.systemOne.mock.calls[0]?.[0];
+    expect(request?.state).toMatchObject({
+      candidates: [
+        { fields: { person: { type: "Person", id: "alice" }, day: "2014-07-09T00:00:00.000Z" } },
+        { fields: { person: { type: "Person", id: "alice" }, day: "2015-09-14T00:00:00.000Z" } },
+      ],
+    });
+    expect(run.kb.literals().map(({ atom }) => atom.fields["day"])).toEqual([
+      july,
+      new Date("2015-09-14T00:00:00Z"),
+    ]);
+  });
+
+  it("sends number candidates as JSON numbers and keeps them as numbers in evidence", async () => {
+    const { kb, corpus } = setup();
+    const amount = predicate("amount", { value: Number }, { description: "The amount paid." });
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", amount), {
+      client,
+      // The duplicate amount is one candidate, not two.
+      domains: { Number: [42_876, 42_876] },
+    });
+
+    const result = await nextJob(run).execute();
+
+    expect(result.assessments.map(({ atom }) => atom.fields["value"])).toEqual([42_876]);
+    expect(client.systemOne.mock.calls[0]?.[0]?.state).toMatchObject({
+      candidates: [{ fields: { value: 42_876 } }],
+    });
+  });
+
+  it("takes a field's candidates by name ahead of its constructor's", async () => {
+    const { kb, corpus } = setup();
+    const income = predicate(
+      "income",
+      { year: Number, amount: Number },
+      { description: "The income for the year." },
+    );
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", income), {
+      client,
+      domains: { Number: [33_200], fields: { year: [2017, 2018] } },
+    });
+
+    await nextJob(run).execute();
+
+    // Years are not amounts and amounts are not years: two candidates, not nine.
+    expect(client.systemOne.mock.calls[0]?.[0]?.state).toMatchObject({
+      candidates: [
+        { fields: { year: 2017, amount: 33_200 } },
+        { fields: { year: 2018, amount: 33_200 } },
+      ],
+    });
+  });
+
+  it("rejects a field domain holding values of another type than the field's", () => {
+    const { kb, corpus } = setup();
+    const income = predicate("income", { year: Number }, { description: "The income year." });
+    expect(() =>
+      classifier(corpus, guard(kb).permit("assert", income), {
+        client: clientWith(),
+        domains: { fields: { year: ["2017"] } },
+      }),
+    ).toThrow(/domains\.fields\.year holds a value that is not a Number/u);
+  });
+
+  it("rejects a scalar field whose domain is empty", () => {
+    const { kb, corpus } = setup();
+    const died = predicate("died", { day: Date }, { description: "Someone died on the day." });
+    expect(() =>
+      classifier(corpus, guard(kb).permit("assert", died), {
+        client: clientWith(),
+        domains: { Date: [] },
+      }),
+    ).toThrow(UnsupportedPredicateError);
+  });
+
   it("provides predicate and field diagnostics without guessing matching scalar values", () => {
     const { kb, corpus } = setup();
     const fact = predicate("name", { name: String }, { description: "The legal name." });

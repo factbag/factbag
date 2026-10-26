@@ -9,11 +9,37 @@ import type { Operation } from "@factbag/guards";
 import type { ChoiceResponse, JsonValue } from "@typesafe-ai/sdk";
 
 /**
- * Field domains accepted after registration. Open-ended scalar constructors are excluded.
+ * Field domains accepted after registration. A scalar constructor is accepted only when the
+ * request config supplies a domain of candidate values for it.
  *
  * @beta
  */
-export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
+export type SupportedField =
+  | BooleanConstructor
+  | EnumType
+  | RuntimeConstructor<Entity>
+  | DateConstructor
+  | NumberConstructor
+  | StringConstructor;
+
+/**
+ * Candidate values for scalar fields, by constructor or by field name. A field takes the
+ * values given under its name, else the values given for its constructor; one with neither,
+ * or with none, is an unsupported open-ended domain. Values are deduplicated.
+ *
+ * @beta
+ */
+export type ScalarDomains = {
+  readonly Date?: readonly Date[];
+  readonly Number?: readonly number[];
+  readonly String?: readonly string[];
+  /**
+   * Values for the fields of this name in every predicate, ahead of their constructor's:
+   * the years a text names for its `year` fields, say, while its other `Number` fields take
+   * the amounts. Each value must be of the field's type.
+   */
+  readonly fields?: Readonly<Record<string, readonly (Date | number | string)[]>>;
+};
 /**
  * A predicate refined during registration to supported finite field domains.
  *
