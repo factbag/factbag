@@ -11,7 +11,22 @@ import { GuardedKB, guard } from "@factbag/guards";
 import { jevClient } from "./client";
 import { admissionPolicy, createJob } from "./jobs";
 import type { ClassificationJob, RequestConfig } from "./jobs";
-import { prepareTools } from "./tools";
+import { prepareSchemas, prepareTools } from "./tools";
+import { routeChunks } from "./routing";
+import type { RoutedRun, RoutingConfig } from "./routing";
+
+export type {
+  CandidateCounts,
+  RoutedChunk,
+  RoutedRun,
+  RoutingClient,
+  RoutingConfig,
+  RoutingDecision,
+  RoutingInspection,
+  RoutingJob,
+  RoutingQuestions,
+  StageCounts,
+} from "./routing";
 
 export type { ClassifierClient, ClassificationQuestions } from "./client";
 export type { AdmissionPolicy, Assessment, ClassificationJob, RequestConfig } from "./jobs";
@@ -33,6 +48,11 @@ export type ClassificationRun = IterableIterator<ClassificationJob> & {
   readonly kb: KnowledgeBase;
 };
 
+/** Exhaustive by default; an object opts into heuristic routing and chunk plans. @beta */
+export type ClassifierConfig = RequestConfig & {
+  readonly routing?: false | RoutingConfig;
+};
+
 /**
  * Validate available tools eagerly and return a lazy iterator of executable jobs.
  * Bare KBs expose all known predicates; explicit guards retain their permission policy.
@@ -42,12 +62,28 @@ export type ClassificationRun = IterableIterator<ClassificationJob> & {
 export function classifier<M extends Metadata = Metadata>(
   corpus: Corpus<M>,
   input: KnowledgeBase | GuardedKB,
-  config: RequestConfig = {},
-): ClassificationRun {
+  config: RequestConfig & { readonly routing: RoutingConfig },
+): RoutedRun;
+/** Return independent exhaustive jobs when routing is absent or false. @beta */
+export function classifier<M extends Metadata = Metadata>(
+  corpus: Corpus<M>,
+  input: KnowledgeBase | GuardedKB,
+  config?: RequestConfig & { readonly routing?: false },
+): ClassificationRun;
+/** Dynamic routing options return the corresponding run shape. @beta */
+export function classifier<M extends Metadata = Metadata>(
+  corpus: Corpus<M>,
+  input: KnowledgeBase | GuardedKB,
+  config: ClassifierConfig,
+): ClassificationRun | RoutedRun;
+export function classifier<M extends Metadata = Metadata>(
+  corpus: Corpus<M>,
+  input: KnowledgeBase | GuardedKB,
+  config: ClassifierConfig = {},
+): ClassificationRun | RoutedRun {
   const admission = admissionPolicy(config.admission);
   // A bare KB carries no permission policy, so normalize it to unrestricted access.
   const baseline = (input instanceof GuardedKB ? input : guard(input).permit("*")).fork();
-  const tools = prepareTools(baseline, config.domains ?? {});
   const output = baseline.kb.fork();
   // The whole corpus, as its documents at construction time.
   const documents = corpus.documents();
@@ -56,6 +92,18 @@ export function classifier<M extends Metadata = Metadata>(
     output,
     admission,
   };
+
+  if (config.routing !== undefined && config.routing !== false) {
+    const schemas = prepareSchemas(baseline, config.domains ?? {});
+    return Object.assign(
+      routeChunks(chunks(corpus, documents), schemas, jobContext, config.routing),
+      {
+        kb: output,
+      },
+    );
+  }
+  // Exhaustive runs enumerate once, not once per chunk.
+  const tools = prepareTools(baseline, config.domains ?? {});
 
   function* jobs(): Generator<ClassificationJob, void, unknown> {
     if (tools.length === 0) {

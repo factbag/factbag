@@ -169,6 +169,10 @@ const incomeEvidence = guard(kb)
 
 ### 6. Ask Jev to assess the income evidence
 
+Classification is exhaustive by default. Optional [staged routing](https://github.com/factbag/factbag/blob/main/packages/jev/README.md#optional-staged-routing)
+filters candidates before classification and returns chunk plans with pass barriers;
+it can reduce work but can also miss evidence.
+
 ```ts
 const run = classifier(corpus, incomeEvidence);
 

@@ -21,6 +21,7 @@ import type { AnyRule, KnowledgeBase, Literal } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { guard } from "@factbag/guards";
 import { classifier } from "@factbag/jev/classifier";
+import type { ClassificationRun as Run } from "@factbag/jev/classifier";
 import { resolver } from "@factbag/jev/resolve";
 import type { Scenario } from "@factbag/scenarios";
 import createHaystackScenario from "@factbag/scenarios/haystack";
@@ -29,7 +30,6 @@ import { pool } from "./pool";
 import createOfacScenario from "@factbag/scenarios/ofac";
 
 type Corpus = Scenario["corpus"];
-type Run = ReturnType<typeof classifier>;
 type Job = Run extends Iterable<infer J> ? J : never;
 type Assessment = Awaited<ReturnType<Job["execute"]>>;
 type ResolutionRun = ReturnType<typeof resolver>;
