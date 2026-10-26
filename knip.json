@@ -3,6 +3,9 @@
   "tags": ["-lintignore"],
   "workspaces": {
     ".": {},
+    "examples/contract-nli": {
+      "entry": ["src/rescore.ts"]
+    },
     "tooling/artifact-consumer": {
       "entry": ["consumer.ts", "runtime.mjs", "without-sdk.ts", "without-sdk.mjs"]
     },
