@@ -79,7 +79,7 @@ class Person {
 
 const hasIncomeOver200k = predicate(
   "has_income_over_200k",
-  { person: Person, year: enumeration("2024", "2025") },
+  { person: Person, year: enumeration(2024, 2025) },
   {
     description:
       "The person's total individual annual income exceeded USD 200,000 in the " +
@@ -117,8 +117,8 @@ const kb = new KnowledgeBase();
 
 kb.rule(isQualifiedInvestor({ person })).if(
   and(
-    hasIncomeOver200k({ person, year: "2024" }),
-    hasIncomeOver200k({ person, year: "2025" }),
+    hasIncomeOver200k({ person, year: 2024 }),
+    hasIncomeOver200k({ person, year: 2025 }),
     expectsSameIncome({ person }),
   ),
 );

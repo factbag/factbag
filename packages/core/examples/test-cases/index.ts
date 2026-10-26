@@ -20,6 +20,7 @@ import {
 } from "./closed-world-positive-boundary.test-case";
 import { dateWindowRulesTestCases } from "./date-window-rules.test-case";
 import { dateDifferencesTestCases } from "./date-differences.test-case";
+import { typedEnumerationsTestCases } from "./typed-enumerations.test-case";
 import { derivedPredicateBoundaryTestCase } from "./derived-predicate-boundary.test-case";
 import { evidenceNegationTestCases } from "./evidence-negation.test-case";
 import { evidenceMetadataProofTestCase } from "./evidence-metadata-proof.test-case";
@@ -80,6 +81,7 @@ export const testCases: readonly DslTestSpec[] = [
   closedWorldPositiveArithmeticBoundaryTestCase,
   ...dateWindowRulesTestCases,
   ...dateDifferencesTestCases,
+  ...typedEnumerationsTestCases,
   ...aggregateCompletenessTestCases,
   ...aggregateCountIntervalTestCases,
   recursiveRulesTestCase,
