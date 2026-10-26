@@ -1,0 +1,32 @@
+{
+  "facts": "staged-counterfactual-input.jsonl",
+  "extraction": "explicit-2026-10-24",
+  "run": {
+    "cases": 9,
+    "correct": 1,
+    "unanswered": 0,
+    "accuracy": 0.1111111111111111,
+    "interval": [
+      0,
+      0.3333333333333333
+    ]
+  },
+  "before": {
+    "cases": 9,
+    "correct": 0,
+    "unanswered": 0,
+    "accuracy": 0,
+    "interval": [
+      0,
+      0
+    ]
+  },
+  "changed": {
+    "remove_added_5": "Entailment -> Contradiction (gold Contradiction)"
+  },
+  "solverMs": {
+    "median": 41,
+    "max": 68
+  },
+  "ranAt": "2026-10-24T01:45:35.674Z"
+}

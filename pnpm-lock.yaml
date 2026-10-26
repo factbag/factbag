@@ -229,6 +229,36 @@ importers:
         specifier: 'catalog:'
         version: 5.0.1(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  examples/sara:
+    devDependencies:
+      '@factbag/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@factbag/eval-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@factbag/jev':
+        specifier: workspace:*
+        version: link:../../packages/jev
+      '@factbag/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.0
+      '@typesafe-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.7.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.1(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
   examples/scenarios:
     dependencies:
       '@factbag/core':

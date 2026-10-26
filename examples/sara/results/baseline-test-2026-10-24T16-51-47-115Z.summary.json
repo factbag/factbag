@@ -1,0 +1,23 @@
+{
+  "kind": "direct-baseline",
+  "promptVersion": "direct-1",
+  "split": "test",
+  "model": "jev-1.13.0",
+  "selection": "covered citations",
+  "run": {
+    "cases": 100,
+    "correct": 85,
+    "unanswered": 0,
+    "accuracy": 0.85,
+    "interval": [
+      0.78,
+      0.92
+    ]
+  },
+  "requests": 100,
+  "inputTokens": 151809,
+  "usdPerCase": 0.00006375978000000001,
+  "meanLatencyMs": 84.22282457,
+  "wallMs": 2135.8625,
+  "ranAt": "2026-10-24T16:51:47.115Z"
+}

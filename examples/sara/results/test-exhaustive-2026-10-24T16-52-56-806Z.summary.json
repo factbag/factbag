@@ -1,0 +1,365 @@
+{
+  "split": "test",
+  "model": "jev-1.13.0",
+  "extraction": "coverage-2026-10-24",
+  "strategy": "exhaustive",
+  "admission": "jev default: minimumProbability 0.4, ambiguityMargin 0",
+  "citations": "all",
+  "run": {
+    "cases": 100,
+    "correct": 88,
+    "unanswered": 4,
+    "accuracy": 0.88,
+    "interval": [
+      0.81,
+      0.94
+    ]
+  },
+  "entailment": {
+    "cases": 100,
+    "correct": 88,
+    "unanswered": 4,
+    "accuracy": 0.88,
+    "interval": [
+      0.81,
+      0.94
+    ]
+  },
+  "numeric": {
+    "cases": 0,
+    "correct": 0,
+    "unanswered": 0,
+    "accuracy": 0,
+    "interval": [
+      0,
+      0
+    ]
+  },
+  "numericNear": {
+    "withinOneDollar": 0,
+    "withinOnePercent": 0
+  },
+  "withSkipped": {
+    "cases": 120,
+    "correct": 88,
+    "unanswered": 24,
+    "accuracy": 0.7333333333333333,
+    "interval": [
+      0.65,
+      0.8083333333333333
+    ]
+  },
+  "skipped": {
+    "tax_case_28": "numeric, not run (none)",
+    "tax_case_30": "numeric, not run (none)",
+    "tax_case_31": "numeric, not run (none)",
+    "tax_case_34": "numeric, not run (none)",
+    "tax_case_43": "numeric, not run (none)",
+    "tax_case_46": "numeric, not run (none)",
+    "tax_case_48": "numeric, not run (none)",
+    "tax_case_49": "numeric, not run (none)",
+    "tax_case_53": "numeric, not run (none)",
+    "tax_case_57": "numeric, not run (none)",
+    "tax_case_68": "numeric, not run (none)",
+    "tax_case_69": "numeric, not run (none)",
+    "tax_case_75": "numeric, not run (none)",
+    "tax_case_77": "numeric, not run (none)",
+    "tax_case_78": "numeric, not run (none)",
+    "tax_case_82": "numeric, not run (none)",
+    "tax_case_85": "numeric, not run (none)",
+    "tax_case_9": "numeric, not run (none)",
+    "tax_case_90": "numeric, not run (none)",
+    "tax_case_93": "numeric, not run (none)"
+  },
+  "byCitation": {
+    "3301": {
+      "cases": 2,
+      "correct": 1
+    },
+    "151(d)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "151(d)(3)(A)": {
+      "cases": 2,
+      "correct": 0
+    },
+    "151(d)(5)": {
+      "cases": 2,
+      "correct": 0
+    },
+    "152(a)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "152(c)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(1)(D)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(C)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(G)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "152(d)(2)(H)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)(iv)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(a)(v)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(b)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)(iii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(c)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "1(d)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(a)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(1)(A)(i)(II)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "2(b)(1)(A)(i)(I)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(1)(A)(i)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "2(b)(1)(A)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "2(b)(3)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(a)(1)(B)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "3306(a)(3)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(b)(2)(C)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(10)(B)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "3306(c)(11)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(16)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(6)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(7)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "3306(c)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(b)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "63(c)(2)(A)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(2)(A)(ii)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(6)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(c)(6)(D)": {
+      "cases": 2,
+      "correct": 1
+    },
+    "63(c)(7)(i)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(f)(1)(A)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "63(f)(2)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(a)(2)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(b)(1)(B)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "68(b)(1)(C)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "7703(a)(1)": {
+      "cases": 2,
+      "correct": 2
+    },
+    "7703(b)(2)": {
+      "cases": 2,
+      "correct": 2
+    }
+  },
+  "failures": {
+    "question unreadable: no year named": 4
+  },
+  "unclassified": {
+    "additional_amount_63f": 66,
+    "additional_amount_63f_in": 66,
+    "aged": 31,
+    "agricultural_labor": 41,
+    "blind_since": 57,
+    "blind_until": 57,
+    "born": 57,
+    "business_entity_since": 57,
+    "business_entity_until": 57,
+    "child_of": 41,
+    "committed_to_penal_institution_since": 57,
+    "committed_to_penal_institution_until": 57,
+    "deduction_151c": 41,
+    "deduction_151c_in": 41,
+    "dependent_152": 41,
+    "dependent_152_in": 41,
+    "died": 57,
+    "disabled_since": 57,
+    "disabled_until": 57,
+    "domestic_service": 41,
+    "employed": 41,
+    "employed_in": 41,
+    "employed_on": 57,
+    "employed_since": 57,
+    "employed_until": 57,
+    "enrolled_at_nursing_school_since": 57,
+    "enrolled_at_nursing_school_until": 57,
+    "enrolled_at_school_since": 57,
+    "enrolled_at_school_until": 57,
+    "exemption_151b": 41,
+    "exemption_151b_in": 41,
+    "gross_income": 31,
+    "home_cost_share": 31,
+    "hospital_patient_since": 57,
+    "hospital_patient_until": 57,
+    "joint_gross_income": 31,
+    "legally_separated": 57,
+    "maintains_home_since": 57,
+    "maintains_home_until": 57,
+    "married_on": 57,
+    "married_undated": 41,
+    "nonresident_alien_since": 57,
+    "nonresident_alien_until": 57,
+    "own_additional_amount_63f": 31,
+    "own_additional_amount_63f_in": 31,
+    "paid": 66,
+    "paid_in": 66,
+    "paid_in_kind": 41,
+    "paid_into_plan": 66,
+    "paid_on": 78,
+    "paid_under_employer_plan": 66,
+    "qualifying_child_152c": 41,
+    "qualifying_child_152c_in": 41,
+    "retired_since": 57,
+    "retired_until": 57,
+    "satisfies_152c2": 41,
+    "satisfies_152c2_in": 41,
+    "satisfies_152c3": 41,
+    "satisfies_152c3_in": 41,
+    "service_abroad": 41,
+    "service_outside_business": 41,
+    "shares_home": 41,
+    "shares_home_in": 41,
+    "shares_home_since": 57,
+    "shares_home_until": 57,
+    "sibling_of": 41,
+    "stated_amount": 31,
+    "stated_amount_in": 31,
+    "stepchild_of": 41,
+    "taxable_income": 31,
+    "termination_payment": 66
+  },
+  "requests": 7462,
+  "inputTokens": 30960467,
+  "usdPerCase": 0.013003396140000002,
+  "latencyMs": {
+    "median": 1753,
+    "max": 5609
+  },
+  "solverMs": {
+    "median": 25,
+    "max": 235
+  },
+  "wallMs": 94496.34874999999,
+  "ranAt": "2026-10-24T16:52:56.806Z"
+}
