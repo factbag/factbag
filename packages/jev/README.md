@@ -4,14 +4,16 @@
 jobs. Constructing and consuming the iterator makes **no remote calls**. The caller
 decides when to execute each job and how much work to run concurrently.
 
-The package has four entry points, each exporting one runtime name:
+The package has five entry points, each exporting one runtime name (`recheck` also
+exports the helper `evidenceBehind`):
 
-| Entry point               | Export                                  |
-| ------------------------- | --------------------------------------- |
-| `@factbag/jev/classifier` | `classifier(corpus, kb, config?)`       |
-| `@factbag/jev/staged`     | `stagedClassifier(corpus, kb, config?)` |
-| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`         |
-| `@factbag/jev/errors`     | `UnsupportedPredicateError`             |
+| Entry point               | Export                                     |
+| ------------------------- | ------------------------------------------ |
+| `@factbag/jev/classifier` | `classifier(corpus, kb, config?)`          |
+| `@factbag/jev/staged`     | `stagedClassifier(corpus, kb, config?)`    |
+| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`            |
+| `@factbag/jev/recheck`    | `recheck(corpus, kb, violations, config?)` |
+| `@factbag/jev/errors`     | `UnsupportedPredicateError`                |
 
 ## Usage
 
@@ -350,13 +352,60 @@ const resolved = resolution.kb;
   executing it again after it succeeds throws. `config.client` defaults to
   `new TypeSafeClient()`, as for the classifier.
 
+## Resolving rule-derived conflicts
+
+`resolver` settles one atom carrying evidence of both signs. A different conflict
+appears only once rules are applied: facts that each stand alone but cannot all hold
+together, such as a passage read as stating both that Molly is Jeanna's grandmother and
+that she is her mother. `recheck` settles those. The consumer names the conflict as an
+ordinary derived predicate, a _violation_, whose rules say which stated facts are
+incompatible; `recheck` derives its ground atoms, follows each proof back to the extracted
+literals it rests on, rereads those literals one by one against the passage they came from,
+retracts the ones the rereading no longer supports, and derives again. The public
+`factbag` package exposes this API at `factbag/jev/recheck`.
+
+```ts
+import { recheck } from "@factbag/jev/recheck";
+
+const twice = closedPredicate("stated_twice", { a: Person, b: Person });
+kb.rule(twice({ a: A, b: B })).iff(
+  and(parent_of({ parent: A, child: B }), grandparent_of({ grandparent: A, grandchild: B })),
+);
+const result = await recheck(corpus, run.kb, [twice({ a: A, b: B })]);
+const { kb: resolved, retracted, unresolved, rounds } = result;
+```
+
+- A violation query may carry variables; every true ground judgment is a violation. The
+  literals behind it are the evidence leaves of the judgment's positive supports, through
+  rules and subgoals (`evidenceBehind`): only the alternatives that held, and only positive
+  literals. Which facts exclude one another is the consumer's rule; `recheck` has no
+  domain knowledge and never chooses between facts itself.
+- Each literal is reread with the classifier's three-way question, one request per passage
+  and predicate, told that the facts read from the passage cannot all hold and asked to
+  judge only what the passage states in words about the candidate's exact field values.
+  A literal stands when the rereading admits its own sign under the admission policy
+  (defaults 0.4 and 0, as for the classifier); otherwise it is retracted. Facts from the
+  same passage that no violation rests on are never asked about and never touched, and
+  surviving literals keep their metadata.
+- A round derives, rereads and retracts; the run stops when no violation is derived, when
+  a round retracts nothing, or after `maxRounds` rounds (default 2). Violations still
+  derived at the end are reported as `unresolved`: a conflict whose every fact the
+  rereading confirms stays open rather than being forced.
+- The result holds a fork of the input with the retractions applied, every round's
+  violations with their evidence and each literal's verdict (the passage, the full
+  rereading and KEEP or RETRACT), the literals retracted overall, and the request count.
+  The input KB is unchanged, and the passage resolver is unchanged.
+- Every literal behind a violation must have a `source` that resolves in the corpus;
+  otherwise `recheck` throws, naming the atom.
+
 ## Internal structure
 
 - `classifier.ts`: boundary normalization, KB snapshots and lazy chunk/job traversal.
 - `resolve.ts`: finds contradictions, gathers their passages, and creates lazy jobs that apply admission and retract superseded evidence in a fork.
+- `recheck.ts`: derives the consumer's violations, traces each to its evidence leaves, rereads them per passage and predicate, and retracts the unsupported ones in a fork, round by round.
 - `types.ts`: shared shapes, including `Tool` (a validated predicate, its permitted actions and candidates) and `ToolResult` (a validated answer, not yet written).
 - `tools.ts`: eager predicate validation, supported-domain typing and candidate enumeration, once per predicate.
-- `client.ts`: the Jev adapter. Builds Choice requests for a tool and chunk, and KEEP/RETRACT requests for a contradiction's passages, and validates each complete response.
+- `client.ts`: the Jev adapter. Builds Choice requests for a tool and chunk, KEEP/RETRACT requests for a contradiction's passages, and rereading requests for the facts behind a violation, and validates each complete response.
 - `jobs.ts`: lazy jobs and evidence application: admission, permission checks and writes to the output KB. Also the shared admission defaults and validation.
 - `errors.ts`: `UnsupportedPredicateError`.
 

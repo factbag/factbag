@@ -17,6 +17,7 @@ const packages = [
       "factbag/guards",
       "factbag/jev/classifier",
       "factbag/jev/errors",
+      "factbag/jev/recheck",
       "factbag/jev/resolve",
       "factbag/jev/staged",
     ],
@@ -37,6 +38,7 @@ const packages = [
     entries: [
       "@factbag/jev/classifier",
       "@factbag/jev/errors",
+      "@factbag/jev/recheck",
       "@factbag/jev/resolve",
       "@factbag/jev/staged",
     ],
