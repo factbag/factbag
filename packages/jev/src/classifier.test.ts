@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { enumeration, predicate } from "@factbag/core/dsl";
+import type { EnumType } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
@@ -259,6 +260,26 @@ describe("classifier registration", () => {
     ).toThrow(UnsupportedPredicateError);
   });
 
+  /** Hand-built domains bypass enumeration()'s checks, so the classifier repeats them. */
+  it.each([
+    { name: "empty", values: [] },
+    { name: "mixed-kind", values: [1, "1"] },
+    { name: "NaN", values: [Number.NaN] },
+    { name: "invalid-date", values: [new Date(Number.NaN)] },
+    { name: "duplicate-instant", values: [new Date(0), new Date(0)] },
+  ])("rejects a malformed $name enum domain during construction", ({ values }) => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const domain = { kind: "enum", values } as EnumType;
+    const fact = predicate("status", { value: domain }, { description: "The status applies." });
+    const client = clientWith();
+    // Act / Assert
+    expect(() =>
+      classifier(corpus, guard(kb).permit("assert", fact), { client, admission }),
+    ).toThrow(UnsupportedPredicateError);
+    expect(client.systemOne).not.toHaveBeenCalled();
+  });
+
   it("normalizes bare KBs to all known predicates, while explicit guards remain default-deny", () => {
     const { kb, corpus } = setup();
     const derived = predicate("derived", {}, { description: "The derived fact holds." });
@@ -370,6 +391,51 @@ describe("lazy jobs", () => {
     expect(new Set(result.assessments.map(({ atom }) => atom.fields["status"]))).toEqual(
       new Set(["direct", "indirect"]),
     );
+  });
+
+  it("classifies number and Date enumerations, sending ISO dates and retaining Date evidence", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const day = new Date("2026-10-25T00:00:00Z");
+    const days = enumeration(day);
+    const paid = predicate(
+      "paid",
+      { amount: enumeration(10, 20), start: days, end: days },
+      { description: "The amount was paid over the period from start to end." },
+    );
+    const client = clientWith();
+    const run = classifier(corpus, guard(kb).permit("assert", paid), { client, admission });
+    // Act
+    const result = await nextJob(run).execute();
+    // Assert
+    expect(client.systemOne.mock.calls[0]?.[0].state).toMatchObject({
+      candidates: [
+        {
+          id: "candidate_0",
+          fields: {
+            amount: 10,
+            start: "2026-10-25T00:00:00.000Z",
+            end: "2026-10-25T00:00:00.000Z",
+          },
+        },
+        {
+          id: "candidate_1",
+          fields: {
+            amount: 20,
+            start: "2026-10-25T00:00:00.000Z",
+            end: "2026-10-25T00:00:00.000Z",
+          },
+        },
+      ],
+    });
+    expect(result.assessments.map(({ atom }) => atom.fields["amount"])).toEqual([10, 20]);
+    for (const { atom } of result.assessments) {
+      expect(atom.fields["start"]).toBeInstanceOf(Date);
+      expect(atom.fields["start"]).toEqual(new Date("2026-10-25T00:00:00Z"));
+      expect(atom.fields["end"]).toEqual(new Date("2026-10-25T00:00:00Z"));
+    }
+    expect(run.kb.literals()).toHaveLength(2);
+    expect(query(run.kb, paid({ amount: 20, start: day, end: day })).value).toBe("true");
   });
 
   it("sends a JSON snapshot of entity properties while retaining the original evidence entity", async () => {

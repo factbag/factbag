@@ -86,16 +86,22 @@ field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
 
-| Schema field                 | Candidate values                      |
-| ---------------------------- | ------------------------------------- |
-| `Boolean`                    | `false`, `true`                       |
-| `enumeration("a", "b", ...)` | Explicit enum members                 |
-| Entity constructor           | Instances registered in `kb.entities` |
-| `String`, `Number`, `Date`   | Unsupported open-ended domains        |
+| Schema field               | Candidate values                         |
+| -------------------------- | ---------------------------------------- |
+| `Boolean`                  | `false`, `true`                          |
+| `enumeration(...)`         | Explicit string, number, or Date members |
+| Entity constructor         | Instances registered in `kb.entities`    |
+| `String`, `Number`, `Date` | Unsupported open-ended domains           |
 
 An entity domain must contain registered instances. Existing scalar facts do not
 turn an open-ended schema into an enum. To model a fixed value, declare it explicitly
 with `enumeration(value)` rather than asking the classifier to discover it.
+
+Number and Date enumerations, such as `enumeration(10, 20)` or
+`enumeration(new Date("2026-10-25T00:00:00Z"))`, are classified like string
+enumerations. Dates are sent to the model as ISO strings and retained as `Date`
+values in evidence. The same date in two fields is a valid candidate; only
+repeated entities are excluded.
 
 Entity candidates include their enumerable properties, including `id`, plus `type`
 set to the constructor name. These are JSON snapshots taken at run construction:
