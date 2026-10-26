@@ -5,7 +5,7 @@ import type { JsonValue } from "@typesafe-ai/sdk";
 import { UnsupportedPredicateError } from "./errors";
 import type { Action, Candidate, SupportedField, SupportedPredicate, Tool } from "./types";
 
-type CandidateValue = boolean | string | Entity;
+type CandidateValue = boolean | string | number | Date | Entity;
 
 /**
  * How many candidates one request may ask about. Accuracy holds to roughly a hundred
@@ -75,10 +75,15 @@ function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): 
       );
     }
     if (typeof type === "object") {
+      // Members share one of the three finite kinds; dates are distinct by instant.
+      const kind = type.values[0] instanceof Date ? "date" : typeof type.values[0];
+      const keys = type.values.map((value) => (value instanceof Date ? value.getTime() : value));
       if (
         type.values.length === 0 ||
-        type.values.some((value) => typeof value !== "string") ||
-        new Set(type.values).size !== type.values.length
+        (kind !== "string" && kind !== "number" && kind !== "date") ||
+        type.values.some((value) => (value instanceof Date ? "date" : typeof value) !== kind) ||
+        keys.some((key) => typeof key === "number" && Number.isNaN(key)) ||
+        new Set(keys).size !== type.values.length
       ) {
         throw new UnsupportedPredicateError(
           `Invalid enum domain for ${predicate.name}.${name}`,
@@ -129,10 +134,7 @@ function enumerateCandidates(
   }
   return combinations.filter(distinctEntities).map((fields, index) => {
     const encoded = Object.fromEntries(
-      Object.entries(fields).map(([name, value]) => [
-        name,
-        typeof value === "object" ? encodeEntity(value) : value,
-      ]),
+      Object.entries(fields).map(([name, value]) => [name, encodeValue(value)]),
     );
     const atom: GroundAtom = { predicate, fields: fields satisfies GroundFields };
     return { id: `candidate_${index}`, atom, fields: encoded };
@@ -145,8 +147,18 @@ function enumerateCandidates(
  * and competes with the real candidates for the model's attention.
  */
 function distinctEntities(fields: Readonly<Record<string, CandidateValue>>): boolean {
-  const entities = Object.values(fields).filter((value) => typeof value === "object");
+  const entities = Object.values(fields).filter(
+    (value) => typeof value === "object" && !(value instanceof Date),
+  );
   return new Set(entities).size === entities.length;
+}
+
+/** Dates travel as ISO strings; entities as a JSON snapshot of their properties. */
+function encodeValue(value: CandidateValue): JsonValue {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return typeof value === "object" ? encodeEntity(value) : value;
 }
 
 /** Snapshot enumerable entity properties using JSON semantics, retaining the entity type. */
@@ -160,7 +172,8 @@ function fieldValues(type: SupportedField, kb: KnowledgeBase): readonly Candidat
     return [false, true];
   }
   if (typeof type === "object") {
-    return type.values;
+    // Evidence holds its own Date instances, so later mutation of a member cannot alter it.
+    return type.values.map((value) => (value instanceof Date ? new Date(value.getTime()) : value));
   }
   return kb.entities.ids(type).map((id) => {
     const entity = kb.entities.get(type, id);
