@@ -4,13 +4,14 @@
 jobs. Constructing and consuming the iterator makes **no remote calls**. The caller
 decides when to execute each job and how much work to run concurrently.
 
-The package has three entry points, each exporting one name:
+The package has four entry points, each exporting one runtime name:
 
-| Entry point               | Export                            |
-| ------------------------- | --------------------------------- |
-| `@factbag/jev/classifier` | `classifier(corpus, kb, config?)` |
-| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`   |
-| `@factbag/jev/errors`     | `UnsupportedPredicateError`       |
+| Entry point               | Export                                  |
+| ------------------------- | --------------------------------------- |
+| `@factbag/jev/classifier` | `classifier(corpus, kb, config?)`       |
+| `@factbag/jev/staged`     | `stagedClassifier(corpus, kb, config?)` |
+| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`         |
+| `@factbag/jev/errors`     | `UnsupportedPredicateError`             |
 
 ## Usage
 
@@ -190,6 +191,120 @@ The returned assessment retains every candidate atom and full response, includin
 candidates producing no literals. New literals carry source, outcome probability,
 candidate IDs, selected choice, SDK confidence, and the full distribution. SDK confidence remains separate from outcome probability. These
 thresholds are application policy, not calibrated defaults.
+
+## Staged classification
+
+Use `stagedClassifier` to filter predicates and role candidates before classifying
+complete propositions. The exhaustive `classifier` API and behavior are unchanged.
+The public `factbag` package exposes this API at `factbag/jev/staged`.
+Both strategies use registered entities and supplied scalar domains; neither
+discovers new symbols, dates, or amounts.
+
+The staged API yields chunk plans with explicit barriers between dependent passes:
+
+```ts
+import { TypeSafeClient } from "@typesafe-ai/sdk";
+import { stagedClassifier } from "@factbag/jev/staged";
+
+const client = new TypeSafeClient();
+const run = stagedClassifier(corpus, kb, {
+  client,
+  routingClient: client,
+  relevanceThreshold: 0.3,
+  participantThreshold: 0.3,
+  candidateProductCutoff: 16,
+  admission: { minimumProbability: 0.4, ambiguityMargin: 0 },
+});
+
+for (const chunk of run) {
+  for (const job of chunk.relevance) await job.execute();
+  for (const job of chunk.participants()) await job.execute();
+  for (const job of chunk.classification()) await job.execute();
+  console.log(chunk.inspect());
+}
+```
+
+1. **Predicate relevance:** Each permitted predicate gets an independent yes/no
+   question per chunk. Multiple predicates can survive. Questions explicitly count
+   negative evidence as relevant.
+2. **Participant filtering:** Each supplied value gets an independent question
+   for each non-Boolean argument role. For example, spouse and partner have separate
+   candidate sets, even when both roles use `Person`. Scalar and enum values are
+   filtered in the same way. Boolean fields remain exhaustive. This pass is skipped
+   for zero-argument predicates, Boolean-only schemas, and raw candidate products
+   at or below `candidateProductCutoff` (default 16).
+3. **Proposition classification:** Surviving role domains are enumerated, excluding
+   repeated entities as in exhaustive classification. The existing
+   ASSERT/DENY/IRRELEVANT questions, admission policy, permission enforcement, and
+   evidence provenance apply unchanged. Only this pass inserts evidence.
+
+Routing uses the installed SDK's `NoulQuestion` (`type: "noul"`) and its
+`NoulResponse.noul` yes-probability. It does not use a single exclusive Choice to
+select multiple predicates or values. Each routing threshold is inclusive, must
+be in `[0, 1]`, and defaults to 0.3. These thresholds are separate from final
+admission and are not calibrated guarantees. Setting both to zero retains every
+valid routing answer but still incurs routing requests. The product cutoff must
+be a nonnegative safe integer; zero disables the small-product bypass.
+
+### Execution and inspection
+
+Construction and iteration make no remote calls. Each job makes at most one SDK
+call per attempt, batching up to 64 questions. `participants()` throws until every
+relevance job succeeds. `classification()` throws until every participant job
+succeeds. Empty passes satisfy their barrier immediately. Accessors return stable
+jobs and never execute them. You can run jobs within a pass, or independent chunk
+plans, through your own concurrency limiter.
+
+Successful routing jobs memoize their results; concurrent calls to the same job
+share an attempt. A transport or validation failure propagates and leaves that job
+retryable. The entire response batch must validate before its decisions become
+visible. Failed routing does not produce downstream jobs or facts. Final jobs
+retain the exhaustive classifier's semantics: each execution is a fresh attempt,
+and repeated successes insert fresh evidence. Earlier successful jobs survive a
+later failure; the run is not a transaction.
+
+`client` configures final classification; `routingClient` configures the filtering
+passes. Each defaults independently to a lazy `TypeSafeClient`. Pass the same SDK
+instance to both to share model, timeout, and retry configuration.
+
+`chunk.inspect()` returns:
+
+- Routing decisions with predicate, optional role/value, probability, and whether
+  the value survived. Decisions appear in completion order.
+- Per-predicate initial and retained Cartesian products, final classification
+  candidate counts, and bypass reasons. Initial products include repeated-entity
+  combinations; final candidate counts exclude them. Retained and final counts
+  become available when you call `classification()`.
+- Per-stage request and question counts for attempted SDK calls, including failed
+  attempts. Memoized routing results do not increment counts. SDK-internal retries
+  are not visible. These are workload counts, not token, latency, or billing totals.
+
+### Comparison and limitations
+
+Run the deterministic comparison without credentials:
+
+```sh
+pnpm --filter @factbag/jev demo:staged
+```
+
+The scripted fixture checks identical admitted facts for both strategies. It
+measures 90 questions in 2 exhaustive requests versus 22 questions in 3 staged
+requests, including both filtering passes. It illustrates fewer questions but
+more requests; it does not measure live token cost, latency, or model accuracy.
+
+**Filtering can reduce recall.** A false negative in either routing pass prevents
+final classification of the affected propositions, including denials. Independent
+role filtering also retains cross-combinations that the passage might not support;
+the final classifier must reject those. Compare against exhaustive classification
+on representative labeled data before choosing thresholds. Small domains can cost
+more with staging because relevance still adds a request.
+
+Domains and JSON entity payloads are captured at construction. Permissions, input-KB
+isolation, chunk provenance, and corpus traversal follow the exhaustive strategy.
+Staging avoids constructing the initial Cartesian product, but a large surviving
+product still consumes memory and classification work. Request batching is a
+question-count bound, not a token-budget guarantee. There is no automatic fallback
+to exhaustive classification after filtering or a failed request.
 
 ## Resolving contradictions
 

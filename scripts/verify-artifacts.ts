@@ -18,6 +18,7 @@ const packages = [
       "factbag/jev/classifier",
       "factbag/jev/errors",
       "factbag/jev/resolve",
+      "factbag/jev/staged",
     ],
   },
   {
@@ -33,7 +34,12 @@ const packages = [
   { directory: "packages/guards", entries: ["@factbag/guards"] },
   {
     directory: "packages/jev",
-    entries: ["@factbag/jev/classifier", "@factbag/jev/errors", "@factbag/jev/resolve"],
+    entries: [
+      "@factbag/jev/classifier",
+      "@factbag/jev/errors",
+      "@factbag/jev/resolve",
+      "@factbag/jev/staged",
+    ],
   },
 ];
 

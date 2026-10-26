@@ -69,6 +69,10 @@
     "./jev/resolve": {
       "types": "./dist/jev/resolve.d.ts",
       "import": "./dist/jev/resolve.js"
+    },
+    "./jev/staged": {
+      "types": "./dist/jev/staged.d.ts",
+      "import": "./dist/jev/staged.js"
     }
   },
   "scripts": {
