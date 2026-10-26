@@ -4,7 +4,7 @@
 jobs. Constructing and consuming the iterator makes **no remote calls**. The caller
 decides when to execute each job and how much work to run concurrently.
 
-The package has three entry points, each exporting one name:
+The package has three entry points, each exporting one runtime name:
 
 | Entry point               | Export                            |
 | ------------------------- | --------------------------------- |
@@ -86,16 +86,22 @@ field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
 
-| Schema field                 | Candidate values                      |
-| ---------------------------- | ------------------------------------- |
-| `Boolean`                    | `false`, `true`                       |
-| `enumeration("a", "b", ...)` | Explicit enum members                 |
-| Entity constructor           | Instances registered in `kb.entities` |
-| `String`, `Number`, `Date`   | Unsupported open-ended domains        |
+| Schema field               | Candidate values                         |
+| -------------------------- | ---------------------------------------- |
+| `Boolean`                  | `false`, `true`                          |
+| `enumeration(...)`         | Explicit string, number, or Date members |
+| Entity constructor         | Instances registered in `kb.entities`    |
+| `String`, `Number`, `Date` | Unsupported open-ended domains           |
 
 An entity domain must contain registered instances. Existing scalar facts do not
 turn an open-ended schema into an enum. To model a fixed value, declare it explicitly
 with `enumeration(value)` rather than asking the classifier to discover it.
+
+Use typed enumerations for numeric and date candidates, such as
+`enumeration(10, 20)` or `enumeration(new Date("2026-10-25T00:00:00Z"))`.
+Each enumeration holds one member type. Dates are sent as ISO strings and retained
+as `Date` values in evidence; repeated dates across roles are not repeated entities.
+There is no separate `domains` configuration option.
 
 Entity candidates include their enumerable properties, including `id`, plus `type`
 set to the constructor name. These are JSON snapshots taken at run construction:
@@ -174,6 +180,126 @@ candidates producing no literals. New literals carry source, outcome probability
 candidate IDs, selected choice, SDK confidence, and the full distribution. SDK confidence remains separate from outcome probability. These
 thresholds are application policy, not calibrated defaults.
 
+## Optional staged routing
+
+Set `classifier`'s `routing` option to an object to filter predicates and role
+candidates before classifying complete propositions. Routing is **off by default**
+because filtering can silently lose recall, including denials. Omit `routing` or
+set it to `false` to keep exhaustive classification and the flat job iterator.
+The public `factbag` package exposes the same classifier at `factbag/jev/classifier`.
+Both strategies use registered entities and typed enumerations; neither
+discovers new symbols, dates, or amounts.
+
+With routing enabled, the classifier yields `RoutedChunk` plans instead of flat
+jobs. Each plan has explicit barriers between dependent passes. This keeps existing
+exhaustive consumers unchanged while exposing dependencies only when they exist:
+
+```ts
+import { TypeSafeClient } from "@typesafe-ai/sdk";
+import { classifier } from "@factbag/jev/classifier";
+
+const client = new TypeSafeClient();
+const run = classifier(corpus, kb, {
+  client,
+  routing: {
+    client,
+    relevanceThreshold: 0.3,
+    participantThreshold: 0.3,
+    candidateProductCutoff: 16,
+  },
+  admission: { minimumProbability: 0.4, ambiguityMargin: 0 },
+});
+
+for (const chunk of run) {
+  for (const job of chunk.relevance) await job.execute();
+  for (const job of chunk.participants()) await job.execute();
+  for (const job of chunk.classification()) await job.execute();
+  console.log(chunk.inspect());
+}
+```
+
+1. **Predicate relevance:** Each permitted predicate gets an independent yes/no
+   question per chunk. Multiple predicates can survive. Questions explicitly count
+   negative evidence as relevant.
+2. **Participant filtering:** Each supplied value gets an independent question
+   for each non-Boolean argument role. For example, spouse and partner have separate
+   candidate sets, even when both roles use `Person`. String, number, and Date enum
+   members are filtered in the same way. Boolean fields remain exhaustive. This pass is skipped
+   for zero-argument predicates, Boolean-only schemas, and raw candidate products
+   at or below `candidateProductCutoff` (default 16).
+3. **Proposition classification:** Surviving role domains are enumerated, excluding
+   repeated entities as in exhaustive classification. The existing
+   ASSERT/DENY/IRRELEVANT questions, admission policy, permission enforcement, and
+   evidence provenance apply unchanged. Only this pass inserts evidence.
+
+Routing uses the installed SDK's `NoulQuestion` (`type: "noul"`) and its
+`NoulResponse.noul` yes-probability. It does not use a single exclusive Choice to
+select multiple predicates or values. Each routing threshold is inclusive, must
+be in `[0, 1]`, and defaults to 0.3. These thresholds are separate from final
+admission and are not calibrated guarantees. Setting both to zero retains every
+valid routing answer but still incurs routing requests. The product cutoff must
+be a nonnegative safe integer; zero disables the small-product bypass.
+
+### Execution and inspection
+
+Construction and iteration make no remote calls. Each job makes at most one SDK
+call per attempt, batching up to 64 questions. `participants()` throws until every
+relevance job succeeds. `classification()` throws until every participant job
+succeeds. Empty passes satisfy their barrier immediately. Accessors return stable
+jobs and never execute them. You can run jobs within a pass, or independent chunk
+plans, through your own concurrency limiter.
+
+Successful routing jobs memoize their results; concurrent calls to the same job
+share an attempt. A transport or validation failure propagates and leaves that job
+retryable. The entire response batch must validate before its decisions become
+visible. Failed routing does not produce downstream jobs or facts. Final jobs
+retain the exhaustive classifier's semantics: each execution is a fresh attempt,
+and repeated successes insert fresh evidence. Earlier successful jobs survive a
+later failure; the run is not a transaction.
+
+`client` configures final classification; `routing.client` configures the filtering
+passes. Each defaults independently to a lazy `TypeSafeClient`. Pass the same SDK
+instance to both to share model, timeout, and retry configuration.
+
+`chunk.inspect()` returns:
+
+- Routing decisions with predicate, optional role/value, probability, and whether
+  the value survived. Decisions appear in completion order.
+- Per-predicate initial and retained Cartesian products, final classification
+  candidate counts, and bypass reasons. Initial products include repeated-entity
+  combinations; final candidate counts exclude them. Retained and final counts
+  become available when you call `classification()`.
+- Per-stage request and question counts for attempted SDK calls, including failed
+  attempts. Memoized routing results do not increment counts. SDK-internal retries
+  are not visible. These are workload counts, not token, latency, or billing totals.
+
+### Comparison and limitations
+
+Run the deterministic comparison without credentials:
+
+```sh
+pnpm --filter @factbag/jev demo:staged
+```
+
+The scripted fixture checks identical admitted facts for both strategies. It
+measures 90 questions in 2 exhaustive requests versus 22 questions in 3 staged
+requests, including both filtering passes. It illustrates fewer questions but
+more requests; it does not measure live token cost, latency, or model accuracy.
+
+**Filtering can reduce recall.** A false negative in either routing pass prevents
+final classification of the affected propositions, including denials. Independent
+role filtering also retains cross-combinations that the passage might not support;
+the final classifier must reject those. Compare against exhaustive classification
+on representative labeled data before choosing thresholds. Small domains can cost
+more with staging because relevance still adds a request.
+
+Domains and JSON entity payloads are captured at construction. Permissions, input-KB
+isolation, chunk provenance, and corpus traversal follow the exhaustive strategy.
+Staging avoids constructing the initial Cartesian product, but a large surviving
+product still consumes memory and classification work. Request batching is a
+question-count bound, not a token-budget guarantee. There is no automatic fallback
+to exhaustive classification after filtering or a failed request.
+
 ## Resolving contradictions
 
 Each chunk is classified on its own, so a 2012 removal notice and a 2022
@@ -221,9 +347,10 @@ const resolved = resolution.kb;
 ## Internal structure
 
 - `classifier.ts`: boundary normalization, KB snapshots and lazy chunk/job traversal.
+- `routing.ts`: optional per-chunk routing passes, barriers, memoized routing jobs, and inspection accounting, owned by the classifier.
 - `resolve.ts`: finds contradictions, gathers their passages, and creates lazy jobs that apply admission and retract superseded evidence in a fork.
 - `types.ts`: shared shapes, including `Tool` (a validated predicate, its permitted actions and candidates) and `ToolResult` (a validated answer, not yet written).
-- `tools.ts`: eager predicate validation, supported-domain typing and candidate enumeration, once per predicate.
+- `tools.ts`: eager predicate validation, role-domain snapshots, shared candidate enumeration, encoding, and 64-question batching. Exhaustive runs enumerate once per predicate; routed runs enumerate filtered domains per chunk.
 - `client.ts`: the Jev adapter. Builds Choice requests for a tool and chunk, and KEEP/RETRACT requests for a contradiction's passages, and validates each complete response.
 - `jobs.ts`: lazy jobs and evidence application: admission, permission checks and writes to the output KB. Also the shared admission defaults and validation.
 - `errors.ts`: `UnsupportedPredicateError`.

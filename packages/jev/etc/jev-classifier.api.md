@@ -11,9 +11,11 @@ import type { Entity } from '@factbag/core/dsl';
 import type { EnumType } from '@factbag/core/dsl';
 import type { GroundAtom } from '@factbag/core/dsl';
 import { GuardedKB } from '@factbag/guards';
+import type { JsonValue } from '@typesafe-ai/sdk';
 import type { KnowledgeBase } from '@factbag/core/kb';
 import type { Literal } from '@factbag/core/kb';
 import type { Metadata } from '@factbag/corpus';
+import type { NoulQuestion } from '@typesafe-ai/sdk';
 import type { PredicateDeclaration } from '@factbag/core/dsl';
 import type { RequestOptions } from '@typesafe-ai/sdk';
 import type { RuntimeConstructor } from '@factbag/core/dsl';
@@ -39,6 +41,15 @@ export type Assessment = {
 };
 
 // @beta
+export type CandidateCounts = {
+    readonly predicate: SupportedPredicate;
+    readonly initialProduct: number;
+    readonly retainedProduct?: number;
+    readonly classificationCandidates?: number;
+    readonly bypass?: "zero-argument" | "boolean-only" | "small-product" | "irrelevant";
+};
+
+// @beta
 export type ClassificationJob = {
     readonly source: string;
     readonly predicate: SupportedPredicate;
@@ -54,11 +65,26 @@ export type ClassificationRun = IterableIterator<ClassificationJob> & {
 };
 
 // @beta
-export function classifier<M extends Metadata = Metadata>(corpus: Corpus<M>, input: KnowledgeBase | GuardedKB, config?: RequestConfig): ClassificationRun;
+export function classifier<M extends Metadata = Metadata>(corpus: Corpus<M>, input: KnowledgeBase | GuardedKB, config: RequestConfig & {
+    readonly routing: RoutingConfig;
+}): RoutedRun;
+
+// @beta
+export function classifier<M extends Metadata = Metadata>(corpus: Corpus<M>, input: KnowledgeBase | GuardedKB, config?: RequestConfig & {
+    readonly routing?: false;
+}): ClassificationRun;
+
+// @beta
+export function classifier<M extends Metadata = Metadata>(corpus: Corpus<M>, input: KnowledgeBase | GuardedKB, config: ClassifierConfig): ClassificationRun | RoutedRun;
 
 // @beta
 export type ClassifierClient = {
     readonly systemOne: (request: SystemOneRequest<ClassificationQuestions>, options?: RequestOptions) => PromiseLike<SystemOneResult<ClassificationQuestions>>;
+};
+
+// @beta
+export type ClassifierConfig = RequestConfig & {
+    readonly routing?: false | RoutingConfig;
 };
 
 // @beta
@@ -74,7 +100,69 @@ export type RequestConfig = {
 };
 
 // @beta
-export type SupportedField = BooleanConstructor | EnumType<string> | RuntimeConstructor<Entity>;
+export type RoutedChunk = {
+    readonly source: string;
+    readonly relevance: readonly RoutingJob[];
+    readonly participants: () => readonly RoutingJob[];
+    readonly classification: () => readonly ClassificationJob[];
+    readonly inspect: () => RoutingInspection;
+};
+
+// @beta
+export type RoutedRun = IterableIterator<RoutedChunk> & {
+    readonly kb: KnowledgeBase;
+};
+
+// @beta
+export type RoutingClient = {
+    readonly systemOne: (request: SystemOneRequest<RoutingQuestions>, options?: RequestOptions) => PromiseLike<SystemOneResult<RoutingQuestions>>;
+};
+
+// @beta
+export type RoutingConfig = {
+    readonly client?: RoutingClient;
+    readonly relevanceThreshold?: number;
+    readonly participantThreshold?: number;
+    readonly candidateProductCutoff?: number;
+};
+
+// @beta
+export type RoutingDecision = {
+    readonly predicate: SupportedPredicate;
+    readonly role?: string;
+    readonly value?: JsonValue;
+    readonly probability: number;
+    readonly retained: boolean;
+};
+
+// @beta
+export type RoutingInspection = {
+    readonly decisions: readonly RoutingDecision[];
+    readonly candidates: readonly CandidateCounts[];
+    readonly relevance: StageCounts;
+    readonly participants: StageCounts;
+    readonly classification: StageCounts;
+};
+
+// @beta
+export type RoutingJob = {
+    readonly source: string;
+    readonly stage: "relevance" | "participants";
+    readonly questionCount: number;
+    readonly execute: () => Promise<readonly RoutingDecision[]>;
+};
+
+// @beta
+export type RoutingQuestions = Record<string, NoulQuestion>;
+
+// @beta
+export type StageCounts = {
+    readonly requests: number;
+    readonly questions: number;
+};
+
+// @beta
+export type SupportedField = BooleanConstructor | EnumType | RuntimeConstructor<Entity>;
 
 // @beta
 export type SupportedPredicate = PredicateDeclaration<Readonly<Record<string, SupportedField>>>;

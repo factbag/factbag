@@ -68,7 +68,7 @@ export type ClassificationJob = {
   readonly execute: () => Promise<Assessment>;
 };
 
-type JobContext = {
+export type JobContext = {
   readonly client: Client;
   readonly output: KnowledgeBase;
   readonly admission: AdmissionPolicy;

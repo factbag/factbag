@@ -5,7 +5,14 @@ import type { JsonValue } from "@typesafe-ai/sdk";
 import { UnsupportedPredicateError } from "./errors";
 import type { Action, Candidate, SupportedField, SupportedPredicate, Tool } from "./types";
 
-type CandidateValue = boolean | string | Entity;
+type CandidateValue = boolean | string | number | Date | Entity;
+
+export type RoleValue = { readonly raw: CandidateValue; readonly encoded: JsonValue };
+export type CandidateSchema = {
+  readonly predicate: SupportedPredicate;
+  readonly actions: ReadonlySet<Action>;
+  readonly roles: Readonly<Record<string, readonly RoleValue[]>>;
+};
 
 /**
  * How many candidates one request may ask about. Accuracy holds to roughly a hundred
@@ -22,32 +29,55 @@ const maximumCandidatesPerRequest = 64;
  * them. Query grants are excluded.
  */
 export function prepareTools(access: GuardedKB): readonly Tool[] {
+  return prepareSchemas(access).flatMap((schema) =>
+    batches(enumerateCandidates(schema.predicate, schema.roles)).map((candidates) => ({
+      predicate: schema.predicate,
+      actions: schema.actions,
+      candidates,
+    })),
+  );
+}
+
+/** Snapshot role domains without constructing their Cartesian product. */
+export function prepareSchemas(access: GuardedKB): readonly CandidateSchema[] {
   const actions = new Map<PredicateDeclaration, Set<Action>>();
   for (const { operation, predicate } of access.resolve()) {
     if (operation !== "query") {
       actions.set(predicate, (actions.get(predicate) ?? new Set<Action>()).add(operation));
     }
   }
-  return [...actions].flatMap(([predicate, permitted]) => {
+  return [...actions].map(([predicate, permitted]) => {
     const supported = validatePredicate(predicate, access.kb);
-    const candidates = enumerateCandidates(supported, access.kb);
-    return batches(candidates, maximumCandidatesPerRequest).map((slice) => ({
+    const roles = Object.fromEntries(
+      supported.paramNames.map((name) => {
+        const type = supported.params[name];
+        if (type === undefined) {
+          throw new Error("A registered predicate's schema was modified");
+        }
+        return [
+          name,
+          fieldValues(type, access.kb).map((raw) => ({
+            raw,
+            encoded: encodeValue(raw),
+          })),
+        ];
+      }),
+    );
+    return {
       predicate: supported,
       actions: permitted,
-      candidates: slice,
-    }));
+      roles,
+    };
   });
 }
 
 /** Split candidates into request-sized slices, keeping enumeration order. */
-function batches(
-  candidates: readonly Candidate[],
-  size: number,
-): readonly (readonly Candidate[])[] {
+export function batches<T>(candidates: readonly T[]): readonly (readonly T[])[] {
+  const size = maximumCandidatesPerRequest;
   if (candidates.length <= size) {
     return [candidates];
   }
-  const slices: (readonly Candidate[])[] = [];
+  const slices: (readonly T[])[] = [];
   for (let start = 0; start < candidates.length; start += size) {
     slices.push(candidates.slice(start, start + size));
   }
@@ -75,10 +105,17 @@ function validatePredicate(predicate: PredicateDeclaration, kb: KnowledgeBase): 
       );
     }
     if (typeof type === "object") {
+      const kind = type.values[0] instanceof Date ? "date" : typeof type.values[0];
+      const keys = type.values.map((value) => (value instanceof Date ? value.getTime() : value));
       if (
         type.values.length === 0 ||
-        type.values.some((value) => typeof value !== "string") ||
-        new Set(type.values).size !== type.values.length
+        type.values.some((value) =>
+          value instanceof Date
+            ? kind !== "date"
+            : (typeof value !== "string" && typeof value !== "number") || typeof value !== kind,
+        ) ||
+        keys.some((key) => typeof key === "number" && Number.isNaN(key)) ||
+        new Set(keys).size !== type.values.length
       ) {
         throw new UnsupportedPredicateError(
           `Invalid enum domain for ${predicate.name}.${name}`,
@@ -112,31 +149,43 @@ function assertSupportedType(
   }
 }
 
-function enumerateCandidates(
+export function enumerateCandidates(
   predicate: SupportedPredicate,
-  kb: KnowledgeBase,
+  roles: CandidateSchema["roles"],
 ): readonly Candidate[] {
-  let combinations: Readonly<Record<string, CandidateValue>>[] = [{}];
-  for (const name of predicate.paramNames) {
-    const type = predicate.params[name];
-    if (type === undefined) {
-      throw new Error("A registered predicate's schema was modified");
-    }
-    const values = fieldValues(type, kb);
+  if (Object.values(roles).some((values) => values.length === 0)) {
+    return [];
+  }
+  let combinations: Readonly<Record<string, RoleValue>>[] = [{}];
+  for (const [name, values] of Object.entries(roles)) {
     combinations = combinations.flatMap((fields) =>
       values.map((value) => ({ ...fields, [name]: value })),
     );
   }
-  return combinations.filter(distinctEntities).map((fields, index) => {
-    const encoded = Object.fromEntries(
-      Object.entries(fields).map(([name, value]) => [
-        name,
-        typeof value === "object" ? encodeEntity(value) : value,
-      ]),
-    );
-    const atom: GroundAtom = { predicate, fields: fields satisfies GroundFields };
-    return { id: `candidate_${index}`, atom, fields: encoded };
-  });
+  return combinations
+    .filter((values) =>
+      distinctEntities(
+        Object.fromEntries(Object.entries(values).map(([name, value]) => [name, value.raw])),
+      ),
+    )
+    .map((values, index) => {
+      const fields = Object.fromEntries(
+        Object.entries(values).map(([name, value]) => [name, value.raw]),
+      );
+      const encoded = Object.fromEntries(
+        Object.entries(values).map(([name, value]) => [name, value.encoded]),
+      );
+      const atom: GroundAtom = { predicate, fields: fields satisfies GroundFields };
+      return { id: `candidate_${index}`, atom, fields: encoded };
+    });
+}
+
+/** Dates use ISO strings; entity values retain their construction-time JSON snapshot. */
+function encodeValue(value: CandidateValue): JsonValue {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return typeof value === "object" ? encodeEntity(value) : value;
 }
 
 /**
@@ -145,7 +194,9 @@ function enumerateCandidates(
  * and competes with the real candidates for the model's attention.
  */
 function distinctEntities(fields: Readonly<Record<string, CandidateValue>>): boolean {
-  const entities = Object.values(fields).filter((value) => typeof value === "object");
+  const entities = Object.values(fields).filter(
+    (value) => typeof value === "object" && !(value instanceof Date),
+  );
   return new Set(entities).size === entities.length;
 }
 
@@ -160,7 +211,7 @@ function fieldValues(type: SupportedField, kb: KnowledgeBase): readonly Candidat
     return [false, true];
   }
   if (typeof type === "object") {
-    return type.values;
+    return type.values.map((value) => (value instanceof Date ? new Date(value.getTime()) : value));
   }
   return kb.entities.ids(type).map((id) => {
     const entity = kb.entities.get(type, id);
