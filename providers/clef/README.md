@@ -32,6 +32,14 @@ const config = createConfig({ model: "clef", minimumProbability: 0.6 });
 
 Pass `fetch` to add retries or timeouts. The package adds neither.
 
+## Live check
+
+`pnpm --filter @factbag/clef live [clef | clef-flash]` classifies a short exit
+interview through the REST API and checks that one reason is supported, one is
+denied, and one is unknown. It reads `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN` from your shell or the repository's `.env`. The token
+needs Workers AI read and edit permissions. Tests never call Cloudflare.
+
 ## Limits
 
 - `model` is `"clef-flash"` (default) or `"clef"`. Evidence is annotated under `clef`.
