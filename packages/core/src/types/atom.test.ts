@@ -1,3 +1,4 @@
+import { fieldEquals } from "../dsl";
 import { describe, expect, it } from "vitest";
 import { predicate } from "../dsl/predicate";
 import { atomEquals, isAtomForPredicate, isAtomLike } from "./atom";
@@ -95,5 +96,66 @@ describe("isAtomForPredicate", () => {
     expect(isAtomForPredicate({ predicate: registered, fields: { count: 1 } }, registered)).toBe(
       false,
     );
+  });
+});
+
+describe("fieldEquals", () => {
+  it.each([
+    {
+      name: "separate instances of one entity",
+      left: new Person("alice"),
+      right: new Person("alice"),
+      equal: true,
+    },
+    {
+      name: "distinct entity ids",
+      left: new Person("alice"),
+      right: new Person("bea"),
+      equal: false,
+    },
+    {
+      name: "distinct constructors with the same name and id",
+      left: new (class SameName {
+        id = "alice";
+      })(),
+      right: new (class SameName {
+        id = "alice";
+      })(),
+      equal: false,
+    },
+    {
+      name: "equal dates",
+      left: new Date("2026-10-25"),
+      right: new Date("2026-10-25"),
+      equal: true,
+    },
+    {
+      name: "unequal dates",
+      left: new Date("2026-10-25"),
+      right: new Date("2026-10-26"),
+      equal: false,
+    },
+    {
+      name: "date versus string",
+      left: new Date("2026-10-25"),
+      right: "2026-10-25T00:00:00.000Z",
+      equal: false,
+    },
+    { name: "number versus string", left: 10, right: "10", equal: false },
+    { name: "equal scalars", left: "alice", right: "alice", equal: true },
+    { name: "ordinary objects", left: {}, right: {}, equal: false },
+  ])("compares $name", ({ left, right, equal }) => {
+    // Arrange: values are provided by the case above.
+    // Act
+    const actual = fieldEquals(left, right);
+    // Assert
+    expect(actual).toBe(equal);
+  });
+
+  it("preserves strict equality for the same ordinary object", () => {
+    // Arrange
+    const value = {};
+    // Act / Assert
+    expect(fieldEquals(value, value)).toBe(true);
   });
 });

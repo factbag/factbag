@@ -41,7 +41,7 @@ export type {
 export type { Annotations, AnnotationValue } from "../types/annotations";
 export { variable } from "./variable";
 export type { Formula, Scalar, Term } from "./types";
-export { assertAtomLike, assertGroundAtom } from "../types/atom";
+export { assertAtomLike, assertGroundAtom, fieldEquals } from "../types/atom";
 export type {
   AnyAtom,
   Atom,

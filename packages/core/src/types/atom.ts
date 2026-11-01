@@ -111,7 +111,7 @@ export function atomEquals(left: AnyAtom, right: AnyAtom): boolean {
 
 /**
  * Return whether two atom field values denote the same thing: entities by
- * type + id, everything else (primitives, variables) by reference identity.
+ * constructor + id, dates by instant, and other values by strict equality.
  */
 export function fieldEquals(left: unknown, right: unknown): boolean {
   if (left instanceof Date && right instanceof Date) {
