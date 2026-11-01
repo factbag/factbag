@@ -102,6 +102,9 @@ export type EqualityTerm = ComparableTerm | string | boolean | Entity;
 export function exists<const Args extends readonly unknown[]>(...args: Args & ExistsArgs<Args>): Formula<boolean, Args>;
 
 // @public
+export function fieldEquals(left: unknown, right: unknown): boolean;
+
+// @public
 export function floorTo(value: NumericTerm, places: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
