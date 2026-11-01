@@ -269,7 +269,6 @@ export type PrimitiveUncertainty = Readonly<{
 }>;
 
 // Warning: (ae-forgotten-export) The symbol "KnowledgeBase" needs to be exported by the entry point index.d.ts
-// Warning: (ae-unresolved-link) The @link reference could not be resolved: The package "@factbag/core" does not have an export "ProgrammerError"
 //
 // @public
 export function query<Schema extends PredicateSchema>(kb: KnowledgeBase, atom: GroundAtom<Schema>): QueryJudgment<Schema>;

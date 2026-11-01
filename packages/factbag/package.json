@@ -50,6 +50,10 @@
       "types": "./dist/core/explanation/index.d.ts",
       "import": "./dist/core/explanation/index.js"
     },
+    "./exceptions": {
+      "types": "./dist/core/exceptions/index.d.ts",
+      "import": "./dist/core/exceptions/index.js"
+    },
     "./corpus": {
       "types": "./dist/corpus/index.d.ts",
       "import": "./dist/corpus/index.js"

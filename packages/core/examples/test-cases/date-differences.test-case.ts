@@ -10,7 +10,7 @@ import {
   yearsBetween,
 } from "../../src/dsl";
 import type { KnowledgeBase } from "../../src/knowledge-base";
-import { PrimitiveArithmeticProgrammerError } from "../../src/knowledge-base";
+import { PrimitiveArithmeticProgrammerError } from "../../src/exceptions";
 import { ruleProof } from "../test-runner/rule-proof";
 import type { DslTestSpec } from "../test-runner/test-runner";
 

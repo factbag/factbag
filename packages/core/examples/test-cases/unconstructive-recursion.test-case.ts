@@ -1,5 +1,5 @@
 import { and, closedPredicate, count, gte, letIn, not, predicate, variable } from "../../src/dsl";
-import { UnconstructiveRecursionProgrammerError } from "../../src/exceptions/programmer-errors";
+import { UnconstructiveRecursionProgrammerError } from "../../src/exceptions";
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {

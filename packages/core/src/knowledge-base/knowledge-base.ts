@@ -135,7 +135,7 @@ export class KnowledgeBase {
    * Start declaring a rule for a head atom; finish with the builder's `if`
    * (sufficient condition) or `iff` (exclusive definition).
    *
-   * @throws {@link ExclusiveDefinitionProgrammerError} when the head
+   * @throws `ExclusiveDefinitionProgrammerError` (from `@factbag/core/exceptions`) when the head
    * predicate ends up with an `iff` definition alongside any other rule.
    *
    * @example

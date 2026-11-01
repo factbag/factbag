@@ -1,5 +1,5 @@
 import { predicate, variable } from "../../src/dsl";
-import { ExclusiveDefinitionProgrammerError } from "../../src/knowledge-base";
+import { ExclusiveDefinitionProgrammerError } from "../../src/exceptions";
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {

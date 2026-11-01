@@ -72,3 +72,21 @@ export class ExclusiveDefinitionProgrammerError extends ProgrammerError {
     this.rules = rules;
   }
 }
+
+/**
+ * A predicate cannot be classified over a supported finite domain. Raised when a classifier
+ * registers the predicate, before any request is made.
+ */
+export class UnsupportedPredicateError extends ProgrammerError {
+  /** Predicate whose registration failed. */
+  readonly predicate: PredicateDeclaration;
+  /** Unsupported or invalid field, when the error concerns a specific field. */
+  readonly field: string | undefined;
+
+  constructor(message: string, predicate: PredicateDeclaration, field?: string) {
+    super(message);
+    this.name = "UnsupportedPredicateError";
+    this.predicate = predicate;
+    this.field = field;
+  }
+}

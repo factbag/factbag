@@ -1,5 +1,6 @@
 import { and, closedPredicate, gte, lte, or, variable } from "../../src/dsl";
-import { UnsafeUnboundVariableProgrammerError, type KnowledgeBase } from "../../src/knowledge-base";
+import type { KnowledgeBase } from "../../src/knowledge-base";
+import { UnsafeUnboundVariableProgrammerError } from "../../src/exceptions";
 import { ruleProof } from "../test-runner/rule-proof";
 import type { DslTestSpec } from "../test-runner/test-runner";
 
