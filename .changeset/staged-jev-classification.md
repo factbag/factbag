@@ -8,6 +8,8 @@ Reorganize classification and resolution to separate evidence workflows from mod
 
 Classification now executes one job per chunk across all permitted predicates. All responses for the chunk must validate before its evidence is written. Failed jobs can be retried without partial evidence, repeating the chunk's requests; successful repeats add fresh evidence.
 
+Optionally filter candidates by passage relevance with `config: { routing: true }`. Each chunk first asks which predicates the passage may bear on. For predicates that make claims about supplied entities or values, it can also filter those symbols before combining them into complete candidate facts. `candidateProductCutoff` controls when this extra filtering runs. Filtering defaults to off: false negatives can suppress evidence, including denials, and the extra requests do not guarantee cost savings.
+
 Expose `createConfig`, `Config`, and shared `DEFAULT_*` constants through `factbag/jev/config`. Normalize settings once and preserve a shared lazy client when a factory-created config is reused across workflows.
 
 Export `fieldEquals` from `factbag/dsl` and use core equality in Jev: entities compare by constructor and ID, dates by instant. Resolution now groups contradictory evidence about separate instances of the same entity.

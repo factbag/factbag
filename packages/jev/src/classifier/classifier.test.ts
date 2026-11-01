@@ -4,7 +4,7 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import type { GuardedKB } from "@factbag/guards";
-import type { ChoiceQuestion, SystemOneRequest } from "@typesafe-ai/sdk";
+import type { ChoiceQuestion, NoulQuestion, SystemOneRequest } from "@typesafe-ai/sdk";
 import { UnsupportedPredicateError } from "../errors";
 import { mockClient } from "../testing/mock-client";
 import type { Outcome } from "../types/model";
@@ -20,7 +20,7 @@ class Company {
 }
 
 const valid = predicate("valid", {}, { description: "The record is valid." });
-type Questions = Record<string, ChoiceQuestion<Record<Outcome, string>>>;
+type Questions = Record<string, NoulQuestion | ChoiceQuestion<Record<Outcome, string>>>;
 
 function answer(ASSERT = 0.95, DENY = 0.03, IRRELEVANT = 0.02) {
   return {
@@ -31,12 +31,17 @@ function answer(ASSERT = 0.95, DENY = 0.03, IRRELEVANT = 0.02) {
   };
 }
 
-/** A Jev that answers every classification with `result`. */
+/** A Jev that answers every classification with `result` and finds everything relevant. */
 function clientWith(result: unknown = answer()) {
   return mockClient<Questions>(({ questions }) => ({
     model: "test",
     usage: { input_tokens: 0, output_tokens: 0 },
-    answers: Object.fromEntries(Object.keys(questions).map((id) => [id, result])),
+    answers: Object.fromEntries(
+      Object.entries(questions).map(([id, question]) => [
+        id,
+        question.type === "noul" ? { type: "noul", noul: 1 } : result,
+      ]),
+    ),
   }));
 }
 
@@ -361,18 +366,26 @@ describe("classifier jobs", () => {
    * behind and the same job can simply run again.
    */
   it.each([
-    { stage: "the first request", fails: () => true },
+    { stage: "the first request", routing: false, fails: () => true },
     {
       stage: "a later batch of the same predicate",
+      routing: false,
       fails: ({ state }: SystemOneRequest<Questions>) =>
         JSON.stringify(state).includes('"value":69'),
     },
     {
       stage: "another predicate's request",
+      routing: false,
       fails: ({ questions }: SystemOneRequest<Questions>) =>
         JSON.stringify(questions).includes('"name":"valid"'),
     },
-  ])("writes nothing when $stage fails, and the job can be retried", async ({ fails }) => {
+    {
+      stage: "a relevance request",
+      routing: true,
+      fails: ({ questions }: SystemOneRequest<Questions>) =>
+        Object.values(questions).some(({ type }) => type === "noul"),
+    },
+  ])("writes nothing when $stage fails, and the job can be retried", async ({ routing, fails }) => {
     // Arrange: which request fails, once, comes from the table.
     const { kb, corpus } = setup();
     const many = predicate(
@@ -393,7 +406,7 @@ describe("classifier jobs", () => {
     const run = classifier({
       corpus,
       input: guard(kb).permit("assert", many, valid),
-      config: { client },
+      config: { client, routing },
     });
     const job = nextJob(run);
 

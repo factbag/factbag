@@ -189,6 +189,26 @@ New literals carry source, outcome probability,
 candidate IDs, selected choice, SDK confidence, and the full distribution. SDK confidence remains separate from outcome probability. These
 thresholds are application policy, not calibrated defaults.
 
+## Optional relevance filtering
+
+Set `config: { routing: true }` to reduce the candidate facts sent for classification
+by filtering predicates and values for relevance to each passage. Each chunk job
+first asks which predicates the passage may bear on. For predicates that make claims
+about supplied entities or values, it can also ask which of those symbols the passage
+involves. For example, before classifying ownership claims, it can narrow the list
+of companies to those relevant to the passage. Only combinations of the retained
+symbols are classified.
+
+Symbol filtering runs when a retained predicate has symbols to filter and its
+candidate combinations exceed `candidateProductCutoff` (default 16). Each distinct
+symbol is checked once across all surviving predicates and roles. Boolean field
+values are always retained. `predicateThreshold` and `symbolThreshold`
+(default 0.3) are inclusive.
+
+Filtering is **off by default**: a false negative in either pass silently drops
+evidence, including denials. Filtering adds requests and does not guarantee cost savings. Run
+`pnpm --filter @factbag/jev demo:staged` to compare both modes on a scripted fixture.
+
 ## Resolving contradictions
 
 Each chunk is classified on its own, so a 2012 removal notice and a 2022
@@ -238,6 +258,7 @@ request encoding, batching, and response validation.
 
 - `classifier/classifier.ts`: KB snapshots, lazy chunk traversal, and one job per chunk.
 - `classifier/classifiable-predicates.ts`: eager predicate validation and role domains.
+- `classifier/filter-predicates.ts`, `classifier/filter-symbols.ts`: optional passage relevance filtering.
 - `classifier/extract-evidence.ts`: candidate enumeration, admission, permission checks and writes.
 - `resolve.ts`: finds contradictions, gathers their passages, and creates lazy jobs that apply admission and retract superseded evidence in a fork.
 - `config.ts`, `settings.ts`: `Config` defaults and validation, resolved into pipeline settings.

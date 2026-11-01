@@ -15,6 +15,10 @@ export function resolveSettings(input: Config = {}): Settings {
   return {
     minimumProbability: config.minimumProbability,
     ambiguityMargin: config.ambiguityMargin,
+    routing: config.routing,
+    candidateProductCutoff: config.candidateProductCutoff,
+    predicateThreshold: config.predicateThreshold,
+    symbolThreshold: config.symbolThreshold,
     // Defer reading the client to the first request, so building a run never builds an SDK client.
     model: jev(() => config.client),
   };

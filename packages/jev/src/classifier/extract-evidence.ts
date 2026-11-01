@@ -7,17 +7,20 @@ import type { Settings } from "../settings";
 import type { ClassifiablePredicate } from "./types";
 
 /**
- * Assess every candidate proposition against one passage and add admitted evidence to
- * the output KB. All predicates must be judged before any evidence is written.
+ * Assess the retained propositions against one passage and add admitted evidence to
+ * the output KB. This is the third pipeline step, after predicate and symbol filtering.
+ * All predicates must be judged before any evidence is written.
  */
 export async function extractEvidence({
   chunk,
   predicates,
+  symbols,
   config,
   kb,
 }: {
   chunk: Chunk;
   predicates: readonly ClassifiablePredicate[];
+  symbols: readonly (Scalar | Entity)[];
   config: Settings;
   kb: KnowledgeBase;
 }): Promise<void> {
@@ -27,7 +30,9 @@ export async function extractEvidence({
    */
   const evidence = (
     await Promise.all(
-      predicates.map(async (predicate) => await judgeCandidateFacts({ chunk, predicate, config })),
+      predicates.map(
+        async (predicate) => await judgeCandidateFacts({ chunk, predicate, symbols, config }),
+      ),
     )
   ).flat();
   for (const { sign, atom, metadata } of evidence) {
@@ -46,16 +51,18 @@ export async function extractEvidence({
 async function judgeCandidateFacts({
   chunk,
   predicate,
+  symbols,
   config,
 }: {
   chunk: Chunk;
   predicate: ClassifiablePredicate;
+  symbols: readonly (Scalar | Entity)[];
   config: Settings;
 }): Promise<readonly Literal[]> {
   const answers = await config.model.classify({
     text: chunk.text,
     predicate: predicate.declaration,
-    candidates: enumerateCandidateFacts(predicate),
+    candidates: enumerateCandidateFacts({ predicate, symbols }),
   });
   return answers.flatMap(({ candidate, judgement }) =>
     admittedOutcomes(judgement, config)
@@ -96,16 +103,33 @@ function admittedOutcomes(
 }
 
 /**
- * Turn a predicate's field values into the concrete facts the model will judge.
+ * Turn a predicate's retained field values into the concrete facts the model will judge.
  * Build every combination, excluding combinations that reuse the same entity in
  * multiple fields. Request IDs and JSON encoding belong to the model.
  *
  * An empty field domain produces no candidates; a predicate with no fields produces
  * one.
  */
-function enumerateCandidateFacts(predicate: ClassifiablePredicate): readonly GroundAtom[] {
+function enumerateCandidateFacts({
+  predicate,
+  symbols,
+}: {
+  predicate: ClassifiablePredicate;
+  symbols: readonly (Scalar | Entity)[];
+}): readonly GroundAtom[] {
   return (
     Object.entries(predicate.roles)
+      /**
+       * Intersect the passage-wide symbol shortlist with each role's original domain.
+       * A relevant symbol can only fill roles whose domain already permits it.
+       */
+      .map(
+        ([role, domain]) =>
+          [
+            role,
+            domain.filter((value) => symbols.some((symbol) => fieldEquals(value, symbol))),
+          ] as const,
+      )
       /**
        * Build the Cartesian product by extending each combination with every value
        * of the next field. Starting with one empty combination also handles predicates
