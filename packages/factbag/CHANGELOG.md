@@ -1,5 +1,31 @@
 # factbag
 
+## 0.0.0-alpha.4
+
+### Minor Changes
+
+- 2814aab: Allow enumerations to hold numbers or dates as well as strings, with one member
+  type per enumeration. Members must be unique; dates compare by instant and are
+  copied on construction. NaN and invalid dates are rejected. Enumeration membership
+  validation at assertion and query time is unchanged.
+- 1f5bb1b: Classify predicates whose fields are number or Date enumerations, alongside
+  string enumerations. Dates are sent to the model as ISO strings and retained as
+  `Date` values in evidence. Open-ended `String`, `Number`, and `Date` fields
+  remain unsupported.
+- 9ca1766: Reorganize classification and resolution to separate evidence workflows from model requests. The workflows own evidence admission and knowledge-base updates; the Jev implementation owns prompts, encoding, batching, and response validation.
+
+  **Breaking changes:** call the classifier with `classifier({ corpus, input, config })`. Classification and resolution jobs now expose only `execute(): Promise<void>`; read the resulting knowledge base from `run.kb`. Job metadata and assessment and resolution reports are removed. Replace `RequestConfig`, `ResolutionConfig`, and nested `AdmissionPolicy` settings with the shared, flat `Config`. Pass an SDK client directly instead of implementing the removed custom client interfaces.
+
+  Classification now executes one job per chunk across all permitted predicates. All responses for the chunk must validate before its evidence is written. Failed jobs can be retried without partial evidence, repeating the chunk's requests; successful repeats add fresh evidence.
+
+  Optionally filter candidates by passage relevance with `config: { routing: true }`. Each chunk first asks which predicates the passage may bear on. For predicates that make claims about supplied entities or values, it can also filter those symbols before combining them into complete candidate facts. `candidateProductCutoff` controls when this extra filtering runs. Filtering defaults to off: false negatives can suppress evidence, including denials, and the extra requests do not guarantee cost savings.
+
+  Expose `createConfig`, `Config`, and shared `DEFAULT_*` constants through `factbag/jev/config`. Normalize settings once and preserve a shared lazy client when a factory-created config is reused across workflows.
+
+  Export `fieldEquals` from `factbag/dsl` and use core equality in Jev: entities compare by constructor and ID, dates by instant. Resolution now groups contradictory evidence about separate instances of the same entity.
+
+  Encode candidate values when building requests, using the original entities and dates instead of construction-time JSON snapshots. Candidate domains remain fixed at run construction.
+
 ## 0.0.0-alpha.3
 
 ### Minor Changes
