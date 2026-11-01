@@ -11,6 +11,10 @@ export type Config = {
     readonly client?: TypeSafeClient;
     readonly minimumProbability?: number;
     readonly ambiguityMargin?: number;
+    readonly routing?: boolean;
+    readonly predicateThreshold?: number;
+    readonly symbolThreshold?: number;
+    readonly candidateProductCutoff?: number;
 };
 
 // @beta
@@ -20,6 +24,18 @@ export function createConfig(config?: Config): Required<Config>;
 export const DEFAULT_AMBIGUITY_MARGIN = 0;
 
 // @beta
+export const DEFAULT_CANDIDATE_PRODUCT_CUTOFF = 16;
+
+// @beta
 export const DEFAULT_MINIMUM_PROBABILITY = 0.4;
+
+// @beta
+export const DEFAULT_PREDICATE_THRESHOLD = 0.3;
+
+// @beta
+export const DEFAULT_ROUTING_ENABLED = false;
+
+// @beta
+export const DEFAULT_SYMBOL_THRESHOLD = 0.3;
 
 ```

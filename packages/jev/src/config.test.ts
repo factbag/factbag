@@ -44,12 +44,26 @@ describe("createConfig", () => {
     expect(resolutions.kb).not.toBe(kb);
   });
 
-  it.each([
-    { minimumProbability: 0 },
-    { minimumProbability: 1.1 },
-    { ambiguityMargin: -1 },
-    { ambiguityMargin: Number.NaN },
-  ])("rejects invalid setting %j", (config) => {
+  it.each(
+    [
+      { minimumProbability: 0 },
+      { minimumProbability: 1.1 },
+      { ambiguityMargin: -1 },
+      { ambiguityMargin: Number.NaN },
+      { predicateThreshold: Number.NaN },
+      { predicateThreshold: Infinity },
+      { predicateThreshold: -0.1 },
+      { predicateThreshold: 1.1 },
+      { symbolThreshold: Number.NaN },
+      { symbolThreshold: Infinity },
+      { symbolThreshold: -0.1 },
+      { symbolThreshold: 1.1 },
+      { candidateProductCutoff: -1 },
+      { candidateProductCutoff: 0.5 },
+      { candidateProductCutoff: Infinity },
+      { candidateProductCutoff: Number.MAX_SAFE_INTEGER + 1 },
+    ].flatMap((setting) => [true, false].map((routing) => ({ ...setting, routing }))),
+  )("rejects invalid setting %j whether or not routing is on", (config) => {
     // Arrange: the invalid setting comes from the table.
 
     // Act

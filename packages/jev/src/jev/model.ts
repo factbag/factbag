@@ -6,13 +6,16 @@ import {
   adjudicationState,
   classificationQuestion,
   classificationState,
+  relevanceQuestion,
+  relevanceState,
 } from "./prompts";
 
 /**
  * How many questions one request may ask. Accuracy holds to roughly a hundred candidates
  * and then falls away: at several hundred the model starts attributing a document's facts
  * to candidates it does not mention. Splitting costs requests, and resends the passage, but
- * keeps each request's questions about a readable shortlist.
+ * keeps each request's questions about a readable shortlist. Relevance applies the same bound
+ * to its shorter yes/no questions, where it was not separately measured.
  */
 const MAX_QUESTIONS_PER_REQUEST = 64;
 
@@ -28,14 +31,27 @@ const VERDICTS: readonly Verdict[] = ["KEEP", "RETRACT"];
 type Client = Pick<TypeSafeClient, "systemOne">;
 
 /**
- * Jev behind the model interface. Classification questions are split into request-sized
- * batches sent concurrently; adjudication sends every passage in one request, since each is
- * judged with the others in view. `client` is called per request, so a lazily built client
- * is only constructed once something is asked.
+ * Jev behind the model interface. Relevance and classification questions are split into
+ * request-sized batches sent concurrently; adjudication sends every passage in one request,
+ * since each is judged with the others in view. `client` is called per request, so a lazily
+ * built client is only constructed once something is asked.
  */
 export function jev(client: () => Client): Model {
   return {
     name: "jev",
+    relevance: async ({ text, subjects }) =>
+      await inBatches(
+        subjects,
+        async (group) =>
+          await ask({
+            client,
+            prefix: "routing",
+            items: group,
+            state: () => relevanceState(text),
+            question: relevanceQuestion,
+            answer: (response, subject) => ({ subject, relevance: noul(response) }),
+          }),
+      ),
     classify: async ({ text, predicate, candidates }) =>
       await inBatches(
         candidates,
@@ -107,6 +123,14 @@ async function ask<Item, Result>({
     questions: Object.fromEntries(keyed.map(({ id, item }, index) => [id, question(item, index)])),
   });
   return keyed.map(({ id, item }) => answer(answers[id], item, id));
+}
+
+/** A validated relevance probability. */
+function noul(response: unknown): number {
+  if (!isRecord(response) || response["type"] !== "noul" || !isProbability(response["noul"])) {
+    throw new Error("Invalid or missing routing answer");
+  }
+  return response["noul"];
 }
 
 /** A validated choice, keeping Jev's own choice and confidence as provenance detail. */

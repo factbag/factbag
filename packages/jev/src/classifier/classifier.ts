@@ -1,10 +1,14 @@
 import type { KnowledgeBase } from "@factbag/core/kb";
-import type { Corpus, Metadata } from "@factbag/corpus";
+import type { Chunk, Corpus, Metadata } from "@factbag/corpus";
 import { chunkers } from "@factbag/corpus";
 import { GuardedKB, guard } from "@factbag/guards";
 import { classifiablePredicates } from "./classifiable-predicates";
+import type { ClassifiablePredicate } from "./types";
 import { extractEvidence } from "./extract-evidence";
+import { filterPredicates } from "./filter-predicates";
+import { filterSymbols } from "./filter-symbols";
 import { resolveSettings } from "../settings";
+import type { Settings } from "../settings";
 import type { Config } from "../types/config";
 import type { Run } from "../types/run";
 
@@ -37,10 +41,10 @@ export function classifier<M extends Metadata = Metadata>({
     .filter(() => predicates.length > 0)
     /** Chunk the construction-time document list only as jobs are requested. */
     .flatMap((document) => corpus.chunk(document, chunker))
-    /** Each job classifies one chunk. */
+    /** Each job runs the three classification stages for one chunk. */
     .map((chunk) => ({
       execute: async () =>
-        await extractEvidence({
+        await processChunk({
           chunk,
           predicates,
           config,
@@ -48,4 +52,24 @@ export function classifier<M extends Metadata = Metadata>({
         }),
     }));
   return Object.assign(jobs, { kb: outputKB });
+}
+
+async function processChunk({
+  chunk,
+  predicates: inputPredicates,
+  config,
+  kb,
+}: {
+  chunk: Chunk;
+  predicates: readonly ClassifiablePredicate[];
+  config: Settings;
+  kb: KnowledgeBase;
+}): Promise<void> {
+  const predicates = await filterPredicates({
+    chunk,
+    predicates: inputPredicates,
+    config,
+  });
+  const symbols = await filterSymbols({ chunk, predicates, config });
+  await extractEvidence({ chunk, predicates, symbols, config, kb });
 }

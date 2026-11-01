@@ -1,26 +1,95 @@
 import { describe, expect, it } from "vitest";
 import { enumeration, predicate } from "@factbag/core/dsl";
+import type { NoulQuestion } from "@typesafe-ai/sdk";
 import { mockClient } from "../testing/mock-client";
 import { jev } from "./model";
 
+class Person {
+  constructor(readonly id: string) {}
+}
+
 const valid = predicate("valid", {}, { description: "The record is valid." });
 
+/** A Jev that scores each question with `score`, given the question as JSON text. */
+function noulClient(score: (question: string) => number | undefined) {
+  return mockClient<Record<string, NoulQuestion>>(({ questions }) => ({
+    model: "mock",
+    usage: { input_tokens: 0, output_tokens: 0 },
+    answers: Object.fromEntries(
+      Object.entries(questions).map(([id, question]) => [
+        id,
+        { type: "noul", noul: score(JSON.stringify(question)) },
+      ]),
+    ),
+  }));
+}
+
 describe("jev", () => {
+  it("pairs each subject with its relevance, in order, beyond one request's capacity", async () => {
+    // Arrange
+    const people = Array.from({ length: 150 }, (_, index) => new Person(`p${index}`));
+    const client = noulClient((question) => Number(/"id":"p(\d+)"/u.exec(question)?.[1]) / 1000);
+    const model = jev(() => client);
+
+    // Act
+    const answers = await model.relevance({
+      text: "Everyone is mentioned.",
+      subjects: people.map((value) => ({ value })),
+    });
+
+    // Assert
+    expect(answers.map(({ subject }) => subject.value)).toEqual(people);
+    expect(answers.map(({ relevance }) => relevance)).toEqual(
+      people.map((_, index) => index / 1000),
+    );
+  });
+
+  it("judges predicate and symbol subjects in the same call", async () => {
+    // Arrange
+    const client = noulClient((question) => (question.includes('"valid"') ? 0.8 : 0.2));
+    const model = jev(() => client);
+
+    // Act
+    const answers = await model.relevance({
+      text: "The record is valid.",
+      subjects: [{ declaration: valid }, { value: new Person("p0") }],
+    });
+
+    // Assert
+    expect(answers.map(({ relevance }) => relevance)).toEqual([0.8, 0.2]);
+  });
+
   it("asks nothing when there is nothing to judge", async () => {
     // Arrange
-    const client = choiceClient(() => choice());
+    const client = noulClient(() => 1);
     const model = jev(() => client);
 
     // Act
     const results = await Promise.all([
+      model.relevance({ text: "Text.", subjects: [] }),
       model.classify({ text: "Text.", predicate: valid, candidates: [] }),
       model.adjudicate({ atom: valid({}), passages: [] }),
     ]);
 
     // Assert
-    expect(results).toEqual([[], []]);
+    expect(results).toEqual([[], [], []]);
     expect(client.transport).not.toHaveBeenCalled();
   });
+
+  it.each([Number.NaN, -0.1, 1.1, undefined])(
+    "rejects a relevance answer of %s",
+    async (relevance) => {
+      // Arrange
+      const client = noulClient(() => relevance);
+      const model = jev(() => client);
+
+      // Act
+      const answers = model.relevance({ text: "Text.", subjects: [{ declaration: valid }] });
+
+      // Assert
+      await expect(answers).rejects.toThrow(/routing answer/u);
+    },
+  );
 
   it("pairs each candidate with Jev's distribution and keeps its choice and confidence", async () => {
     // Arrange
@@ -57,12 +126,12 @@ describe("jev", () => {
     let built = 0;
     const model = jev(() => {
       built++;
-      return choiceClient(() => choice());
+      return noulClient(() => 1);
     });
 
     // Act
     const before = built;
-    await model.classify({ text: "Text.", predicate: valid, candidates: [valid({})] });
+    await model.relevance({ text: "Text.", subjects: [{ declaration: valid }] });
 
     // Assert
     expect(before).toBe(0);
