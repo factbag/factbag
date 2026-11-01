@@ -4,14 +4,11 @@
 classification jobs, one per chunk. Constructing and consuming the iterator makes **no remote calls**. The caller
 decides when to execute each job and how much work to run concurrently.
 
-The package has four entry points:
+The package has one entry point, `@factbag/jev`, which exports:
 
-| Entry point               | Export                                       |
-| ------------------------- | -------------------------------------------- |
-| `@factbag/jev/classifier` | `classifier({ corpus, input: kb, config? })` |
-| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`              |
-| `@factbag/jev/errors`     | `UnsupportedPredicateError`                  |
-| `@factbag/jev/config`     | `createConfig`, `Config`, and `DEFAULT_*`    |
+- `classifier({ corpus, input: kb, config? })`
+- `resolver(corpus, kb, config?)`
+- `createConfig`, `Config`, and the `DEFAULT_*` constants
 
 ## Usage
 
@@ -20,7 +17,7 @@ import { enumeration, predicate } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
-import { classifier } from "@factbag/jev/classifier";
+import { classifier } from "@factbag/jev";
 
 class Company {
   constructor(
@@ -91,7 +88,7 @@ classifier({ corpus, input: kb, config: { minimumProbability: 0.8, ambiguityMarg
   Unsupported predicates fail even if the corpus is empty; blocked predicates are
   not registered.
 
-`UnsupportedPredicateError` (from `@factbag/jev/errors`) identifies the predicate and, where applicable, the
+`UnsupportedPredicateError` (from `@factbag/core/exceptions`) identifies the predicate and, where applicable, the
 field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
@@ -217,7 +214,7 @@ passages together and asks, for each one, whether its account still stands. It w
 like `classifier`: construction makes no remote calls, and each job is one request.
 
 ```ts
-import { resolver } from "@factbag/jev/resolve";
+import { resolver } from "@factbag/jev";
 
 const resolution = resolver(corpus, run.kb);
 for (const job of resolution) {

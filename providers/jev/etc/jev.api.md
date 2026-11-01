@@ -4,7 +4,18 @@
 
 ```ts
 
+import type { Corpus } from '@factbag/corpus';
+import { GuardedKB } from '@factbag/guards';
+import type { KnowledgeBase } from '@factbag/core/kb';
+import type { Metadata } from '@factbag/corpus';
 import type { TypeSafeClient } from '@typesafe-ai/sdk';
+
+// @beta
+export function classifier<M extends Metadata = Metadata>(input: {
+    corpus: Corpus<M>;
+    input: KnowledgeBase | GuardedKB;
+    config?: Config;
+}): Run;
 
 // @beta
 export type Config = {
@@ -37,5 +48,18 @@ export const DEFAULT_ROUTING_ENABLED = false;
 
 // @beta
 export const DEFAULT_SYMBOL_THRESHOLD = 0.3;
+
+// @beta
+export type Job = {
+    readonly execute: () => Promise<void>;
+};
+
+// @beta
+export function resolver<M extends Metadata = Metadata>(corpus: Corpus<M>, kb: KnowledgeBase, inputConfig?: Config): Run;
+
+// @beta
+export type Run = IterableIterator<Job> & {
+    readonly kb: KnowledgeBase;
+};
 
 ```

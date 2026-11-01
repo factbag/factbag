@@ -6,7 +6,7 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
-import { classifier } from "../src/classifier";
+import { classifier } from "../src/index";
 import { distribution } from "./fixtures";
 
 const server = setupServer();

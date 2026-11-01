@@ -68,7 +68,7 @@ import { KnowledgeBase } from "factbag/kb";
 import { query } from "factbag/query";
 import { Corpus } from "factbag/corpus";
 import { guard } from "factbag/guards";
-import { classifier } from "factbag/jev/classifier";
+import { classifier } from "factbag/jev";
 
 class Person {
   constructor(
@@ -282,7 +282,7 @@ Evidence judged superseded is retracted from the resolver's output
 knowledge base.
 
 ```ts
-import { resolver } from "factbag/jev/resolve";
+import { resolver } from "factbag/jev";
 
 query(run.kb, isQualifiedInvestor({ person: alice })).value; // "conflicted"
 

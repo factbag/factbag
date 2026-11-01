@@ -16,10 +16,7 @@ const packages = [
       "factbag/exceptions",
       "factbag/corpus",
       "factbag/guards",
-      "factbag/jev/classifier",
-      "factbag/jev/errors",
-      "factbag/jev/resolve",
-      "factbag/jev/config",
+      "factbag/jev",
     ],
   },
   {
@@ -36,12 +33,7 @@ const packages = [
   { directory: "packages/guards", entries: ["@factbag/guards"] },
   {
     directory: "providers/jev",
-    entries: [
-      "@factbag/jev/classifier",
-      "@factbag/jev/errors",
-      "@factbag/jev/resolve",
-      "@factbag/jev/config",
-    ],
+    entries: ["@factbag/jev"],
   },
 ];
 

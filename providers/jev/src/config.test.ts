@@ -3,7 +3,7 @@ import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { createConfig } from "./config";
-import { classifier } from "./classifier";
+import { classifier } from "./classifier/classifier";
 import { resolver } from "./resolve";
 
 afterEach(() => vi.unstubAllEnvs());

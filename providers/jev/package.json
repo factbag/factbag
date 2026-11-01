@@ -29,21 +29,9 @@
     "LICENSE"
   ],
   "exports": {
-    "./classifier": {
-      "types": "./dist/classifier/index.d.ts",
-      "import": "./dist/classifier/index.js"
-    },
-    "./errors": {
-      "types": "./dist/errors.d.ts",
-      "import": "./dist/errors.js"
-    },
-    "./resolve": {
-      "types": "./dist/resolve.d.ts",
-      "import": "./dist/resolve.js"
-    },
-    "./config": {
-      "types": "./dist/config.d.ts",
-      "import": "./dist/config.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "engines": {
@@ -53,9 +41,9 @@
     "access": "public"
   },
   "scripts": {
-    "api-report": "api-extractor run --local --config api-extractor.classifier.json && api-extractor run --local --config api-extractor.errors.json && api-extractor run --local --config api-extractor.resolve.json && api-extractor run --local --config api-extractor.config.json",
-    "api-report:check": "api-extractor run --config api-extractor.classifier.json && api-extractor run --config api-extractor.errors.json && api-extractor run --config api-extractor.resolve.json && api-extractor run --config api-extractor.config.json",
-    "build": "node ../../scripts/clean-output.ts dist && tsup src/config.ts src/classifier/index.ts src/errors.ts src/resolve.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
     "demo": "tsx examples/run.ts",
     "demo:staged": "tsx examples/staged-comparison.ts",
     "test": "vitest run",

@@ -21,9 +21,8 @@ import type { EvidenceReason, Explanation } from "@factbag/core/explain";
 import type { AnyLiteral, AnyRule, KnowledgeBase, Literal } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { guard } from "@factbag/guards";
-import { classifier } from "@factbag/jev/classifier";
+import { classifier, resolver } from "@factbag/jev";
 
-import { resolver } from "@factbag/jev/resolve";
 import type { Scenario } from "@factbag/scenarios";
 import createHaystackScenario from "@factbag/scenarios/haystack";
 import createJ1Scenario from "@factbag/scenarios/j1";
