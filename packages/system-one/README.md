@@ -9,7 +9,7 @@ holds everything that does not depend on the vendor:
 - how answers are read: validation, and the provenance kept in evidence annotations.
 
 Applications don't import this package. They import a provider package, such as
-`@factbag/jev`, which binds these workflows to one model.
+`@factbag/jev` or `@factbag/clef`, which binds these workflows to one model.
 
 ## Writing a provider
 

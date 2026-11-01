@@ -251,7 +251,8 @@ const resolved = resolution.kb;
 
 This package only connects Jev to the shared workflows in `@factbag/system-one`:
 the TypeSafe client, Jev's batch limits, and the public signatures. Candidate
-selection, admission, prompts, batching, and answer validation live there.
+selection, admission, prompts, batching, and answer validation live there, and
+the same code serves `@factbag/clef`.
 
 ## Examples and checks
 

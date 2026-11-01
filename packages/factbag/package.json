@@ -26,7 +26,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Explainable fact and rule evaluation, document provenance, permission controls, and Jev integration.",
+  "description": "Explainable fact and rule evaluation, document provenance, permission controls, and Jev and Cloudflare Clef integrations.",
   "homepage": "https://github.com/factbag/factbag/tree/main/packages/factbag#readme",
   "repository": {
     "type": "git",
@@ -65,12 +65,17 @@
     "./jev": {
       "types": "./dist/jev/index.d.ts",
       "import": "./dist/jev/index.js"
+    },
+    "./clef": {
+      "types": "./dist/clef/index.d.ts",
+      "import": "./dist/clef/index.js"
     }
   },
   "scripts": {
     "build": "node ../../scripts/build-public-package.ts"
   },
   "devDependencies": {
+    "@factbag/clef": "workspace:*",
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",

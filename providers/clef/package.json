@@ -1,0 +1,63 @@
+{
+  "name": "@factbag/clef",
+  "version": "0.0.0",
+  "description": "Lazy AI-assisted classification and evidence resolution for Factbag, using Cloudflare's Clef models on Workers AI.",
+  "keywords": [
+    "classification",
+    "evidence",
+    "ai",
+    "cloudflare",
+    "clef",
+    "workers-ai",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/providers/clef#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "providers/clef"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*",
+    "@factbag/system-one": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "private": true
+}
