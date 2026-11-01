@@ -42,8 +42,8 @@ Its `classifier(...)` call needs no options or injected client.
 Both demos construct `classifier` with a guarded KB over a filtered view of the
 corpus that excludes structured records, then execute the yielded jobs
 sequentially. Classifier fields use explicit
-finite enums rather than guessed string values. Assessments are the results of
-`job.execute()`; `run.kb` is the independent enriched store. The examples choose
+finite enums rather than guessed string values. Each `job.execute()` writes to
+`run.kb`, the independent enriched store. The examples choose
 their own execution pace, and callers can use the same jobs with a concurrency limiter.
 
 ## Scope of the score helper
@@ -68,7 +68,7 @@ to the runtime API.
 ## Review and persistence
 
 The sanctions example excludes one specific denial after a scripted human review.
-The decision, excluded evidence, original assessments, and source document remain
+The decision, excluded evidence, original extracted evidence, and source document remain
 available in its result. The structured imports and accepted legal confirmation
 are not regenerated.
 This demonstrates a local correction; it does not implement a durable review

@@ -1,37 +1,14 @@
+import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { predicate } from "factbag/dsl";
 import { explainJudgment, type Explanation } from "factbag/explain";
 import { KnowledgeBase } from "factbag/kb";
 import { query, type Judgment } from "factbag/query";
 import { Corpus, chunkers } from "factbag/corpus";
 import { guard } from "factbag/guards";
-import {
-  classifier,
-  type AdmissionPolicy,
-  type Assessment,
-  type ClassificationJob,
-  type ClassificationRun,
-  type ClassifierClient,
-  type ClassificationQuestions,
-  type EvidenceChoice,
-  type Outcome,
-  type RequestConfig,
-  type SupportedField,
-  type SupportedPredicate,
-} from "factbag/jev/classifier";
+import { classifier } from "factbag/jev/classifier";
 import { UnsupportedPredicateError } from "factbag/jev/errors";
-import {
-  resolver,
-  type AdmissionPolicy as ResolutionAdmissionPolicy,
-  type AdjudicationQuestions,
-  type AdjudicatorClient,
-  type Judgment as ResolutionJudgment,
-  type Resolution,
-  type ResolutionConfig,
-  type ResolutionJob,
-  type ResolutionRun,
-  type Standing,
-  type StandingChoice,
-} from "factbag/jev/resolve";
+import { resolver } from "factbag/jev/resolve";
+import { createConfig, type Config } from "factbag/jev/config";
 
 const fact = predicate(
   "artifact_smoke",
@@ -48,42 +25,22 @@ const explanation = explainJudgment(judgment);
 const document = corpus.add({ documentId: "artifact-smoke", text: "Factbag package artifact." });
 const chunks = corpus.chunk(document, chunkers.recursive({ size: 8 }));
 
-const policy: AdmissionPolicy = {
-  minimumProbability: 0.6,
-  ambiguityMargin: 0,
-};
-const client: ClassifierClient & AdjudicatorClient = {
-  systemOne: async () => await Promise.reject(new Error("Typecheck only")),
-};
-const config: RequestConfig = { client, admission: policy };
-const resolutionPolicy: ResolutionAdmissionPolicy = policy;
-const resolveConfig: ResolutionConfig = { client, admission: resolutionPolicy };
-const classifications: ClassificationRun = classifier(corpus, guarded, config);
-const resolutions: ResolutionRun = resolver(corpus, kb, resolveConfig);
-for (const job of classifications) {
-  const typedJob: ClassificationJob = job;
-  const result: Promise<Assessment> = typedJob.execute();
-  void result;
-}
-for (const job of resolutions) {
-  const typedJob: ResolutionJob = job;
-  const result: Promise<Resolution> = typedJob.execute();
-  void result;
+const client = new TypeSafeClient({ apiKey: "typecheck-only" });
+const options: Config = { client, minimumProbability: 0.6, ambiguityMargin: 0 };
+const config = createConfig(options);
+const classifications = classifier({ corpus, input: guarded, config });
+const resolutions = resolver(corpus, kb, config);
+// Both workflows expose the same opaque job contract.
+for (const run of [classifications, resolutions]) {
+  for (const job of run) {
+    const pending: Promise<void> = job.execute();
+    void pending;
+  }
+  const output: KnowledgeBase = run.kb;
+  void output;
 }
 void UnsupportedPredicateError;
 void explanation;
 void chunks;
-const publicTypes: [
-  Judgment?,
-  Explanation?,
-  ResolutionJudgment?,
-  EvidenceChoice?,
-  Outcome?,
-  SupportedField?,
-  SupportedPredicate?,
-  ClassificationQuestions?,
-  AdjudicationQuestions?,
-  Standing?,
-  StandingChoice?,
-] = [];
+const publicTypes: [Judgment?, Explanation?] = [];
 void publicTypes;

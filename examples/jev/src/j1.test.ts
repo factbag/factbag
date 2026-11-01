@@ -59,7 +59,7 @@ it.each(["positive", "negative", "contradictory", "contradictory-document", "neu
         // The complete payload contains the passage text and candidate fields—not identifiers or labels.
         expect(body.state).toEqual({
           document: { text: document.text },
-          candidates: [
+          candidate_facts: [
             {
               id: "candidate_0",
               fields: {
@@ -102,7 +102,7 @@ it.each(["positive", "negative", "contradictory", "contradictory-document", "neu
     );
 
     // ACT — The consumer chooses permissions and execution order.
-    const run = classifier(corpus, guard(kb).permit("*", predicates.tenureTrack));
+    const run = classifier({ corpus, input: guard(kb).permit("*", predicates.tenureTrack) });
     for (const job of run) {
       // oxlint-disable-next-line eslint/no-await-in-loop -- A deliberately sequential walkthrough.
       await job.execute();

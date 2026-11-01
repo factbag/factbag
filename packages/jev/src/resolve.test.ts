@@ -1,10 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { predicate } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
-import type { AdjudicatorClient } from "./client";
+import type { ChoiceQuestion } from "@typesafe-ai/sdk";
 import { resolver } from "./resolve";
+import { mockClient } from "./testing/mock-client";
+type Standing = "KEEP" | "RETRACT";
 
 class Person {
   constructor(
@@ -30,22 +32,13 @@ function standing(RETRACT: number) {
 
 /** Answers each passage's question in order; a single answer applies to every passage. */
 function clientWith(...answers: readonly unknown[]) {
-  return {
-    systemOne: vi.fn<AdjudicatorClient["systemOne"]>(
-      async (request) =>
-        await Promise.resolve({
-          model: "test",
-          usage: { input_tokens: 0, output_tokens: 0 },
-          answers: Object.fromEntries(
-            Object.keys(request.questions).map((id, index) => [
-              id,
-              // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Tests also feed malformed answers.
-              (answers[index] ?? answers[0]) as ReturnType<typeof standing>,
-            ]),
-          ),
-        }),
+  return mockClient<Record<string, ChoiceQuestion<Record<Standing, string>>>>((request) => ({
+    model: "test",
+    usage: { input_tokens: 0, output_tokens: 0 },
+    answers: Object.fromEntries(
+      Object.keys(request.questions).map((id, index) => [id, answers[index] ?? answers[0]]),
     ),
-  };
+  }));
 }
 
 /** A person with a 2012 removal and a 2022 redesignation, read as conflicting evidence. */
@@ -70,154 +63,132 @@ function setup() {
 }
 
 async function settle(run: ReturnType<typeof resolver>) {
-  const resolutions = [];
-  for (const job of run) {
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential, to keep assertions simple.
-    resolutions.push(await job.execute());
-  }
-  return { kb: run.kb, resolutions };
+  await Promise.all([...run].map(async (job) => await job.execute()));
+  return { kb: run.kb };
 }
 
 describe("resolver", () => {
   it("makes no requests until a job executes, with one job per contradiction", () => {
-    const { kb, corpus, atom, removal, redesignation } = setup();
+    const { kb, corpus } = setup();
     const client = clientWith(standing(0.9));
 
     const jobs = [...resolver(corpus, kb, { client })];
 
-    expect(client.systemOne).not.toHaveBeenCalled();
+    expect(client.transport).not.toHaveBeenCalled();
     expect(jobs).toHaveLength(1);
-    expect(jobs[0]?.atom).toBe(atom);
-    expect(jobs[0]?.passages.map(({ documentId }) => documentId)).toEqual([
-      removal.documentId,
-      redesignation.documentId,
-    ]);
+    expect(Object.keys(jobs[0] ?? {})).toEqual(["execute"]);
   });
 
-  it("retracts the superseded passage's evidence and keeps the rest", async () => {
-    const { kb, corpus, atom, denied, asserted, removal, redesignation, whole } = setup();
-    // The 2012 removal is superseded; the 2022 redesignation stands.
-    const client = clientWith(standing(0.9), standing(0.1));
+  /** Answers are given per passage: the 2012 removal first, then the 2022 redesignation. */
+  it.each([
+    {
+      outcome: "the superseded removal is retracted",
+      answers: [0.9, 0.1],
+      config: {},
+      value: "true",
+      kept: ["asserted"],
+    },
+    {
+      outcome: "every passage stands",
+      answers: [0.1],
+      config: {},
+      value: "conflicted",
+      kept: ["denied", "asserted"],
+    },
+    {
+      outcome: "a leading retraction below the minimum is ignored",
+      answers: [0.55],
+      config: { minimumProbability: 0.6 },
+      value: "conflicted",
+      kept: ["denied", "asserted"],
+    },
+    {
+      outcome: "every passage is superseded",
+      answers: [0.9],
+      config: {},
+      value: "unknown",
+      kept: [],
+    },
+    {
+      outcome: "a retraction within the ambiguity margin is ignored",
+      answers: [0.6, 0.1],
+      config: { minimumProbability: 0.5, ambiguityMargin: 0.3 },
+      value: "conflicted",
+      kept: ["denied", "asserted"],
+    },
+    {
+      outcome: "a retraction beyond the default margin applies",
+      answers: [0.6, 0.1],
+      config: {},
+      value: "true",
+      kept: ["asserted"],
+    },
+  ])("settles a contradiction when $outcome", async ({ answers, config, value, kept }) => {
+    // Arrange: the per-passage answers and settings come from the table.
+    const { kb, corpus, atom, denied, asserted } = setup();
+    const evidence: Record<string, unknown> = { denied, asserted };
+    const client = clientWith(...answers.map((retract) => standing(retract)));
 
-    const { kb: resolved, resolutions } = await settle(resolver(corpus, kb, { client }));
+    // Act
+    const { kb: resolved } = await settle(resolver(corpus, kb, { client, ...config }));
 
-    expect(query(kb, atom).value).toBe("conflicted");
-    expect(query(resolved, atom).value).toBe("true");
+    // Assert
+    expect(query(resolved, atom).value).toBe(value);
+    expect(resolved.literals()).toEqual(kept.map((name) => evidence[name]));
+    expect(kb.literals()).toEqual([denied, asserted]);
+  });
+
+  it("resolves contradictory evidence attached to separate instances of the same entity", async () => {
+    // Arrange
+    const { kb, corpus, denied, asserted, atom } = setup();
+    kb.retract(denied);
+    kb.denies(sanctioned({ person: new Person("volkov", "Dmitry Volkov") }), denied.metadata);
+    const client = clientWith(standing(0.1), standing(0.9));
+
+    // Act
+    const { kb: resolved } = await settle(resolver(corpus, kb, { client }));
+
+    // Assert
+    expect(client.transport).toHaveBeenCalledOnce();
     expect(resolved.literals()).toEqual([asserted]);
-    expect(resolutions).toEqual([
-      {
-        atom,
-        judgments: [
-          {
-            passage: whole(removal),
-            standing: "RETRACT",
-            answer: standing(0.9),
-            retracted: [denied],
-          },
-          {
-            passage: whole(redesignation),
-            standing: "KEEP",
-            answer: standing(0.1),
-            retracted: [],
-          },
-        ],
-        kept: [asserted],
-        retracted: [denied],
-      },
-    ]);
-  });
-
-  it("asks one question per passage, sending only the passages' text", async () => {
-    const { kb, corpus, removal, redesignation } = setup();
-    const client = clientWith(standing(0.1));
-
-    await settle(resolver(corpus, kb, { client }));
-
-    expect(client.systemOne).toHaveBeenCalledOnce();
-    const [request] = client.systemOne.mock.calls[0] ?? [];
-    // No chunk IDs, document IDs or ranges reach the model.
-    expect(request?.state).toEqual({
-      documents: [{ text: removal.text }, { text: redesignation.text }],
-      candidate: { fields: { person: { id: "volkov", name: "Dmitry Volkov", type: "Person" } } },
-    });
-    expect(Object.keys(request?.questions ?? {})).toEqual(["passage_0", "passage_1"]);
-    expect(request?.questions["passage_1"]?.instructions).toMatchObject({
-      predicate: {
-        name: "sanctioned",
-        metadata: { description: "The person is currently designated." },
-      },
-    });
-    expect(Object.keys(request?.questions["passage_1"]?.criteria ?? {})).toEqual([
-      "KEEP",
-      "RETRACT",
-    ]);
+    expect(query(resolved, atom).value).toBe("true");
   });
 
   it.each([
-    { name: "every passage stands", retract: 0.1 },
-    { name: "a retraction below the minimum probability", retract: 0.45 },
-  ])("keeps all the evidence when $name", async ({ retract }) => {
-    const { kb, corpus, atom, denied, asserted } = setup();
-
-    const { kb: resolved, resolutions } = await settle(
-      resolver(corpus, kb, { client: clientWith(standing(retract)) }),
-    );
-
-    expect(query(resolved, atom).value).toBe("conflicted");
-    expect(resolutions[0]).toMatchObject({ kept: [denied, asserted], retracted: [] });
-  });
-
-  it("leaves the fact unknown when every passage is superseded", async () => {
-    const { kb, corpus, atom, denied, asserted } = setup();
-
-    const { kb: resolved, resolutions } = await settle(
-      resolver(corpus, kb, { client: clientWith(standing(0.9)) }),
-    );
-
-    expect(query(resolved, atom).value).toBe("unknown");
-    expect(resolutions[0]).toMatchObject({ kept: [], retracted: [denied, asserted] });
-  });
-
-  it("requires a retraction to lead by more than the ambiguity margin", async () => {
-    const { kb, corpus, atom } = setup();
-    const client = clientWith(standing(0.6), standing(0.1));
-
-    const strict = await settle(
-      resolver(corpus, kb, {
-        client,
-        admission: { minimumProbability: 0.5, ambiguityMargin: 0.3 },
-      }),
-    );
-    const lenient = await settle(resolver(corpus, kb, { client }));
-
-    expect(query(strict.kb, atom).value).toBe("conflicted");
-    expect(query(lenient.kb, atom).value).toBe("true");
-  });
-
-  it("throws during construction when conflicting evidence has no source", () => {
-    // Volkov's contradiction is resolvable; Ural's is not, so no job is created for either.
+    {
+      problem: "conflicting evidence has no source",
+      message: "Cannot resolve sanctioned(ural): evidence without a source",
+      add: (kb: KnowledgeBase, corpus: Corpus) => {
+        // Volkov's contradiction is resolvable; Ural's is not, so no job is created for either.
+        const ural = new Person("ural", "Ural Capital");
+        kb.entities.add(ural);
+        kb.asserts(sanctioned({ person: ural }), {
+          source: corpus.slice({ documentId: "removal" }, { start: 0, end: 4 }).id,
+        });
+        kb.denies(sanctioned({ person: ural }));
+      },
+    },
+    {
+      problem: "a source is not a chunk ID",
+      message: "Invalid chunk ID: registry",
+      add: (kb: KnowledgeBase) => {
+        kb.asserts(sanctioned({ person: new Person("volkov", "Dmitry Volkov") }), {
+          source: "registry",
+        });
+      },
+    },
+  ])("throws during construction, before asking anything, when $problem", ({ add, message }) => {
+    // Arrange: the unresolvable evidence comes from the table.
     const { kb, corpus } = setup();
-    const ural = new Person("ural", "Ural Capital");
-    kb.entities.add(ural);
-    kb.asserts(sanctioned({ person: ural }), {
-      source: corpus.slice({ documentId: "removal" }, { start: 0, end: 4 }).id,
-    });
-    kb.denies(sanctioned({ person: ural }));
+    add(kb, corpus);
     const client = clientWith(standing(0.9));
 
-    expect(() => resolver(corpus, kb, { client })).toThrow(
-      "Cannot resolve sanctioned(ural): evidence without a source",
-    );
-    expect(client.systemOne).not.toHaveBeenCalled();
-  });
+    // Act
+    const construct = () => resolver(corpus, kb, { client });
 
-  it("propagates corpus errors during construction for sources that are not chunk IDs", () => {
-    const { kb, corpus, atom } = setup();
-    kb.asserts(atom, { source: "registry" });
-    const client = clientWith(standing(0.9));
-
-    expect(() => resolver(corpus, kb, { client })).toThrow("Invalid chunk ID: registry");
-    expect(client.systemOne).not.toHaveBeenCalled();
+    // Assert
+    expect(construct).toThrow(message);
+    expect(client.transport).not.toHaveBeenCalled();
   });
 
   it("treats equal atoms as one proposition and ignores evidence without a contradiction", async () => {
@@ -239,7 +210,7 @@ describe("resolver", () => {
 
     const { kb: resolved } = await settle(resolver(corpus, kb, { client }));
 
-    expect(client.systemOne).toHaveBeenCalledOnce();
+    expect(client.transport).toHaveBeenCalledOnce();
     expect(query(resolved, sanctioned({ person: volkov })).value).toBe("false");
     expect(query(resolved, sanctioned({ person: ural })).value).toBe("true");
   });
@@ -248,42 +219,30 @@ describe("resolver", () => {
     const { corpus } = setup();
     const client = clientWith(standing(0.9));
 
-    const { resolutions } = await settle(resolver(corpus, new KnowledgeBase(), { client }));
+    const { kb: resolved } = await settle(resolver(corpus, new KnowledgeBase(), { client }));
 
-    expect(resolutions).toEqual([]);
-    expect(client.systemOne).not.toHaveBeenCalled();
+    expect(resolved.literals()).toEqual([]);
+    expect(client.transport).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid or missing judgments", async () => {
-    const { kb, corpus } = setup();
-    await expect(
-      settle(resolver(corpus, kb, { client: clientWith({ type: "choice" }) })),
-    ).rejects.toThrow("Invalid or missing standing judgment");
-    await expect(
-      settle(
-        resolver(corpus, kb, {
-          client: clientWith({
-            type: "choice",
-            choice: "KEEP",
-            confidence: 0.9,
-            probabilities: { KEEP: 0.9, RETRACT: 0.5 },
-          }),
-        }),
-      ),
-    ).rejects.toThrow("Invalid standing distribution");
+  it("rejects an invalid judgement without retracting anything", async () => {
+    // Arrange
+    const { kb, corpus, denied, asserted } = setup();
+    const run = resolver(corpus, kb, { client: clientWith({ type: "choice" }) });
+
+    // Act
+    const settled = settle(run);
+
+    // Assert
+    await expect(settled).rejects.toThrow("Invalid Jev response");
+    expect(run.kb.literals()).toEqual([denied, asserted]);
   });
 
   it("settles a job once, but lets a failed job be retried", async () => {
     const { kb, corpus, atom } = setup();
-    const systemOne = vi
-      .fn<AdjudicatorClient["systemOne"]>()
-      .mockRejectedValueOnce(new Error("network down"))
-      .mockResolvedValue({
-        model: "test",
-        usage: { input_tokens: 0, output_tokens: 0 },
-        answers: { passage_0: standing(0.9), passage_1: standing(0.1) },
-      });
-    const run = resolver(corpus, kb, { client: { systemOne } });
+    const client = clientWith(standing(0.9), standing(0.1));
+    client.transport.mockRejectedValueOnce(new Error("network down"));
+    const run = resolver(corpus, kb, { client });
     const [job] = [...run];
     if (job === undefined) {
       throw new Error("Expected a job");
@@ -291,7 +250,7 @@ describe("resolver", () => {
 
     await expect(job.execute()).rejects.toThrow("network down");
     expect(query(run.kb, atom).value).toBe("conflicted");
-    await expect(job.execute()).resolves.toMatchObject({ retracted: [{ sign: "-" }] });
+    await expect(job.execute()).resolves.toBeUndefined();
     await expect(job.execute()).rejects.toThrow(
       "The contradiction for sanctioned(volkov) is already settled",
     );

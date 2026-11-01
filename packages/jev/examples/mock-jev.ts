@@ -1,3 +1,4 @@
+import { record } from "./utils";
 import assert from "node:assert/strict";
 import { zstdDecompressSync } from "node:zlib";
 import { http, HttpResponse } from "msw";
@@ -21,12 +22,12 @@ export function mockJev(
       const state = record(body["state"]);
       const questions = record(body["questions"]);
       const text = record(state["document"])["text"];
-      const candidates: unknown = state["candidates"];
-      assert.ok(Array.isArray(candidates), "Expected candidate fields in the HTTP request");
-      assert.equal(candidates.length, Object.keys(questions).length);
+      const candidate_facts: unknown = state["candidate_facts"];
+      assert.ok(Array.isArray(candidate_facts), "Expected candidate fields in the HTTP request");
+      assert.equal(candidate_facts.length, Object.keys(questions).length);
 
       const answers: Record<string, DemoAnswer> = {};
-      for (const item of candidates) {
+      for (const item of candidate_facts) {
         const candidate = record(item);
         const id = candidate["id"];
         assert.ok(typeof id === "string");
@@ -60,10 +61,4 @@ export function mockJev(
       server.close();
     },
   };
-}
-
-function record(value: unknown): Record<string, unknown> {
-  assert.ok(typeof value === "object" && value !== null && !Array.isArray(value));
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object shape is checked above; properties remain unknown.
-  return value as Record<string, unknown>;
 }

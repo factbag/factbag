@@ -1,16 +1,17 @@
 # @factbag/jev
 
-`classifier(corpus, kb, config)` returns a lazy iterator of executable classification
-jobs. Constructing and consuming the iterator makes **no remote calls**. The caller
+`classifier({ corpus, input: kb, config })` returns a lazy iterator of executable
+classification jobs, one per chunk. Constructing and consuming the iterator makes **no remote calls**. The caller
 decides when to execute each job and how much work to run concurrently.
 
-The package has three entry points, each exporting one name:
+The package has four entry points:
 
-| Entry point               | Export                            |
-| ------------------------- | --------------------------------- |
-| `@factbag/jev/classifier` | `classifier(corpus, kb, config?)` |
-| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`   |
-| `@factbag/jev/errors`     | `UnsupportedPredicateError`       |
+| Entry point               | Export                                       |
+| ------------------------- | -------------------------------------------- |
+| `@factbag/jev/classifier` | `classifier({ corpus, input: kb, config? })` |
+| `@factbag/jev/resolve`    | `resolver(corpus, kb, config?)`              |
+| `@factbag/jev/errors`     | `UnsupportedPredicateError`                  |
+| `@factbag/jev/config`     | `createConfig`, `Config`, and `DEFAULT_*`    |
 
 ## Usage
 
@@ -45,11 +46,13 @@ const corpus = new Corpus();
 corpus.add({ documentId: "registry", text: "Harbor is an active company." });
 
 // The default TypeSafeClient reads TYPESAFE_API_KEY on the first execute().
-const run = classifier(corpus, guard(kb).permit("assert", status).permit("deny", status));
+const run = classifier({
+  corpus,
+  input: guard(kb).permit("assert", status).permit("deny", status),
+});
 
 for (const job of run) {
-  const result = await job.execute();
-  console.log(result.assessments);
+  await job.execute();
   // The consumer may await persistence or a rate limiter here.
 }
 
@@ -59,24 +62,31 @@ const enriched = run.kb;
 
 ## Boundary and registration
 
-Options are optional. Admission defaults to `{ minimumProbability: 0.4, ambiguityMargin: 0 }`:
+Classification and resolution share one optional, flat `Config`. Create it once
+with `createConfig` to share one lazy client across runs:
+
+```ts
+const config = createConfig({ client, minimumProbability: 0.6 });
+const classified = classifier({ corpus, input: kb, config });
+const resolved = resolver(corpus, classified.kb, config);
+```
+
+Admission defaults to `{ minimumProbability: 0.4, ambiguityMargin: 0 }`:
 the strongest ASSERT/DENY outcome must reach 0.4 and outrank IRRELEVANT. An exact
 ASSERT/DENY tie admits both. These are convenience defaults, not calibrated probabilities.
 A plainly worded record often scores in the 0.45-0.65 band, so 0.5 loses evidence a reader
 would call clear; a lower bar writes more, and contradictions surface rather than gaps.
 
 ```ts
-classifier(corpus, kb);
-classifier(corpus, kb, { client });
-classifier(corpus, kb, {
-  admission: { minimumProbability: 0.8, ambiguityMargin: 0.05 },
-});
+classifier({ corpus, input: kb });
+classifier({ corpus, input: kb, config: { client } });
+classifier({ corpus, input: kb, config: { minimumProbability: 0.8, ambiguityMargin: 0.05 } });
 ```
 
 - A **guarded KB** retains its exact permit/block policy. `guard(kb)` is default-deny.
-- A **bare KB** exposes assert/deny tools for all predicates referenced in its
+- A **bare KB** permits assert/deny for all predicates referenced in its
   evidence and rules, including rule bodies. There is no global predicate registry.
-- Query permissions do not create classifier tools.
+- Query permissions do not make a predicate classifiable.
 - Every exposed predicate is validated synchronously during `classifier(...)`.
   Unsupported predicates fail even if the corpus is empty; blocked predicates are
   not registered.
@@ -104,7 +114,7 @@ values in evidence. The same date in two fields is a valid candidate; only
 repeated entities are excluded.
 
 Entity candidates include their enumerable properties, including `id`, plus `type`
-set to the constructor name. These are JSON snapshots taken at run construction:
+set to the constructor name. They are JSON-encoded when each request is built:
 nested properties are included, dates become ISO strings, and methods are not sent.
 For example, the company above is sent as
 `{ type: "Company", id: "company-42", tradingName: "Harbor" }`.
@@ -113,14 +123,14 @@ are not automatically included in the entity payload.
 
 Fields fan out as a Cartesian product. A predicate with no fields has one candidate
 proposition. Every candidate gets an independent `Choice(ASSERT, DENY, IRRELEVANT)`
-question. Assert and deny tools for the same predicate share one request per chunk.
+question. Assert and deny permissions for the same predicate share one question.
 No enum exclusivity or Boolean equivalence is assumed; those belong to the ruleset.
 
 ## Jobs and execution
 
-`run` is a single-cursor `IterableIterator`. Each yielded job has `source`,
-`predicate`, and `execute()`. One execution makes one SDK call, potentially batching
-many candidate questions. Re-executing a job makes a fresh attempt; a repeated
+`run` is a single-cursor `IterableIterator`. Each yielded job classifies one chunk
+and exposes only `execute(): Promise<void>`, sending up to sixty-four questions per
+request. Re-executing a job makes a fresh attempt; a repeated
 success adds fresh evidence.
 
 The consumer can execute jobs sequentially, in batches, or through a concurrency
@@ -129,8 +139,8 @@ limiter. Jobs contain no scheduler, rate limiter, retry loop, or error handler.
 first request. Pass a configured client to set the model, retry, timeout or
 transport, or a scripted one in tests.
 
-Request errors propagate unchanged from `execute()`. All answers in a request are
-validated before any of that request's evidence is written. A failure does not
+Request errors propagate unchanged from `execute()`. All answers for a chunk are
+validated before any of that chunk's evidence is written. A failure does not
 terminate the job iterator, remove earlier evidence, or retry automatically.
 The caller can retry the same job or advance to another job.
 
@@ -175,8 +185,7 @@ range, and document text is immutable.
   renormalized into permitted ones.
 - Both polarities can be admitted, preserving evidence that needs review.
 
-The returned assessment retains every candidate atom and full response, including
-candidates producing no literals. New literals carry source, outcome probability,
+New literals carry source, outcome probability,
 candidate IDs, selected choice, SDK confidence, and the full distribution. SDK confidence remains separate from outcome probability. These
 thresholds are application policy, not calibrated defaults.
 
@@ -192,14 +201,13 @@ import { resolver } from "@factbag/jev/resolve";
 
 const resolution = resolver(corpus, run.kb);
 for (const job of resolution) {
-  const { atom, judgments, retracted } = await job.execute();
+  await job.execute();
 }
 const resolved = resolution.kb;
 ```
 
-- There is one job per atom with evidence of both signs. Each job has `atom`,
-  `passages` (every distinct chunk behind the evidence, from each literal's `source`)
-  and `execute()`, which sends all the passages in one request with a KEEP/RETRACT
+- There is one job per atom with evidence of both signs. Its `execute()` sends
+  every distinct source passage in one request with a KEEP/RETRACT
   question per passage: does another passage supersede this one for the fact as
   described, including any date it is stated as of? Disagreement alone is not
   supersession, so two documents that merely conflict both stand.
@@ -211,8 +219,6 @@ const resolved = resolution.kb;
   more than `ambiguityMargin` (defaults 0.4 and 0). With two outcomes that means RETRACT must
   exceed 0.5 in practice, whatever the minimum. Keeping the evidence is the default,
   so an uncertain answer changes nothing.
-- Each resolution records the atom, one judgment per passage (its standing, the full
-  answer and the literals it cost), and the evidence kept and retracted overall.
 - Every piece of conflicting evidence must have a `source` that resolves in the corpus.
   Construction throws for evidence without a source, naming the atom, and propagates
   corpus errors such as `Invalid chunk ID`, so no job exists until all are readable.
@@ -226,12 +232,16 @@ const resolved = resolution.kb;
 
 ## Internal structure
 
-- `classifier.ts`: boundary normalization, KB snapshots and lazy chunk/job traversal.
+Evidence workflows own candidate selection, admission, and knowledge-base updates.
+An internal model interface separates those responsibilities from Jev prompts,
+request encoding, batching, and response validation.
+
+- `classifier/classifier.ts`: KB snapshots, lazy chunk traversal, and one job per chunk.
+- `classifier/classifiable-predicates.ts`: eager predicate validation and role domains.
+- `classifier/extract-evidence.ts`: candidate enumeration, admission, permission checks and writes.
 - `resolve.ts`: finds contradictions, gathers their passages, and creates lazy jobs that apply admission and retract superseded evidence in a fork.
-- `types.ts`: shared shapes, including `Tool` (a validated predicate, its permitted actions and candidates) and `ToolResult` (a validated answer, not yet written).
-- `tools.ts`: eager predicate validation, supported-domain typing and candidate enumeration, once per predicate.
-- `client.ts`: the Jev adapter. Builds Choice requests for a tool and chunk, and KEEP/RETRACT requests for a contradiction's passages, and validates each complete response.
-- `jobs.ts`: lazy jobs and evidence application: admission, permission checks and writes to the output KB. Also the shared admission defaults and validation.
+- `config.ts`, `settings.ts`: `Config` defaults and validation, resolved into pipeline settings.
+- `types/model.ts`, `jev/`: the model interface and its Jev implementation: prompts, batching and answer validation.
 - `errors.ts`: `UnsupportedPredicateError`.
 
 Named implementation types belong to their owning modules; they are not additional

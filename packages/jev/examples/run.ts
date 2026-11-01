@@ -1,3 +1,4 @@
+import { evidenceScore } from "./support-score";
 import { runSanctionsDemo } from "./sanctions";
 import { runFactorDemo } from "./factors";
 
@@ -19,7 +20,7 @@ process.stdout.write(
     `    Directly listed:  ${screening.directlyListed.value} (exact ID lookup in the imported snapshot)`,
     `    Nominee stake:    ${screening.ownershipBasisPoints / 100}% (structured register)`,
     `    Ownership route after structured imports: ${screening.initial.value}`,
-    `    Four documents, ${screening.extractions} Jev document/predicate assessments`,
+    `    Four documents, ${screening.extractions} Jev chunk assessments`,
     `    After documents:  ${screening.disputed.value}`,
     `    Review source:    ${reviewed.chunk.text}`,
     `    Reviewer:         ${screening.review.reviewer}`,
@@ -35,7 +36,7 @@ process.stdout.write(
     "03  Which factors were reported to contribute?",
     ...factors.factors.map(
       (factor) =>
-        `    ${factor.factor.padEnd(16)} ${factor.value.padEnd(10)} for: ${factor.positiveSupport?.toFixed(2) ?? "—"}  against: ${factor.negativeSupport?.toFixed(2) ?? "—"}`,
+        `    ${String(factor.goal.atom.fields["factor"]).padEnd(16)} ${factor.value.padEnd(10)} for: ${evidenceScore(factor, "+")?.toFixed(2) ?? "—"}  against: ${evidenceScore(factor, "-")?.toFixed(2) ?? "—"}`,
     ),
     `    Product route:    ${factors.productScore}`,
     `    Commercial route: ${factors.commercialScore}`,

@@ -189,7 +189,7 @@ Jev's lazy classifier reads the whole corpus; only executing a job calls the mod
 import { classifier } from "@factbag/jev/classifier";
 import { guard } from "@factbag/guards";
 
-const run = classifier(corpus, guard(kb).permit("assert", licensed), jevOptions);
+const run = classifier({ corpus, input: guard(kb).permit("assert", licensed), config: jevOptions });
 for (const job of run) {
   await job.execute();
 }
