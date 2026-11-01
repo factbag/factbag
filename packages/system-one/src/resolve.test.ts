@@ -3,10 +3,7 @@ import { predicate } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
-import type { ChoiceQuestion } from "@typesafe-ai/sdk";
-import { resolver } from "./resolve";
-import { mockClient } from "./testing/mock-client";
-type Standing = "KEEP" | "RETRACT";
+import { mockClient, resolver } from "./testing/provider";
 
 class Person {
   constructor(
@@ -32,7 +29,7 @@ function standing(RETRACT: number) {
 
 /** Answers each passage's question in order; a single answer applies to every passage. */
 function clientWith(...answers: readonly unknown[]) {
-  return mockClient<Record<string, ChoiceQuestion<Record<Standing, string>>>>((request) => ({
+  return mockClient((request) => ({
     model: "test",
     usage: { input_tokens: 0, output_tokens: 0 },
     answers: Object.fromEntries(
@@ -234,7 +231,7 @@ describe("resolver", () => {
     const settled = settle(run);
 
     // Assert
-    await expect(settled).rejects.toThrow("Invalid Jev response");
+    await expect(settled).rejects.toThrow("Invalid choice answer from test");
     expect(run.kb.literals()).toEqual([denied, asserted]);
   });
 

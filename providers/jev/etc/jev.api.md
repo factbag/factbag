@@ -5,10 +5,20 @@
 ```ts
 
 import type { Corpus } from '@factbag/corpus';
-import { GuardedKB } from '@factbag/guards';
+import { DEFAULT_AMBIGUITY_MARGIN } from '@factbag/system-one';
+import { DEFAULT_CANDIDATE_PRODUCT_CUTOFF } from '@factbag/system-one';
+import { DEFAULT_MINIMUM_PROBABILITY } from '@factbag/system-one';
+import { DEFAULT_PREDICATE_THRESHOLD } from '@factbag/system-one';
+import { DEFAULT_ROUTING_ENABLED } from '@factbag/system-one';
+import { DEFAULT_SYMBOL_THRESHOLD } from '@factbag/system-one';
+import type { GuardedKB } from '@factbag/guards';
+import { Job } from '@factbag/system-one';
 import type { KnowledgeBase } from '@factbag/core/kb';
 import type { Metadata } from '@factbag/corpus';
-import type { TypeSafeClient } from '@typesafe-ai/sdk';
+import { Normalized } from '@factbag/system-one';
+import { Run } from '@factbag/system-one';
+import { Settings } from '@factbag/system-one';
+import { TypeSafeClient } from '@typesafe-ai/sdk';
 
 // @beta
 export function classifier<M extends Metadata = Metadata>(input: {
@@ -18,48 +28,34 @@ export function classifier<M extends Metadata = Metadata>(input: {
 }): Run;
 
 // @beta
-export type Config = {
+export type Config = Settings & {
     readonly client?: TypeSafeClient;
-    readonly minimumProbability?: number;
-    readonly ambiguityMargin?: number;
-    readonly routing?: boolean;
-    readonly predicateThreshold?: number;
-    readonly symbolThreshold?: number;
-    readonly candidateProductCutoff?: number;
 };
 
 // @beta
-export function createConfig(config?: Config): Required<Config>;
+export function createConfig(config?: Config): Normalized & Config;
+
+export { DEFAULT_AMBIGUITY_MARGIN }
+
+export { DEFAULT_CANDIDATE_PRODUCT_CUTOFF }
+
+export { DEFAULT_MINIMUM_PROBABILITY }
+
+export { DEFAULT_PREDICATE_THRESHOLD }
+
+export { DEFAULT_ROUTING_ENABLED }
+
+export { DEFAULT_SYMBOL_THRESHOLD }
+
+export { Job }
+
+export { Normalized }
 
 // @beta
-export const DEFAULT_AMBIGUITY_MARGIN = 0;
+export function resolver<M extends Metadata = Metadata>(corpus: Corpus<M>, kb: KnowledgeBase, config?: Config): Run;
 
-// @beta
-export const DEFAULT_CANDIDATE_PRODUCT_CUTOFF = 16;
+export { Run }
 
-// @beta
-export const DEFAULT_MINIMUM_PROBABILITY = 0.4;
-
-// @beta
-export const DEFAULT_PREDICATE_THRESHOLD = 0.3;
-
-// @beta
-export const DEFAULT_ROUTING_ENABLED = false;
-
-// @beta
-export const DEFAULT_SYMBOL_THRESHOLD = 0.3;
-
-// @beta
-export type Job = {
-    readonly execute: () => Promise<void>;
-};
-
-// @beta
-export function resolver<M extends Metadata = Metadata>(corpus: Corpus<M>, kb: KnowledgeBase, inputConfig?: Config): Run;
-
-// @beta
-export type Run = IterableIterator<Job> & {
-    readonly kb: KnowledgeBase;
-};
+export { Settings }
 
 ```

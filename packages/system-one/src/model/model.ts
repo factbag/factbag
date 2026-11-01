@@ -1,5 +1,5 @@
-import type { ChoiceResponse, JsonValue, Question, TypeSafeClient } from "@typesafe-ai/sdk";
 import type { Judgement, Model, Outcome, Verdict } from "../types/model";
+import type { Question, SystemOneRequest, Transport } from "../provider";
 import { isProbability, isRecord } from "../utils";
 import {
   adjudicationQuestion,
@@ -11,84 +11,88 @@ import {
 } from "./prompts";
 
 /**
- * How many questions one request may ask. Accuracy holds to roughly a hundred candidates
- * and then falls away: at several hundred the model starts attributing a document's facts
- * to candidates it does not mention. Splitting costs requests, and resends the passage, but
- * keeps each request's questions about a readable shortlist. Relevance applies the same bound
- * to its shorter yes/no questions, where it was not separately measured.
- */
-const MAX_QUESTIONS_PER_REQUEST = 64;
-
-/**
- * Jev reports probabilities rounded to two decimals, so a distribution can miss 1 by a
- * hundredth per value. Tolerate that drift rather than discarding a whole request's answers.
+ * System One models report probabilities rounded to two decimals, so a distribution can miss
+ * 1 by a hundredth per value. Tolerate that drift rather than discarding a request's answers.
  */
 const ROUNDING_TOLERANCE = 0.011;
 
 const OUTCOMES: readonly Outcome[] = ["ASSERT", "DENY", "IRRELEVANT"];
 const VERDICTS: readonly Verdict[] = ["KEEP", "RETRACT"];
 
-type Client = Pick<TypeSafeClient, "systemOne">;
+/** How to reach one System One model, and how many questions each request holds. */
+type Endpoint = {
+  readonly name: string;
+  /** Questions per request for work that can be split. */
+  readonly batchSize: number;
+  /** The provider's hard limit, which work that cannot be split must also respect. */
+  readonly maxBatchSize: number;
+  /** Called per request, so a lazily built transport is only built once something is asked. */
+  readonly transport: () => Transport;
+};
 
 /**
- * Jev behind the model interface. Relevance and classification questions are split into
- * request-sized batches sent concurrently; adjudication sends every passage in one request,
- * since each is judged with the others in view. `client` is called per request, so a lazily
- * built client is only constructed once something is asked.
+ * A System One model behind the model interface. Relevance and classification questions are
+ * split into `batchSize` batches sent concurrently; adjudication sends every passage in one
+ * request, since each is judged with the others in view, and so is bounded by `maxBatchSize`.
  */
-export function jev(client: () => Client): Model {
+export function systemOneModel(endpoint: Endpoint): Model {
+  const { name, batchSize } = endpoint;
   return {
-    name: "jev",
+    name,
     relevance: async ({ text, subjects }) =>
       await inBatches(
         subjects,
+        batchSize,
         async (group) =>
           await ask({
-            client,
+            endpoint,
             prefix: "routing",
             items: group,
             state: () => relevanceState(text),
             question: relevanceQuestion,
-            answer: (response, subject) => ({ subject, relevance: noul(response) }),
+            answer: (response, subject) => ({ subject, relevance: noul(response, name) }),
           }),
       ),
     classify: async ({ text, predicate, candidates }) =>
       await inBatches(
         candidates,
+        batchSize,
         async (group) =>
           await ask({
-            client,
+            endpoint,
             prefix: "candidate",
             items: group,
             state: (keyed) => classificationState(text, keyed),
             question: (_, index) => classificationQuestion(predicate, index),
             answer: (response, candidate, id) => ({
               candidate,
-              judgement: choice(response, OUTCOMES, id),
+              judgement: choice(response, OUTCOMES, id, name),
             }),
           }),
       ),
     adjudicate: async ({ atom, passages }) =>
       await ask({
-        client,
+        endpoint,
         prefix: "passage",
         items: passages,
         state: () => adjudicationState(passages, atom),
         question: (_, index) => adjudicationQuestion(atom, index),
-        answer: (response, passage, id) => ({ passage, judgement: choice(response, VERDICTS, id) }),
+        answer: (response, passage, id) => ({
+          passage,
+          judgement: choice(response, VERDICTS, id, name),
+        }),
       }),
   };
 }
 
-/** Ask about request-sized slices concurrently, keeping input order across slices. */
+/** Ask about `size`-item slices concurrently, keeping input order across slices. */
 async function inBatches<Item, Result>(
   items: readonly Item[],
+  size: number,
   request: (group: readonly Item[]) => Promise<readonly Result[]>,
 ): Promise<readonly Result[]> {
-  const slices = Array.from(
-    { length: Math.ceil(items.length / MAX_QUESTIONS_PER_REQUEST) },
-    (_, slice) =>
-      items.slice(slice * MAX_QUESTIONS_PER_REQUEST, (slice + 1) * MAX_QUESTIONS_PER_REQUEST),
+  const slices = Array.from({ length: Math.ceil(items.length / size) }, (_, slice) =>
+    items.slice(slice * size, (slice + 1) * size),
   );
   return (await Promise.all(slices.map(request))).flat();
 }
@@ -97,50 +101,57 @@ async function inBatches<Item, Result>(
  * Ask one question per item in a single request and turn each answer into a result.
  * Question keys are positional, so they are minted and matched only here. Validation
  * happens while building results, so one bad answer rejects the whole request.
- * Nothing to ask sends nothing.
+ * Nothing to ask sends nothing; more than the provider allows sends nothing and throws.
  */
 async function ask<Item, Result>({
-  client,
+  endpoint: { name, maxBatchSize, transport },
   prefix,
   items,
   state,
   question,
   answer,
 }: {
-  client: () => Client;
+  endpoint: Endpoint;
   prefix: string;
   items: readonly Item[];
-  state: (keyed: readonly { id: string; item: Item }[]) => Record<string, JsonValue>;
+  state: (keyed: readonly { id: string; item: Item }[]) => SystemOneRequest["state"];
   question: (item: Item, index: number) => Question;
   answer: (response: unknown, item: Item, id: string) => Result;
 }): Promise<readonly Result[]> {
   if (items.length === 0) {
     return [];
   }
+  if (items.length > maxBatchSize) {
+    throw new RangeError(
+      `Cannot ask ${items.length} ${prefix} questions in one request: ${name} accepts at most ${maxBatchSize}`,
+    );
+  }
   const keyed = items.map((item, index) => ({ id: `${prefix}_${index}`, item }));
-  const { answers } = await client().systemOne({
+  const { answers } = await transport()({
     state: state(keyed),
     questions: Object.fromEntries(keyed.map(({ id, item }, index) => [id, question(item, index)])),
   });
-  return keyed.map(({ id, item }) => answer(answers[id], item, id));
+  const keyedAnswers = isRecord(answers) ? answers : {};
+  return keyed.map(({ id, item }) => answer(keyedAnswers[id], item, id));
 }
 
 /** A validated relevance probability. */
-function noul(response: unknown): number {
+function noul(response: unknown, name: string): number {
   if (!isRecord(response) || response["type"] !== "noul" || !isProbability(response["noul"])) {
-    throw new Error("Invalid or missing routing answer");
+    throw new Error(`Invalid or missing routing answer from ${name}`);
   }
   return response["noul"];
 }
 
-/** A validated choice, keeping Jev's own choice and confidence as provenance detail. */
+/** A validated choice, keeping the model's own choice and confidence as provenance detail. */
 function choice<Label extends string>(
   response: unknown,
   labels: readonly Label[],
   id: string,
+  name: string,
 ): Judgement<Label> {
   if (!isChoice(response, labels)) {
-    throw new Error("Invalid Jev response");
+    throw new Error(`Invalid choice answer from ${name}`);
   }
   return {
     probabilities: response.probabilities,
@@ -153,6 +164,13 @@ function choice<Label extends string>(
   };
 }
 
+type ChoiceAnswer<Label extends string> = {
+  readonly type: "choice";
+  readonly choice: Label;
+  readonly confidence: number;
+  readonly probabilities: Readonly<Record<Label, number>>;
+};
+
 /**
  * A Choice answer to the labels it was asked with: every label has a probability, they sum
  * to 1 within rounding, and the selected label is one of them.
@@ -160,7 +178,7 @@ function choice<Label extends string>(
 function isChoice<Label extends string>(
   value: unknown,
   labels: readonly Label[],
-): value is ChoiceResponse<Record<Label, string>> {
+): value is ChoiceAnswer<Label> {
   if (!isRecord(value) || value["type"] !== "choice" || !isRecord(value["probabilities"])) {
     return false;
   }

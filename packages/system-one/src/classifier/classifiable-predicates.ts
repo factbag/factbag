@@ -1,7 +1,7 @@
 import type { PredicateDeclaration, Scalar, Entity } from "@factbag/core/dsl";
 import type { KnowledgeBase } from "@factbag/core/kb";
 import type { GuardedKB } from "@factbag/guards";
-import { UnsupportedPredicateError } from "../errors";
+import { UnsupportedPredicateError } from "@factbag/core/exceptions";
 import type { Action, ClassifiablePredicate } from "./types";
 
 /**

@@ -7,29 +7,25 @@ import type { ClassifiablePredicate } from "./types";
 import { extractEvidence } from "./extract-evidence";
 import { filterPredicates } from "./filter-predicates";
 import { filterSymbols } from "./filter-symbols";
-import { resolveSettings } from "../settings";
-import type { Settings } from "../settings";
-import type { Config } from "../types/config";
+import type { Pipeline } from "../pipeline";
 import type { Run } from "../types/run";
 
 /**
  * Validate available predicates eagerly and return a lazy iterator of executable jobs.
  * Bare KBs expose all known predicates; explicit guards retain their permission policy.
  * Only job.execute() makes a remote call. The consumer owns pacing and concurrency.
- * @beta
  */
 export function classifier<M extends Metadata = Metadata>({
   corpus,
   input,
-  config: inputConfig = {},
+  config,
 }: {
   corpus: Corpus<M>;
   input: KnowledgeBase | GuardedKB;
-  config?: Config;
+  config: Pipeline;
 }): Run {
   // A bare KB carries no permission policy, so normalize it to unrestricted access.
   const baselineKB = (input instanceof GuardedKB ? input : guard(input).permit("*")).fork();
-  const config = resolveSettings(inputConfig);
   const outputKB = baselineKB.kb.fork();
   const predicates = classifiablePredicates(baselineKB);
   // A conservative text budget, not a token count.
@@ -62,7 +58,7 @@ async function processChunk({
 }: {
   chunk: Chunk;
   predicates: readonly ClassifiablePredicate[];
-  config: Settings;
+  config: Pipeline;
   kb: KnowledgeBase;
 }): Promise<void> {
   const predicates = await filterPredicates({

@@ -1,5 +1,5 @@
 import type { AnyAtom } from "@factbag/core/dsl";
-import type { JsonValue } from "@typesafe-ai/sdk";
+import type { JsonValue } from "./provider";
 
 /** Snapshot JSON data, including nested dates and entities identified by a string id. */
 export function encode(value: unknown): JsonValue {

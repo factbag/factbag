@@ -1,7 +1,7 @@
 import type { Entity, Scalar } from "@factbag/core/dsl";
 import { fieldEquals } from "@factbag/core/dsl";
 import type { Chunk } from "@factbag/corpus";
-import type { Settings } from "../settings";
+import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";
 
 /**
@@ -16,7 +16,7 @@ export async function filterSymbols({
 }: {
   chunk: Chunk;
   predicates: readonly ClassifiablePredicate[];
-  config: Settings;
+  config: Pipeline;
 }): Promise<readonly (Scalar | Entity)[]> {
   const symbols = predicates
     /** Pool every role's domain into one passage-wide list. */
@@ -46,7 +46,7 @@ export async function filterSymbols({
  * is enabled and at least one predicate would otherwise enumerate too many candidate facts
  * through a role that filtering can actually shrink.
  */
-function needsFiltering(predicates: readonly ClassifiablePredicate[], config: Settings): boolean {
+function needsFiltering(predicates: readonly ClassifiablePredicate[], config: Pipeline): boolean {
   return (
     config.routing &&
     predicates.some(

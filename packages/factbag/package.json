@@ -75,6 +75,7 @@
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",
     "@factbag/jev": "workspace:*",
+    "@factbag/system-one": "workspace:*",
     "@typesafe-ai/sdk": "catalog:"
   },
   "peerDependencies": {

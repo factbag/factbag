@@ -1,17 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { TypeSafeClient } from "@typesafe-ai/sdk";
+import { describe, expect, it } from "vitest";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
-import { createConfig } from "./config";
-import { classifier } from "./classifier/classifier";
-import { resolver } from "./resolve";
-
-afterEach(() => vi.unstubAllEnvs());
+import { systemOne } from "./system-one";
+import { classifier, createConfig, mockClient, resolver, testProvider } from "./testing/provider";
 
 describe("createConfig", () => {
   it("captures raw options and reuses factory output without renormalizing", () => {
     // Arrange
-    const client = new TypeSafeClient({ apiKey: "test" });
+    const client = mockClient(() => ({}));
     const options = { client, minimumProbability: 0.7, ambiguityMargin: 0.1 };
 
     // Act
@@ -26,9 +22,19 @@ describe("createConfig", () => {
     expect(reused.client).toBe(client);
   });
 
-  it("allows both workflows to reuse a default config before credentials are available", () => {
+  it("defaults the batch size to the provider's choice", () => {
     // Arrange
-    vi.stubEnv("TYPESAFE_API_KEY", undefined);
+    const provider = systemOne(testProvider({ maxBatchSize: 64, defaultBatchSize: 32 }));
+
+    // Act
+    const config = provider.createConfig();
+
+    // Assert
+    expect(config.batchSize).toBe(32);
+  });
+
+  it("allows both workflows to reuse a config before any transport can be built", () => {
+    // Arrange: the test provider throws if it connects without a client.
     const corpus = new Corpus();
     const kb = new KnowledgeBase();
 
@@ -62,6 +68,10 @@ describe("createConfig", () => {
       { candidateProductCutoff: 0.5 },
       { candidateProductCutoff: Infinity },
       { candidateProductCutoff: Number.MAX_SAFE_INTEGER + 1 },
+      { batchSize: 0 },
+      { batchSize: 2.5 },
+      { batchSize: Infinity },
+      { batchSize: Number.NaN },
     ].flatMap((setting) => [true, false].map((routing) => ({ ...setting, routing }))),
   )("rejects invalid setting %j whether or not routing is on", (config) => {
     // Arrange: the invalid setting comes from the table.
@@ -71,5 +81,44 @@ describe("createConfig", () => {
 
     // Assert
     expect(create).toThrow();
+  });
+
+  it("rejects a batch size above the provider's limit in every entry point", () => {
+    // Arrange
+    const provider = systemOne(testProvider({ maxBatchSize: 64 }));
+    const config = { batchSize: 65 };
+    const corpus = new Corpus();
+    const kb = new KnowledgeBase();
+
+    // Act
+    const entries = [
+      () => provider.createConfig(config),
+      () => provider.classifier({ corpus, input: kb, config }),
+      () => provider.resolver(corpus, kb, config),
+    ];
+
+    // Assert
+    for (const entry of entries) {
+      expect(entry).toThrow("batchSize must be an integer from 1 to 64 for test, received 65");
+    }
+  });
+});
+
+describe("systemOne", () => {
+  it.each([
+    { maxBatchSize: 0, defaultBatchSize: 1 },
+    { maxBatchSize: 1.5, defaultBatchSize: 1 },
+    { maxBatchSize: Number.NaN, defaultBatchSize: 1 },
+    { maxBatchSize: 64, defaultBatchSize: 65 },
+    { maxBatchSize: Infinity, defaultBatchSize: Infinity },
+    { maxBatchSize: 64, defaultBatchSize: 0 },
+  ])("rejects a provider declaring %j", (limits) => {
+    // Arrange: the provider's limits come from the table.
+
+    // Act
+    const bind = () => systemOne(testProvider(limits));
+
+    // Assert
+    expect(bind).toThrow();
   });
 });

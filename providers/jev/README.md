@@ -126,8 +126,8 @@ No enum exclusivity or Boolean equivalence is assumed; those belong to the rules
 ## Jobs and execution
 
 `run` is a single-cursor `IterableIterator`. Each yielded job classifies one chunk
-and exposes only `execute(): Promise<void>`, sending up to sixty-four questions per
-request. Re-executing a job makes a fresh attempt; a repeated
+and exposes only `execute(): Promise<void>`, sending up to `batchSize` questions per
+request. `batchSize` defaults to 64. TypeSafe sets no upper limit. Re-executing a job makes a fresh attempt; a repeated
 success adds fresh evidence.
 
 The consumer can execute jobs sequentially, in batches, or through a concurrency
@@ -249,21 +249,9 @@ const resolved = resolution.kb;
 
 ## Internal structure
 
-Evidence workflows own candidate selection, admission, and knowledge-base updates.
-An internal model interface separates those responsibilities from Jev prompts,
-request encoding, batching, and response validation.
-
-- `classifier/classifier.ts`: KB snapshots, lazy chunk traversal, and one job per chunk.
-- `classifier/classifiable-predicates.ts`: eager predicate validation and role domains.
-- `classifier/filter-predicates.ts`, `classifier/filter-symbols.ts`: optional passage relevance filtering.
-- `classifier/extract-evidence.ts`: candidate enumeration, admission, permission checks and writes.
-- `resolve.ts`: finds contradictions, gathers their passages, and creates lazy jobs that apply admission and retract superseded evidence in a fork.
-- `config.ts`, `settings.ts`: `Config` defaults and validation, resolved into pipeline settings.
-- `types/model.ts`, `jev/`: the model interface and its Jev implementation: prompts, batching and answer validation.
-- `errors.ts`: `UnsupportedPredicateError`.
-
-Named implementation types belong to their owning modules; they are not additional
-package exports. The public factory's signature exposes their structure for inference.
+This package only connects Jev to the shared workflows in `@factbag/system-one`:
+the TypeSafe client, Jev's batch limits, and the public signatures. Candidate
+selection, admission, prompts, batching, and answer validation live there.
 
 ## Examples and checks
 
