@@ -46,7 +46,7 @@ process.stdout.write(
     "",
     "04  Calibration · design discussion",
     "    Real outcomes → held-out evaluation → calibrated outcome probability.",
-    "    Read packages/jev/docs/README.md for the walkthrough.",
+    "    Read providers/jev/docs/README.md for the walkthrough.",
     "",
   ].join("\n"),
 );

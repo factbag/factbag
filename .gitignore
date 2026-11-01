@@ -7,4 +7,5 @@ coverage/
 .scratch/
 .release/
 packages/*/temp/
+providers/*/temp/
 storybook-static/

@@ -9,14 +9,14 @@
     "rules-engine",
     "typescript"
   ],
-  "homepage": "https://github.com/factbag/factbag/tree/main/packages/jev#readme",
+  "homepage": "https://github.com/factbag/factbag/tree/main/providers/jev#readme",
   "bugs": {
     "url": "https://github.com/factbag/factbag/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/factbag/factbag.git",
-    "directory": "packages/jev"
+    "directory": "providers/jev"
   },
   "license": "Apache-2.0",
   "sideEffects": false,
