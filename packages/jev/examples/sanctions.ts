@@ -5,11 +5,12 @@ import { query } from "@factbag/core/query";
 import type { Judgment } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
+import { createConfig } from "../src/config";
 import { classifier } from "../src/classifier";
 import { distribution } from "./fixtures";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { mockJev } from "./mock-jev";
-import type { Assessment, DemoAnswer, Fixture } from "./fixtures";
+import type { DemoAnswer, Fixture } from "./fixtures";
 import { supportScore } from "./support-score";
 
 type ReviewDecision = Readonly<{
@@ -26,7 +27,7 @@ export type SanctionsDemo = Readonly<{
   asOf: string;
   ownershipBasisPoints: number;
   structuredEvidence: readonly AnyLiteral[];
-  assessments: readonly Assessment[];
+  extractedEvidence: readonly AnyLiteral[];
   directlyListed: Judgment;
   initial: Judgment;
   disputed: Judgment;
@@ -221,21 +222,26 @@ export async function runSanctionsDemo(
     },
   ]);
   using mock = mockJev(fixtures);
-  const client = new TypeSafeClient(mock.clientOptions);
-  const assessments: Assessment[] = [];
-  const run = classifier(
-    documentary,
-    guard(kb).permit("assert", heldForOwner, inForce).permit("deny", heldForOwner, inForce),
-    {
-      client,
-      admission: { minimumProbability: 0.3, ambiguityMargin: 0.05 },
-    },
-  );
+  const config = createConfig({
+    client: new TypeSafeClient(mock.clientOptions),
+    minimumProbability: 0.3,
+    ambiguityMargin: 0.05,
+  });
+  let extractions = 0;
+  const run = classifier({
+    corpus: documentary,
+    input: guard(kb).permit("assert", heldForOwner, inForce).permit("deny", heldForOwner, inForce),
+    config,
+  });
   for (const job of run) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- This demo intentionally consumes one remote job at a time.
-    assessments.push(await job.execute());
+    await job.execute();
+    extractions++;
   }
   kb = run.kb;
+  const extractedEvidence = kb
+    .literals()
+    .filter((literal) => !structuredEvidence.includes(literal));
   const disputed = query(kb, blocked(subject));
   const denial = kb.literals().find((literal) => {
     const source = literal.metadata?.source;
@@ -269,14 +275,11 @@ export async function runSanctionsDemo(
     answers: { candidate_0: { fields, answer: inForceAnswer(later.documentId) } },
   });
   // Only the new document is read; its chunks still register in the shared corpus.
-  const supplement = classifier(
-    corpus.filter((document) => document.documentId === later.documentId),
-    guard(kb).permit("assert", inForce).permit("deny", inForce),
-    {
-      client,
-      admission: { minimumProbability: 0.3, ambiguityMargin: 0.05 },
-    },
-  );
+  const supplement = classifier({
+    corpus: corpus.filter((document) => document.documentId === later.documentId),
+    input: guard(kb).permit("assert", inForce).permit("deny", inForce),
+    config,
+  });
   for (const job of supplement) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- Consumer-controlled sequential execution.
     await job.execute();
@@ -290,7 +293,7 @@ export async function runSanctionsDemo(
     asOf,
     ownershipBasisPoints,
     structuredEvidence,
-    assessments,
+    extractedEvidence,
     directlyListed,
     initial,
     disputed,
@@ -299,6 +302,6 @@ export async function runSanctionsDemo(
     score: supportScore(resolved),
     strengthened,
     strengthenedScore: supportScore(strengthened),
-    extractions: assessments.length,
+    extractions,
   };
 }

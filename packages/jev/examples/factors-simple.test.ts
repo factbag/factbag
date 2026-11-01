@@ -66,7 +66,7 @@ it("distinguishes a cancellation reason from an explicit denial and missing info
   );
 
   // ACT — The default SDK client makes HTTP requests intercepted by MSW.
-  const run = classifier(corpus, guard(kb).permit("*", contributed));
+  const run = classifier({ corpus, input: guard(kb).permit("*", contributed) });
   for (const job of run) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- This example executes jobs sequentially.
     await job.execute();

@@ -2,7 +2,7 @@
   "extends": "@factbag/tsconfig/base.json",
   "compilerOptions": {
     "types": ["node"],
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "lib": ["ES2024", "ESNext.Iterator", "DOM", "DOM.Iterable"],
     "declaration": true,
     "outDir": "dist"
   },

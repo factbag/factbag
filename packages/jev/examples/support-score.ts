@@ -1,4 +1,5 @@
-import type { Judgment, JudgmentSupportFor, Goal } from "@factbag/core/query";
+import type { LiteralSign } from "@factbag/core/kb";
+import type { Judgment, JudgmentSupportFor, Goal, QueryJudgment } from "@factbag/core/query";
 
 /**
  * Demo-only weakest-link/strongest-route scoring for settled positive atom,
@@ -53,4 +54,10 @@ function combine(
     return null;
   }
   return operation(...values.filter((value): value is number => value !== null));
+}
+
+/** Score either side independently so the display preserves conflicted evidence. */
+export function evidenceScore(judgment: QueryJudgment, sign: LiteralSign): number | null {
+  const supports = sign === "+" ? judgment.positive : judgment.negative;
+  return combine((supports ?? []).map(scoreAtomSupport), Math.max);
 }

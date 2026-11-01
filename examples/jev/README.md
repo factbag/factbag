@@ -2,7 +2,7 @@
 
 `src/j1.test.ts` runs all five J-1 cases from `@factbag/scenarios/j1` using standard
 Vitest hooks, `vi.stubEnv`, and MSW HTTP handlers. Each test follows Arrange / Act /
-Assert and calls `classifier(corpus, guard(kb).permit("*", predicates.tenureTrack))`
+Assert and calls `classifier({ corpus, input: guard(kb).permit("*", predicates.tenureTrack) })`
 without injecting a client.
 
 Scripted model responses live here, independently of the document annotations.
@@ -16,7 +16,7 @@ admission policy admits on both sides. This exercises the current client contrac
 the three-way model question and admission policy are unchanged.
 
 `src/demo.tsx` is an end-to-end walkthrough of the J-1, OFAC or haystack scenario against the live Jev API, rendered with Ink. It shows the
-question, the full knowledge base before reading, each document's result as it arrives,
+question, the full knowledge base before reading, admitted evidence as it arrives,
 the proof tree behind the answer with every leaf pointing at its source, then how each
 contradiction was resolved and the answer that follows from the surviving evidence. It reads `TYPESAFE_API_KEY` from the shell or the repo's `.env`. Run it with no
 arguments in a terminal to pick a scenario from a menu, or name one: `ofac`, `haystack`, or `j1`

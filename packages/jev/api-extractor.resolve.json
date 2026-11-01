@@ -7,5 +7,13 @@
   },
   "docModel": {
     "apiJsonFilePath": "<projectFolder>/temp/jev-resolve.api.json"
+  },
+  "messages": {
+    "extractorMessageReporting": {
+      "ae-forgotten-export": {
+        "logLevel": "none",
+        "addToApiReportFile": false
+      }
+    }
   }
 }

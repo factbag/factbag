@@ -170,7 +170,7 @@ const incomeEvidence = guard(kb)
 ### 6. Ask Jev to assess the income evidence
 
 ```ts
-const run = classifier(corpus, incomeEvidence);
+const run = classifier({ corpus, input: incomeEvidence });
 
 for (const job of run) {
   await job.execute(); // Makes a live Jev request.

@@ -1,27 +1,19 @@
 import { and, enumeration, or, predicate } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
-import type { GoalValue, Judgment } from "@factbag/core/query";
+import type { QueryJudgment, Judgment } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import { classifier } from "../src/classifier";
 import { distribution } from "./fixtures";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { mockJev } from "./mock-jev";
-import type { Assessment, DemoAnswer, Fixture } from "./fixtures";
+import type { DemoAnswer, Fixture } from "./fixtures";
 import { supportScore } from "./support-score";
-
-type FactorResult = Readonly<{
-  factor: string;
-  value: GoalValue;
-  positiveSupport: number | null;
-  negativeSupport: number | null;
-  source: string;
-}>;
 
 export type FactorDemo = Readonly<{
   corpus: Corpus;
-  factors: readonly FactorResult[];
+  factors: readonly QueryJudgment[];
   product: Judgment;
   commercial: Judgment;
   conclusion: Judgment;
@@ -100,19 +92,19 @@ export async function runFactorDemo(
         { fields: { ...subject, factor }, answer },
       ]),
     );
-  const assessments: Assessment[] = [];
   using mock = mockJev([{ text, predicate: contributed.name, answers: candidates(answers) }]);
-  const run = classifier(
-    corpus.filter((candidate) => candidate.metadata["kind"] !== "structured"),
-    guard(kb).permit("assert", contributed).permit("deny", contributed),
-    {
+  const run = classifier({
+    corpus: corpus.filter((candidate) => candidate.metadata["kind"] !== "structured"),
+    input: guard(kb).permit("assert", contributed).permit("deny", contributed),
+    config: {
       client: new TypeSafeClient(mock.clientOptions),
-      admission: { minimumProbability: 0.3, ambiguityMargin: 0.05 },
+      minimumProbability: 0.3,
+      ambiguityMargin: 0.05,
     },
-  );
+  });
   for (const job of run) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- This demo chooses sequential execution.
-    assessments.push(await job.execute());
+    await job.execute();
   }
   kb = run.kb;
   const product = predicate("documented_product_breakdown", { customer: String, event: String });
@@ -124,65 +116,31 @@ export async function runFactorDemo(
     customer: String,
     event: String,
   });
-  const defineRules = (target: KnowledgeBase): void => {
-    target
-      .rule(product(subject))
-      .iff(
-        and(
-          contributed({ ...subject, factor: "reliability" }),
-          contributed({ ...subject, factor: "onboarding" }),
-        ),
-      );
-    target
-      .rule(commercial(subject))
-      .iff(
-        or(
-          contributed({ ...subject, factor: "billing" }),
-          contributed({ ...subject, factor: "price" }),
-        ),
-      );
-    target
-      .rule(explained(subject))
-      .iff(and(cancelled(subject), or(product(subject), commercial(subject))));
-  };
-  defineRules(kb);
-  const factors = assessments
-    .flatMap((result) =>
-      result.assessments.map((assessment) => ({ assessment, source: result.source })),
-    )
-    .map(({ assessment, source }): FactorResult => {
-      const factor = assessment.atom.fields["factor"];
-      if (typeof factor !== "string") {
-        throw new Error("Expected a grounded factor name");
-      }
-      const value = query(kb, contributed({ ...subject, factor })).value;
-      // Keep both sides: a factor can need review just like any other claim.
-      const hasPositive = assessment.literals.some((literal) => literal.sign === "+");
-      const hasNegative = assessment.literals.some((literal) => literal.sign === "-");
-      return {
-        factor,
-        value,
-        positiveSupport: hasPositive ? assessment.answer.probabilities.ASSERT : null,
-        negativeSupport: hasNegative ? assessment.answer.probabilities.DENY : null,
-        source,
-      };
-    });
+  kb.rule(product(subject)).iff(
+    and(
+      contributed({ ...subject, factor: "reliability" }),
+      contributed({ ...subject, factor: "onboarding" }),
+    ),
+  );
+  kb.rule(commercial(subject)).iff(
+    or(
+      contributed({ ...subject, factor: "billing" }),
+      contributed({ ...subject, factor: "price" }),
+    ),
+  );
+  kb.rule(explained(subject)).iff(
+    and(cancelled(subject), or(product(subject), commercial(subject))),
+  );
+  const factors = names.map((factor) => query(kb, contributed({ ...subject, factor })));
   const productJudgment = query(kb, product(subject));
   const commercialJudgment = query(kb, commercial(subject));
   const conclusion = query(kb, explained(subject));
 
   // A separate KB gives a reversible sensitivity view; the original evidence stays intact.
-  const sensitivity = new KnowledgeBase();
-  for (const literal of kb.literals()) {
-    if (literal.atom.fields["factor"] !== "onboarding") {
-      if (literal.sign === "+") {
-        sensitivity.asserts(literal.atom, literal.metadata);
-      } else {
-        sensitivity.denies(literal.atom, literal.metadata);
-      }
-    }
-  }
-  defineRules(sensitivity);
+  const sensitivity = kb.fork();
+  sensitivity.retract(
+    ...sensitivity.literals().filter(({ atom }) => atom.fields["factor"] === "onboarding"),
+  );
   return {
     corpus,
     factors,

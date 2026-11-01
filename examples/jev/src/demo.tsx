@@ -6,6 +6,7 @@
 import { Box, Text, useApp } from "ink";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import type {
+  APIPromise,
   Questions,
   RequestOptions,
   SystemOneRequest,
@@ -17,10 +18,11 @@ import { Var } from "@factbag/core/dsl";
 import type { GroundAtom, PredicateDeclaration } from "@factbag/core/dsl";
 import { explainJudgment } from "@factbag/core/explain";
 import type { EvidenceReason, Explanation } from "@factbag/core/explain";
-import type { AnyRule, KnowledgeBase, Literal } from "@factbag/core/kb";
+import type { AnyLiteral, AnyRule, KnowledgeBase, Literal } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { guard } from "@factbag/guards";
 import { classifier } from "@factbag/jev/classifier";
+
 import { resolver } from "@factbag/jev/resolve";
 import type { Scenario } from "@factbag/scenarios";
 import createHaystackScenario from "@factbag/scenarios/haystack";
@@ -31,22 +33,8 @@ import createOfacScenario from "@factbag/scenarios/ofac";
 type Corpus = Scenario["corpus"];
 type Run = ReturnType<typeof classifier>;
 type Job = Run extends Iterable<infer J> ? J : never;
-type Assessment = Awaited<ReturnType<Job["execute"]>>;
-type ResolutionRun = ReturnType<typeof resolver>;
-type ResolutionJob = ResolutionRun extends Iterable<infer J> ? J : never;
-type Resolution = Awaited<ReturnType<ResolutionJob["execute"]>>;
-type ResolutionRow =
-  | { readonly state: "waiting" | "reading"; readonly job: ResolutionJob }
-  | { readonly state: "failed"; readonly job: ResolutionJob; readonly error: string }
-  | {
-      readonly state: "done";
-      readonly job: ResolutionJob;
-      readonly result: Resolution;
-    };
 type Row =
-  | { readonly state: "waiting"; readonly job: Job }
-  | { readonly state: "reading"; readonly job: Job }
-  | { readonly state: "done"; readonly job: Job; readonly result: Assessment }
+  | { readonly state: "waiting" | "reading" | "done"; readonly job: Job }
   | { readonly state: "failed"; readonly job: Job; readonly error: string };
 
 /** What the demo needs to tell one scenario's story. */
@@ -130,7 +118,11 @@ export function Demo({
   // The model may assert or deny exactly the predicates the scenario's documents are labeled for.
   const [run] = useState(() => {
     const writable = [...new Set(targets.map(({ predicate }) => predicate))];
-    return classifier(corpus, guard(kb).permit("*", ...writable), { client: meter.client });
+    return classifier({
+      corpus,
+      input: guard(kb).permit("*", ...writable),
+      config: { client: meter.client },
+    });
   });
   // Enumerating jobs makes no remote calls; each request happens in execute().
   const [rows, setRows] = useState<readonly Row[]>(() =>
@@ -148,7 +140,8 @@ export function Demo({
     void pool(rows, concurrency, async ({ job }, index) => {
       update(index, { state: "reading", job });
       try {
-        update(index, { state: "done", job, result: await job.execute() });
+        await job.execute();
+        update(index, { state: "done", job });
       } catch (error) {
         process.exitCode = 1;
         update(index, {
@@ -165,9 +158,9 @@ export function Demo({
   }, []);
 
   // Contradictions can only be found once every document has been read.
-  const [resolution, setResolution] = useState<
-    { run: ResolutionRun; rows: readonly ResolutionRow[] } | undefined
-  >(undefined);
+  const [resolution, setResolution] = useState<{ run: Run; rows: readonly Row[] } | undefined>(
+    undefined,
+  );
   useEffect(() => {
     if (!finished || resolution !== undefined) {
       return;
@@ -178,7 +171,7 @@ export function Demo({
       run: resolutionRun,
       rows: jobs.map((job) => ({ state: "waiting", job })),
     });
-    const update = (index: number, row: ResolutionRow): void => {
+    const update = (index: number, row: Row): void => {
       setResolution((current) =>
         current === undefined ? current : { ...current, rows: replace(current.rows, index, row) },
       );
@@ -186,7 +179,8 @@ export function Demo({
     void pool(jobs, concurrency, async (job, index) => {
       update(index, { state: "reading", job });
       try {
-        update(index, { state: "done", job, result: await job.execute() });
+        await job.execute();
+        update(index, { state: "done", job });
       } catch (error) {
         process.exitCode = 1;
         update(index, {
@@ -268,15 +262,9 @@ export function Demo({
       <Act
         number={4}
         title="Reading"
-        detail={`${rows.filter(({ state }) => state === "done").length}/${rows.length} requests · ${concurrency} at a time`}
+        detail={`${rows.filter(({ state }) => state === "done").length}/${rows.length} jobs · ${concurrency} at a time`}
       >
-        <ReadingTable rows={rows} corpus={corpus} />
-        <Box marginTop={1} gap={2}>
-          <Text dimColor>distribution</Text>
-          <Text color="green">█ assert</Text>
-          <Text color="red">█ deny</Text>
-          <Text dimColor>░ irrelevant</Text>
-        </Box>
+        <ReadingTable rows={rows} corpus={corpus} kb={run.kb} />
       </Act>
 
       {finished ? (
@@ -295,7 +283,12 @@ export function Demo({
           title="Resolving contradictions"
           detail={`${contradictions.filter(({ state }) => state === "done").length}/${contradictions.length} contradictions · ${concurrency} at a time`}
         >
-          <ResolutionView rows={contradictions} corpus={corpus} />
+          <ResolutionView
+            rows={contradictions}
+            corpus={corpus}
+            before={run.kb}
+            after={resolution?.run.kb ?? run.kb}
+          />
         </Act>
       ) : null}
 
@@ -316,67 +309,25 @@ export function Demo({
   );
 }
 
-/** One block per contradiction: the fact, then each passage the model judged. */
+/** Show resolution effects directly from the two knowledge bases. */
 function ResolutionView({
   rows,
   corpus,
+  before,
+  after,
 }: {
-  rows: readonly ResolutionRow[];
+  rows: readonly Row[];
   corpus: Corpus;
+  before: KnowledgeBase;
+  after: KnowledgeBase;
 }): ReactElement {
+  const remaining = new Set(after.literals());
+  const retracted = before.literals().filter((literal) => !remaining.has(literal));
   return (
-    <Box flexDirection="column" gap={1}>
-      {rows.map((row) => (
-        <Box key={formatAtom(row.job.atom)} flexDirection="column">
-          <Box justifyContent="space-between" gap={2}>
-            <Text bold wrap="truncate-end">
-              {formatAtom(row.job.atom)}
-            </Text>
-            <Box flexShrink={0}>
-              {row.state === "done" ? (
-                <Text dimColor>
-                  {row.result.retracted.length} of {row.job.passages.length} retracted
-                </Text>
-              ) : row.state === "failed" ? (
-                <Text color="red">✗ {row.error}</Text>
-              ) : (
-                <Text color="cyan">
-                  <Spinner /> judging {row.job.passages.length} passages…
-                </Text>
-              )}
-            </Box>
-          </Box>
-          {row.state === "done"
-            ? row.result.judgments.map(({ passage, standing, answer, retracted }) => (
-                <Box key={passage.id} gap={2} paddingLeft={2}>
-                  <Box flexGrow={1} flexShrink={1} flexBasis={0}>
-                    <Text wrap="truncate-end">
-                      {corpus.resolve(passage.id).document.documentId}
-                    </Text>
-                  </Box>
-                  <Box width={8} flexShrink={0}>
-                    <Text color={standing === "RETRACT" ? "red" : "green"} bold>
-                      {standing}
-                    </Text>
-                  </Box>
-                  <Box flexShrink={0}>
-                    <Text>{answer.probabilities.RETRACT.toFixed(2)}</Text>
-                  </Box>
-                  <Box width={20} flexShrink={0}>
-                    {retracted.length === 0 ? (
-                      <Text dimColor>evidence kept</Text>
-                    ) : (
-                      <Text color="red" wrap="truncate-end">
-                        {retracted.map(({ sign }) => (sign === "+" ? "+" : "−")).join(" ")} evidence
-                        retracted
-                      </Text>
-                    )}
-                  </Box>
-                </Box>
-              ))
-            : null}
-        </Box>
-      ))}
+    <Box flexDirection="column">
+      <Text>{retracted.length} evidence records retracted</Text>
+      <JobErrors rows={rows} />
+      <EvidenceList evidence={retracted} corpus={corpus} />
     </Box>
   );
 }
@@ -476,125 +427,72 @@ function Field({
   );
 }
 
-/** One block per document: its status, then the candidates where the model saw evidence. */
-function ReadingTable({ rows, corpus }: { rows: readonly Row[]; corpus: Corpus }): ReactElement {
-  const groups = new Map<string, Row[]>();
-  for (const row of rows) {
-    const group = groups.get(row.job.source) ?? [];
-    group.push(row);
-    groups.set(row.job.source, group);
-  }
-  return (
-    <Box flexDirection="column" gap={1}>
-      {[...groups].map(([source, group]) => (
-        <DocumentBlock key={source} source={source} rows={group} corpus={corpus} />
-      ))}
-    </Box>
-  );
-}
-
-function DocumentBlock({
-  source,
+/** Evidence admitted so far; job progress is independent of document identity. */
+function ReadingTable({
   rows,
   corpus,
+  kb,
 }: {
-  source: string;
   rows: readonly Row[];
   corpus: Corpus;
+  kb: KnowledgeBase;
 }): ReactElement {
-  const { document } = corpus.resolve(source);
-  const done = rows.filter(({ state }) => state === "done").length;
-  const failures = rows.flatMap((row) => (row.state === "failed" ? [row.error] : []));
-  const assessments = rows.flatMap((row) => (row.state === "done" ? row.result.assessments : []));
-  const notable = assessments.filter(
-    ({ answer, literals }) =>
-      literals.length > 0 ||
-      Math.max(answer.probabilities.ASSERT, answer.probabilities.DENY) >= 0.1,
-  );
-  const quiet = assessments.length - notable.length;
   return (
-    <Box flexDirection="column">
-      <Box justifyContent="space-between" gap={2}>
-        <Text wrap="truncate-end">
-          <Text bold>{document.documentId}</Text> <Text dimColor>{describe(document.text)}</Text>
-        </Text>
-        <Box flexShrink={0}>
-          {rows.some(({ state }) => state === "reading") ? (
-            <Text color="cyan">
-              <Spinner /> {done}/{rows.length}
-            </Text>
-          ) : (
-            <Text dimColor>{done === rows.length ? "✓" : `${done}/${rows.length}`}</Text>
-          )}
-        </Box>
-      </Box>
-      {failures.map((error) => (
-        <Text key={error} color="red">
-          {"  "}✗ {error}
-        </Text>
-      ))}
-      {notable.map(({ optionId, atom, answer, literals }) => (
-        <Box key={`${atom.predicate.name}/${optionId}`} gap={2} paddingLeft={2}>
-          <Box flexGrow={1} flexShrink={1} flexBasis={0}>
-            <Text wrap="truncate-end">{formatAtom(atom)}</Text>
-          </Box>
-          <Box width={10} flexShrink={0}>
-            <Text color={choiceColor(answer.choice)} bold>
-              {answer.choice}
-            </Text>
-          </Box>
-          <Box flexShrink={0}>
-            <Text>
-              <Text color="green">{"█".repeat(cells(answer.probabilities.ASSERT))}</Text>
-              <Text color="red">{"█".repeat(cells(answer.probabilities.DENY))}</Text>
-              <Text dimColor>
-                {"░".repeat(
-                  Math.max(
-                    0,
-                    10 - cells(answer.probabilities.ASSERT) - cells(answer.probabilities.DENY),
-                  ),
-                )}
-              </Text>
-            </Text>
-          </Box>
-          <Box flexShrink={0}>
-            <Text>{answer.probabilities[answer.choice].toFixed(2)}</Text>
-          </Box>
-          <Box width={11} flexShrink={0}>
-            {literals.length === 0 ? (
-              <Text dimColor>not written</Text>
-            ) : (
-              <Text>
-                {literals.map((literal) => (
-                  <Text key={literal.sign} color={literal.sign === "+" ? "green" : "red"}>
-                    {literal.sign === "+" ? "+ written" : "− written"}
-                  </Text>
-                ))}
-              </Text>
-            )}
-          </Box>
-        </Box>
-      ))}
-      {quiet > 0 ? (
-        <Box paddingLeft={2}>
-          <Text dimColor>
-            {quiet} {notable.length > 0 ? "other " : ""}
-            {quiet === 1 ? "candidate" : "candidates"} irrelevant
-          </Text>
-        </Box>
-      ) : null}
+    <Box flexDirection="column" gap={1}>
+      <JobErrors rows={rows} />
+      <EvidenceList
+        evidence={kb
+          .literals()
+          .filter(({ metadata }) => metadata?.annotations?.["jev"] !== undefined)}
+        corpus={corpus}
+      />
     </Box>
   );
 }
 
-function Spinner(): ReactElement {
-  const frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setFrame((current) => (current + 1) % frames.length), 80);
-    return () => clearInterval(timer);
-  }, []);
-  return <Text>{frames[frame]}</Text>;
+function JobErrors({ rows }: { rows: readonly Row[] }): ReactElement {
+  return (
+    <Box flexDirection="column">
+      {rows.flatMap((row, index) =>
+        row.state === "failed"
+          ? [
+              <Text key={index} color="red">
+                Job {index + 1}: {row.error}
+              </Text>,
+            ]
+          : [],
+      )}
+    </Box>
+  );
+}
+
+function EvidenceList({
+  evidence,
+  corpus,
+}: {
+  evidence: readonly AnyLiteral[];
+  corpus: Corpus;
+}): ReactElement {
+  return (
+    <Box flexDirection="column">
+      {evidence.map((literal, index) => {
+        const source = literal.metadata?.source;
+        const probability = literal.metadata?.scores?.["probability"];
+        return (
+          <Box key={index} gap={2}>
+            <Text color={literal.sign === "+" ? "green" : "red"}>{literal.sign}</Text>
+            <Text>{formatAtom(literal.atom)}</Text>
+            <Text dimColor>
+              {source === undefined
+                ? "application fact"
+                : corpus.resolve(source).document.documentId}
+            </Text>
+            {probability === undefined ? null : <Text>{probability.toFixed(2)}</Text>}
+          </Box>
+        );
+      })}
+    </Box>
+  );
 }
 
 /** One node of the solver's proof: its claim, then the rule or evidence that supports it. */
@@ -702,47 +600,47 @@ function EvidenceLeaf({
 /** Jev bills input tokens only, at $42 per billion (https://docs.typesafe.ai/models). */
 const dollarsPerInputToken = 42 / 1_000_000_000;
 
+/** The SDK, counting what a run costs: requests, input tokens and wall-clock time. */
+class MeteredClient extends TypeSafeClient {
+  requests = 0;
+  inputTokens: number | null = 0;
+  finished = Date.now();
+  readonly started = Date.now();
+
+  // oxlint-disable-next-line typescript/promise-function-async -- Returns the SDK's APIPromise, as the base method does.
+  override systemOne<const Q extends Questions>(
+    request: SystemOneRequest<Q>,
+    options?: RequestOptions,
+  ): APIPromise<SystemOneResult<Q>> {
+    return super.systemOne(request, options).map((result) => {
+      this.requests += 1;
+      this.inputTokens =
+        this.inputTokens === null || result.usage.input_tokens === null
+          ? null
+          : this.inputTokens + result.usage.input_tokens;
+      this.finished = Date.now();
+      return result;
+    });
+  }
+}
+
 type Meter = Readonly<{
-  client: {
-    systemOne: <Q extends Questions>(
-      request: SystemOneRequest<Q>,
-      options?: RequestOptions,
-    ) => Promise<SystemOneResult<Q>>;
-  };
+  client: MeteredClient;
   started: number;
   requests: () => number;
   inputTokens: () => number | null;
   elapsed: () => number;
 }>;
 
-/** Wrap the SDK to count what a run costs: requests, input tokens and wall-clock time. */
 function createMeter(): Meter {
   // The SDK's 10s default is tight for requests carrying many questions or passages.
-  const sdk = new TypeSafeClient({ timeout: 60_000 });
-  let requests = 0;
-  let inputTokens: number | null = 0;
-  let finished = Date.now();
-  const started = Date.now();
+  const client = new MeteredClient({ timeout: 60_000 });
   return {
-    client: {
-      systemOne: async <Q extends Questions>(
-        request: SystemOneRequest<Q>,
-        options?: RequestOptions,
-      ) => {
-        const result = await sdk.systemOne(request, options);
-        requests += 1;
-        inputTokens =
-          inputTokens === null || result.usage.input_tokens === null
-            ? null
-            : inputTokens + result.usage.input_tokens;
-        finished = Date.now();
-        return result;
-      },
-    },
-    started,
-    requests: () => requests,
-    inputTokens: () => inputTokens,
-    elapsed: () => finished - started,
+    client,
+    started: client.started,
+    requests: () => client.requests,
+    inputTokens: () => client.inputTokens,
+    elapsed: () => client.finished - client.started,
   };
 }
 
@@ -884,14 +782,6 @@ function typeName(type: unknown): string {
   return typeof type === "object" && type !== null && "values" in type && Array.isArray(type.values)
     ? type.values.join(" | ")
     : "unknown";
-}
-
-function cells(probability: number): number {
-  return Math.round(probability * 10);
-}
-
-function choiceColor(choice: string): string {
-  return choice === "ASSERT" ? "green" : choice === "DENY" ? "red" : "gray";
 }
 
 function valueColor(value: string): string {

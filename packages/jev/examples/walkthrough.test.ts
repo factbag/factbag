@@ -6,7 +6,7 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { query } from "@factbag/core/query";
 import { runSanctionsDemo } from "./sanctions";
 import { runFactorDemo } from "./factors";
-import { supportScore } from "./support-score";
+import { supportScore, evidenceScore } from "./support-score";
 import { distribution } from "./fixtures";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { mockJev } from "./mock-jev";
@@ -20,21 +20,21 @@ describe("standalone walkthrough", () => {
       "conflicted",
       "true",
     ]);
-    expect(demo.extractions).toBe(8);
+    expect(demo.extractions).toBe(4);
+    expect(demo.extractedEvidence).toHaveLength(3);
     expect(
-      demo.assessments
-        .flatMap((batch) => batch.assessments)
-        .filter((item) => item.literals.length === 0),
-    ).toHaveLength(5);
+      demo.extractedEvidence.every(
+        ({ metadata }) =>
+          metadata?.source !== undefined &&
+          demo.corpus.resolve(metadata.source).document.documentId !== "board-announcement",
+      ),
+    ).toBe(true);
     expect(demo.review.evidence.metadata?.scores?.["probability"]).toBe(0.98);
     expect(demo.kb.literals()).not.toContain(demo.review.evidence);
-    expect(
-      demo.assessments.flatMap((batch) => batch.assessments).flatMap((item) => item.literals),
-    ).toContain(demo.review.evidence);
-    const confirmation = demo.assessments
-      .flatMap((batch) => batch.assessments)
-      .flatMap((item) => item.literals)
-      .find((literal) => literal.atom.predicate.name === "nominee_arrangement_in_force");
+    expect(demo.extractedEvidence).toContain(demo.review.evidence);
+    const confirmation = demo.extractedEvidence.find(
+      (literal) => literal.atom.predicate.name === "nominee_arrangement_in_force",
+    );
     expect(confirmation).toBeDefined();
     expect(demo.kb.literals()).toContain(confirmation);
     expect(confirmation?.metadata?.scores?.["probability"]).toBe(0.87);
@@ -75,10 +75,7 @@ describe("standalone walkthrough", () => {
       }
       expect(demo.corpus.resolve(source).chunk.text).toContain(demo.asOf);
     }
-    const assessedPredicates = demo.assessments
-      .flatMap((batch) => batch.assessments)
-      .flatMap((item) => item.literals)
-      .map((literal) => literal.atom.predicate.name);
+    const assessedPredicates = demo.extractedEvidence.map((literal) => literal.atom.predicate.name);
     expect(new Set(assessedPredicates)).toEqual(
       new Set(["nominee_holds_for_owner", "nominee_arrangement_in_force"]),
     );
@@ -97,13 +94,16 @@ describe("standalone walkthrough", () => {
   );
 
   it("keeps positive contribution, explicit non-contribution, and missing evidence distinct", async () => {
+    // Arrange / Act
     const demo = await runFactorDemo();
+
+    // Assert
     expect(
-      demo.factors.map(({ factor, value, positiveSupport, negativeSupport }) => ({
-        factor,
-        value,
-        positiveSupport,
-        negativeSupport,
+      demo.factors.map((judgment) => ({
+        factor: judgment.goal.atom.fields["factor"],
+        value: judgment.value,
+        positiveSupport: evidenceScore(judgment, "+"),
+        negativeSupport: evidenceScore(judgment, "-"),
       })),
     ).toEqual([
       { factor: "reliability", value: "true", positiveSupport: 0.94, negativeSupport: null },
@@ -121,12 +121,24 @@ describe("standalone walkthrough", () => {
   });
 
   it("shows both sides of an ambiguous factor rather than quietly choosing the first literal", async () => {
+    // Arrange / Act
     const demo = await runFactorDemo({ onboarding: distribution(0.49, 0.48, 0.03) });
-    expect(demo.factors.find((factor) => factor.factor === "onboarding")).toMatchObject({
-      value: "conflicted",
-      positiveSupport: 0.49,
-      negativeSupport: 0.48,
-    });
+    const onboarding = demo.factors.find(({ goal }) => goal.atom.fields["factor"] === "onboarding");
+
+    // Assert
+    expect(onboarding).toBeDefined();
+    if (!onboarding) {
+      throw new Error("Expected onboarding judgment");
+    }
+    expect(onboarding.value).toBe("conflicted");
+    expect(evidenceScore(onboarding, "+")).toBe(0.49);
+    expect(evidenceScore(onboarding, "-")).toBe(0.48);
+    expect(onboarding.positive).toMatchObject([
+      { source: "evidence", literals: [{ metadata: { scores: { probability: 0.49 } } }] },
+    ]);
+    expect(onboarding.negative).toMatchObject([
+      { source: "evidence", literals: [{ metadata: { scores: { probability: 0.48 } } }] },
+    ]);
     expect(demo.product.value).toBe("conflicted");
     expect(demo.productScore).toBeNull();
     expect(demo.commercialScore).toBe(0.76);
@@ -151,9 +163,14 @@ it("rejects a mismatched candidate instead of making an incorrect demo request a
   const kb = new KnowledgeBase();
   const corpus = new Corpus();
   corpus.add({ documentId: "doc", text: "Invoice A is valid." });
-  const run = classifier(corpus, guard(kb).permit("assert", fact), {
-    client: new TypeSafeClient(mock.clientOptions),
-    admission: { minimumProbability: 0.3, ambiguityMargin: 0.05 },
+  const run = classifier({
+    corpus,
+    input: guard(kb).permit("assert", fact),
+    config: {
+      client: new TypeSafeClient(mock.clientOptions),
+      minimumProbability: 0.3,
+      ambiguityMargin: 0.05,
+    },
   });
   await expect(Promise.all([...run].map(async (job) => await job.execute()))).rejects.toThrow(
     "Candidate fields",
