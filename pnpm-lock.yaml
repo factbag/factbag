@@ -372,6 +372,10 @@ importers:
         version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   providers/clef:
+    dependencies:
+      factbag:
+        specifier: workspace:*
+        version: link:../../packages/factbag
     devDependencies:
       '@factbag/system-one':
         specifier: workspace:*
@@ -382,9 +386,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
-      factbag:
-        specifier: workspace:*
-        version: link:../../packages/factbag
       tsx:
         specifier: 'catalog:'
         version: 4.23.15
@@ -396,6 +397,10 @@ importers:
         version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   providers/jev:
+    dependencies:
+      factbag:
+        specifier: workspace:*
+        version: link:../../packages/factbag
     devDependencies:
       '@factbag/system-one':
         specifier: workspace:*
@@ -409,9 +414,6 @@ importers:
       '@typesafe-ai/sdk':
         specifier: 'catalog:'
         version: 0.7.0
-      factbag:
-        specifier: workspace:*
-        version: link:../../packages/factbag
       msw:
         specifier: 'catalog:'
         version: 2.15.0(@types/node@22.20.0)(typescript@7.0.2)

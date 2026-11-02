@@ -100,7 +100,6 @@
     "@factbag/system-one": "workspace:*",
     "@factbag/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "factbag": "workspace:*",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
