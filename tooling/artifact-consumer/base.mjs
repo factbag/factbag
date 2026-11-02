@@ -1,9 +1,7 @@
-import { predicate } from "factbag/dsl";
+import { predicate, query } from "factbag/dsl";
 import { explainJudgment } from "factbag/explain";
-import { KnowledgeBase } from "factbag/kb";
-import { query } from "factbag/query";
+import { KnowledgeBase, guard } from "factbag/kb";
 import { Corpus, chunkers } from "factbag/corpus";
-import { guard } from "factbag/guards";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
@@ -18,7 +16,9 @@ for (const name of [
 ]) {
   assert.throws(() => require.resolve(name), { code: "MODULE_NOT_FOUND" });
 }
-assert.throws(() => require.resolve("factbag/widgets"), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" });
+for (const entry of ["factbag/widgets", "factbag/guards", "factbag/query"]) {
+  assert.throws(() => require.resolve(entry), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" });
+}
 
 /** @param {unknown} condition @param {string} message */
 function invariant(condition, message) {

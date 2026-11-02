@@ -84,11 +84,11 @@
         "paths": {
           "@factbag/core/dsl": "factbag/dsl",
           "@factbag/core/kb": "factbag/kb",
-          "@factbag/core/query": "factbag/query",
+          "@factbag/core/query": "factbag/dsl",
           "@factbag/core/explain": "factbag/explain",
           "@factbag/core/exceptions": "factbag/exceptions",
           "@factbag/corpus": "factbag/corpus",
-          "@factbag/guards": "factbag/guards"
+          "@factbag/guards": "factbag/kb"
         }
       },
       "deps": {

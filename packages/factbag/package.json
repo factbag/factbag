@@ -42,10 +42,6 @@
       "types": "./dist/kb.d.ts",
       "import": "./dist/kb.js"
     },
-    "./query": {
-      "types": "./dist/query.d.ts",
-      "import": "./dist/query.js"
-    },
     "./explain": {
       "types": "./dist/explain.d.ts",
       "import": "./dist/explain.js"
@@ -57,10 +53,6 @@
     "./corpus": {
       "types": "./dist/corpus.d.ts",
       "import": "./dist/corpus.js"
-    },
-    "./guards": {
-      "types": "./dist/guards.d.ts",
-      "import": "./dist/guards.js"
     }
   },
   "scripts": {
@@ -68,13 +60,11 @@
   },
   "tsdown": {
     "entry": {
-      "dsl": "../core/src/dsl/index.ts",
-      "kb": "../core/src/knowledge-base/index.ts",
-      "query": "../core/src/query/index.ts",
+      "dsl": "src/dsl.ts",
+      "kb": "src/kb.ts",
       "explain": "../core/src/explanation/index.ts",
       "exceptions": "../core/src/exceptions/index.ts",
-      "corpus": "../corpus/src/index.ts",
-      "guards": "../guards/src/index.ts"
+      "corpus": "../corpus/src/index.ts"
     },
     "dts": true,
     "fixedExtension": false,
