@@ -45,7 +45,7 @@
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "syncpack": "catalog:",
-    "tsup": "catalog:",
+    "tsdown": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript6": "catalog:"
