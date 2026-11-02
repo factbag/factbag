@@ -93,9 +93,21 @@
         "from": "../../README.md",
         "to": "."
       }
-    ]
+    ],
+    "deps": {
+      "onlyBundle": [],
+      "onlyImport": [
+        "@typesafe-ai/sdk"
+      ]
+    },
+    "publint": true,
+    "attw": {
+      "profile": "esm-only",
+      "level": "error"
+    }
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "catalog:",
     "@factbag/clef": "workspace:*",
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
@@ -103,7 +115,8 @@
     "@factbag/jev": "workspace:*",
     "@factbag/system-one": "workspace:*",
     "@factbag/tsconfig": "workspace:*",
-    "@typesafe-ai/sdk": "catalog:"
+    "@typesafe-ai/sdk": "catalog:",
+    "publint": "catalog:"
   },
   "peerDependencies": {
     "@typesafe-ai/sdk": "^0.6.0"

@@ -8,6 +8,8 @@
     },
     "packages/factbag": {
       "ignoreDependencies": [
+        "@arethetypeswrong/core",
+        "publint",
         "@factbag/core",
         "@factbag/corpus",
         "@factbag/guards",
