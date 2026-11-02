@@ -4,6 +4,7 @@ import type { KnowledgeBase, Literal } from "@factbag/core/kb";
 import type { Chunk } from "@factbag/corpus";
 import type { Judgement, Outcome } from "../types/model";
 import type { Pipeline } from "../pipeline";
+import { isEntity } from "../utils";
 import type { ClassifiablePredicate } from "./types";
 
 /**
@@ -42,6 +43,16 @@ export async function extractEvidence({
       kb.denies(atom, metadata);
     }
   }
+  /**
+   * Register the entities that written evidence mentions, so later readers of the KB can
+   * enumerate them. Extracted candidates that no evidence mentions stay unregistered.
+   * Identity is type and id, so an entity from several chunks is registered once.
+   */
+  kb.entities.add(
+    ...evidence
+      .flatMap(({ atom }) => Object.values(atom.fields))
+      .filter((value) => isEntity(value)),
+  );
 }
 
 /**

@@ -5,6 +5,7 @@ import { classifier } from "./classifier/classifier";
 import { normalize, validateProvider } from "./config";
 import type { Config, Normalized } from "./config";
 import { systemOneModel } from "./model/model";
+import type { CreateChunkSymbolExtractor } from "./classifier/types";
 import type { Pipeline } from "./pipeline";
 import type { Provider, Transport } from "./provider";
 import { resolver } from "./resolve";
@@ -27,11 +28,14 @@ export type SystemOne<Options extends object> = {
    * Validate available predicates eagerly and return a lazy iterator of executable jobs, one
    * per chunk. Bare KBs expose all known predicates; explicit guards retain their permission
    * policy. Only `job.execute()` makes a remote call. The consumer owns pacing and concurrency.
+   * With `createChunkSymbolExtractor`, open-ended and entity fields also take the values each
+   * chunk offers, so they need no finite domain up front.
    */
   readonly classifier: <M extends Metadata = Metadata>(input: {
     corpus: Corpus<M>;
     input: KnowledgeBase | GuardedKB;
     config?: Config<Options>;
+    createChunkSymbolExtractor?: CreateChunkSymbolExtractor;
   }) => Run;
 
   /**
@@ -101,8 +105,8 @@ export function systemOne<Options extends object>(provider: Provider<Options>): 
       pipelines.set(normalized, resolved);
       return normalized;
     },
-    classifier: ({ corpus, input, config }) =>
-      classifier({ corpus, input, config: pipeline(config) }),
+    classifier: ({ corpus, input, config, createChunkSymbolExtractor }) =>
+      classifier({ corpus, input, config: pipeline(config), createChunkSymbolExtractor }),
     resolver: (corpus, kb, config) => resolver(corpus, kb, pipeline(config)),
   };
 }

@@ -12,8 +12,13 @@ import type { Action, ClassifiablePredicate } from "./types";
  *
  * Called once when constructing a run, so unsupported predicates fail before reading
  * the corpus or calling Jev. Candidate combinations are built later, after filtering.
+ * When passages supply symbols, open-ended fields and entity types with no registered
+ * entities start empty, to be filled from each passage.
  */
-export function classifiablePredicates(access: GuardedKB): readonly ClassifiablePredicate[] {
+export function classifiablePredicates(
+  access: GuardedKB,
+  { extracting = false }: { extracting?: boolean } = {},
+): readonly ClassifiablePredicate[] {
   const actions = new Map<PredicateDeclaration, Set<Action>>();
   for (const { operation, predicate } of access.resolve()) {
     if (operation !== "query") {
@@ -34,7 +39,10 @@ export function classifiablePredicates(access: GuardedKB): readonly Classifiable
       declaration: predicate,
       actions: permitted,
       roles: Object.fromEntries(
-        predicate.paramNames.map((name) => [name, fieldValues({ predicate, name, kb: access.kb })]),
+        predicate.paramNames.map((name) => [
+          name,
+          fieldValues({ predicate, name, kb: access.kb, extracting }),
+        ]),
       ),
     };
   });
@@ -45,15 +53,20 @@ function fieldValues({
   predicate,
   name,
   kb,
+  extracting,
 }: {
   predicate: PredicateDeclaration;
   name: string;
   kb: KnowledgeBase;
+  extracting: boolean;
 }): readonly (Scalar | Entity)[] {
   const type = predicate.params[name];
+  if (extracting && (type === String || type === Number || type === Date)) {
+    return [];
+  }
   if (type === String || type === Number || type === Date || type === undefined) {
     throw new UnsupportedPredicateError(
-      `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), or registered entities.`,
+      `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), registered entities, or a symbol extractor.`,
       predicate,
       name,
     );
@@ -81,7 +94,7 @@ function fieldValues({
     return [...type.values];
   }
   const ids = kb.entities.ids(type);
-  if (ids.length === 0) {
+  if (ids.length === 0 && !extracting) {
     throw new UnsupportedPredicateError(
       `No registered entities for ${predicate.name}.${name}`,
       predicate,
