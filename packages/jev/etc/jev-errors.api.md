@@ -4,15 +4,8 @@
 
 ```ts
 
-import type { PredicateDeclaration } from '@factbag/core/dsl';
+import { UnsupportedPredicateError } from '@factbag/core/exceptions';
 
-// @beta
-export class UnsupportedPredicateError extends Error {
-    constructor(message: string,
-    predicate: PredicateDeclaration,
-    field?: string | undefined);
-    readonly field?: string | undefined;
-    readonly predicate: PredicateDeclaration;
-}
+export { UnsupportedPredicateError }
 
 ```

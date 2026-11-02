@@ -46,14 +46,6 @@ export type EvidenceMetadata = Readonly<{
 }>;
 
 // @public
-export class ExclusiveDefinitionProgrammerError extends ProgrammerError {
-    constructor(predicate: PredicateDeclaration, rules: readonly AnyRule[]);
-    // Warning: (ae-forgotten-export) The symbol "PredicateDeclaration" needs to be exported by the entry point index.d.ts
-    readonly predicate: PredicateDeclaration;
-    readonly rules: readonly AnyRule[];
-}
-
-// @public
 export class KnowledgeBase {
     // Warning: (ae-forgotten-export) The symbol "PredicateSchema" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "Atom" needs to be exported by the entry point index.d.ts
@@ -62,6 +54,7 @@ export class KnowledgeBase {
     readonly entities: EntityRegistry;
     fork(): KnowledgeBase;
     literals(filter?: LiteralFilter): readonly AnyLiteral[];
+    // Warning: (ae-forgotten-export) The symbol "PredicateDeclaration" needs to be exported by the entry point index.d.ts
     predicates(): readonly PredicateDeclaration[];
     // Warning: (ae-forgotten-export) The symbol "LiteralArgs" needs to be exported by the entry point index.d.ts
     retract<const Literals extends readonly unknown[]>(...literals: Literals & LiteralArgs<Literals>): void;
@@ -93,21 +86,6 @@ export type PositiveLiteral<Schema extends PredicateSchema = PredicateSchema> = 
 }>;
 
 // @public
-export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
-    constructor(operation: ArithmeticKind, operands: readonly [unknown, unknown], goal: ArithmeticGoal<ArithmeticKind>);
-    // Warning: (ae-forgotten-export) The symbol "ArithmeticGoal" needs to be exported by the entry point index.d.ts
-    readonly goal: ArithmeticGoal<ArithmeticKind>;
-    readonly operands: readonly [unknown, unknown];
-    // Warning: (ae-forgotten-export) The symbol "ArithmeticKind" needs to be exported by the entry point index.d.ts
-    readonly operation: ArithmeticKind;
-}
-
-// @public
-export class ProgrammerError extends Error {
-    constructor(message: string);
-}
-
-// @public
 export type Rule<HeadSchema extends PredicateSchema, Body> = Readonly<{
     kind: RuleKind;
     head: Literal<HeadSchema>;
@@ -122,13 +100,6 @@ export type RuleBuilder<Schema extends PredicateSchema> = Readonly<{
 
 // @public
 export type RuleKind = "if" | "iff";
-
-// @public
-export class UnsafeUnboundVariableProgrammerError extends ProgrammerError {
-    constructor(variables: readonly Var[]);
-    // Warning: (ae-forgotten-export) The symbol "Var" needs to be exported by the entry point index.d.ts
-    readonly variables: readonly Var[];
-}
 
 // Warnings were encountered during analysis:
 //

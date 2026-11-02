@@ -15,7 +15,7 @@ import { solveQueryAll } from "../solver/solve-all";
  * @returns A four-valued {@link Judgment} — `true`, `false`, `unknown`, or
  * `conflicted` — carrying the proof-support tree for the winning value.
  *
- * @throws {@link ProgrammerError} subclasses when the program shape is
+ * @throws `ProgrammerError` subclasses (from `@factbag/core/exceptions`) when the program shape is
  * invalid, e.g. rule bodies using unbound variables or unconstructive
  * recursion.
  *

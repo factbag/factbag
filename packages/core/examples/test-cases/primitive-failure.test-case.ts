@@ -1,5 +1,6 @@
 import { add, gt, letIn, predicate, variable, type PredicateSchema } from "../../src/dsl";
-import { PrimitiveArithmeticProgrammerError, type Rule } from "../../src/knowledge-base";
+import type { Rule } from "../../src/knowledge-base";
+import { PrimitiveArithmeticProgrammerError } from "../../src/exceptions";
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {

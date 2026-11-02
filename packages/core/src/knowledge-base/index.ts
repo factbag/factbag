@@ -4,12 +4,6 @@
  *
  * @packageDocumentation
  */
-export {
-  ExclusiveDefinitionProgrammerError,
-  ProgrammerError,
-  PrimitiveArithmeticProgrammerError,
-  UnsafeUnboundVariableProgrammerError,
-} from "../exceptions/programmer-errors";
 export type { EvidenceMetadata } from "../types/evidence-metadata";
 export type { Annotations, AnnotationValue } from "../types/annotations";
 export type {

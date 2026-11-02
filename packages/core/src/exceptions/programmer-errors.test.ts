@@ -13,6 +13,7 @@ import {
   ProgrammerError,
   UnsafeUnboundVariableProgrammerError,
   UnconstructiveRecursionProgrammerError,
+  UnsupportedPredicateError,
 } from "./programmer-errors";
 
 describe("programmer errors", () => {
@@ -68,6 +69,20 @@ describe("programmer errors", () => {
     );
     expect(error.predicate).toBe(eligible);
     expect(error.rules).toBe(rules);
+  });
+
+  it("describes unsupported predicate errors", () => {
+    const amount = predicate("amount", { value: Number });
+    const error = new UnsupportedPredicateError(
+      "No finite domain for amount.value",
+      amount,
+      "value",
+    );
+
+    expect(error).toBeInstanceOf(ProgrammerError);
+    expect(error.name).toBe("UnsupportedPredicateError");
+    expect(error.predicate).toBe(amount);
+    expect(error.field).toBe("value");
   });
 });
 

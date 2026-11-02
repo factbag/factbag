@@ -18,7 +18,7 @@ import {
   variable,
 } from "../../src/dsl";
 import type { NumericTerm } from "../../src/dsl";
-import { PrimitiveArithmeticProgrammerError } from "../../src/exceptions/programmer-errors";
+import { PrimitiveArithmeticProgrammerError } from "../../src/exceptions";
 import type { KnowledgeBase } from "../../src/knowledge-base";
 import { ruleProof } from "../test-runner/rule-proof";
 import type { DslTestSpec } from "../test-runner/test-runner";

@@ -9,7 +9,8 @@ import {
   variable,
   type PredicateSchema,
 } from "../../src/dsl";
-import { UnsafeUnboundVariableProgrammerError, type Rule } from "../../src/knowledge-base";
+import type { Rule } from "../../src/knowledge-base";
+import { UnsafeUnboundVariableProgrammerError } from "../../src/exceptions";
 import type { DslTestSpec } from "../test-runner/test-runner";
 
 class Person {
