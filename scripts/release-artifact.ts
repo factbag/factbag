@@ -14,11 +14,6 @@ export interface PackedManifest {
   name: string;
   version: string;
   private?: boolean;
-  exports: unknown;
-  dependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
   publishConfig?: { access?: string };
   repository?: { url?: string };
 }
