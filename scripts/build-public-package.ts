@@ -14,9 +14,10 @@ interface Manifest {
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const destination = path.join(root, "packages/factbag/dist");
-const components = ["core", "corpus", "guards", "jev"];
+// Workspace directories; each ships under dist/<directory name>.
+const components = ["packages/core", "packages/corpus", "packages/guards", "providers/jev"];
 const targets = new Map<string, { types: string; import: string }>();
-const publicManifest = await manifest("factbag");
+const publicManifest = await manifest("packages/factbag");
 
 // The root README is shared by GitHub and npm; keep its links absolute.
 await copyFile(path.join(root, "README.md"), path.join(root, "packages/factbag/README.md"));
@@ -32,8 +33,12 @@ for (const component of components) {
       `Declarations must be adjacent to JavaScript for ${source.name}${entry}`,
     );
     targets.set(`${source.name}${entry === "." ? "" : entry.slice(1)}`, {
-      types: path.join(destination, component, path.relative("dist", target.types)),
-      import: path.join(destination, component, path.relative("dist", target.import)),
+      types: path.join(destination, path.basename(component), path.relative("dist", target.types)),
+      import: path.join(
+        destination,
+        path.basename(component),
+        path.relative("dist", target.import),
+      ),
     });
   }
   for (const [name, range] of Object.entries(source.dependencies ?? {})) {
@@ -53,15 +58,13 @@ for (const component of components) {
 await rm(destination, { recursive: true, force: true });
 for (const component of components) {
   await copyModules(
-    path.join(root, "packages", component, "dist"),
-    path.join(destination, component),
+    path.join(root, component, "dist"),
+    path.join(destination, path.basename(component)),
   );
 }
 
-async function manifest(component: string): Promise<Manifest> {
-  return JSON.parse(
-    await readFile(path.join(root, "packages", component, "package.json"), "utf8"),
-  ) as Manifest;
+async function manifest(directory: string): Promise<Manifest> {
+  return JSON.parse(await readFile(path.join(root, directory, "package.json"), "utf8")) as Manifest;
 }
 
 async function copyModules(sourceDirectory: string, outputDirectory: string): Promise<void> {

@@ -35,7 +35,7 @@ const packages = [
   { directory: "packages/corpus", entries: ["@factbag/corpus"] },
   { directory: "packages/guards", entries: ["@factbag/guards"] },
   {
-    directory: "packages/jev",
+    directory: "providers/jev",
     entries: [
       "@factbag/jev/classifier",
       "@factbag/jev/errors",

@@ -194,7 +194,7 @@ importers:
         version: link:../../packages/guards
       '@factbag/jev':
         specifier: workspace:*
-        version: link:../../packages/jev
+        version: link:../../providers/jev
       '@factbag/scenarios':
         specifier: workspace:*
         version: link:../scenarios
@@ -291,7 +291,7 @@ importers:
         version: link:../guards
       '@factbag/jev':
         specifier: workspace:*
-        version: link:../jev
+        version: link:../../providers/jev
       '@typesafe-ai/sdk':
         specifier: 'catalog:'
         version: 0.7.0
@@ -305,40 +305,6 @@ importers:
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
-
-  packages/jev:
-    dependencies:
-      '@factbag/core':
-        specifier: workspace:*
-        version: link:../core
-      '@factbag/corpus':
-        specifier: workspace:*
-        version: link:../corpus
-      '@factbag/guards':
-        specifier: workspace:*
-        version: link:../guards
-      '@typesafe-ai/sdk':
-        specifier: 'catalog:'
-        version: 0.7.0
-    devDependencies:
-      '@factbag/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/tsconfig
-      '@types/node':
-        specifier: 'catalog:'
-        version: 22.20.0
-      msw:
-        specifier: 'catalog:'
-        version: 2.15.0(@types/node@22.20.0)(typescript@7.0.2)
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -370,6 +336,40 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  providers/jev:
+    dependencies:
+      '@factbag/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@factbag/corpus':
+        specifier: workspace:*
+        version: link:../../packages/corpus
+      '@factbag/guards':
+        specifier: workspace:*
+        version: link:../../packages/guards
+      '@typesafe-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.7.0
+    devDependencies:
+      '@factbag/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.0
+      msw:
+        specifier: 'catalog:'
+        version: 2.15.0(@types/node@22.20.0)(typescript@7.0.2)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
