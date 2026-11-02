@@ -1,13 +1,13 @@
 /**
- * What Jev is asked: request state and question wording. Questions refer to state by
+ * What a System One model is asked: request state and question wording. Questions refer to state by
  * path, such as `candidate_facts[0].fields`, so the two are defined side by side.
  */
 import type { AnyAtom, Entity, GroundAtom, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
-import type { ChoiceQuestion, JsonValue, NoulQuestion } from "@typesafe-ai/sdk";
-import type { Outcome, Subject, Verdict } from "../types/model";
+import type { JsonValue, Question } from "../provider";
+import type { Subject } from "../types/model";
 import { encode } from "../utils";
 
-type State = Record<string, JsonValue>;
+type State = { [key: string]: JsonValue };
 
 /** One passage, shared by every relevance question in a request. */
 export function relevanceState(text: string): State {
@@ -15,13 +15,13 @@ export function relevanceState(text: string): State {
 }
 
 /** Relevance is judged independently of any predicate or role; negative evidence counts. */
-export function relevanceQuestion(subject: Subject): NoulQuestion {
+export function relevanceQuestion(subject: Subject): Question {
   return "declaration" in subject
     ? predicateQuestion(subject.declaration)
     : symbolQuestion(subject.value);
 }
 
-function predicateQuestion(predicate: PredicateDeclaration): NoulQuestion {
+function predicateQuestion(predicate: PredicateDeclaration): Question {
   return {
     type: "noul",
     instructions: {
@@ -39,7 +39,7 @@ function predicateQuestion(predicate: PredicateDeclaration): NoulQuestion {
   };
 }
 
-function symbolQuestion(value: Scalar | Entity): NoulQuestion {
+function symbolQuestion(value: Scalar | Entity): Question {
   return {
     type: "noul",
     instructions: {
@@ -68,10 +68,7 @@ export function classificationState(
  * An independent ASSERT/DENY/IRRELEVANT question for the candidate at `index`. Predicate
  * metadata supplies the meaning of the fact being assessed.
  */
-export function classificationQuestion(
-  predicate: PredicateDeclaration,
-  index: number,
-): ChoiceQuestion<Record<Outcome, string>> {
+export function classificationQuestion(predicate: PredicateDeclaration, index: number): Question {
   return {
     type: "choice",
     instructions: {
@@ -96,10 +93,7 @@ export function adjudicationState(passages: readonly { text: string }[], atom: A
 }
 
 /** A KEEP/RETRACT question for the passage at `index`, judged with all passages in view. */
-export function adjudicationQuestion(
-  atom: AnyAtom,
-  index: number,
-): ChoiceQuestion<Record<Verdict, string>> {
+export function adjudicationQuestion(atom: AnyAtom, index: number): Question {
   return {
     type: "choice",
     instructions: {

@@ -1,6 +1,7 @@
 import type { ChoiceResponse } from "@typesafe-ai/sdk";
-import type { Outcome } from "../src/types/model";
 
+/** How a passage bears on a candidate fact, as the classifier asks Jev. */
+type Outcome = "ASSERT" | "DENY" | "IRRELEVANT";
 /** A Jev wire answer to one classification question. */
 type EvidenceChoice = ChoiceResponse<Record<Outcome, string>>;
 export type { EvidenceChoice as DemoAnswer };

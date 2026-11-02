@@ -53,6 +53,7 @@
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",
+    "@factbag/system-one": "workspace:*",
     "@typesafe-ai/sdk": "catalog:"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import type { Chunk } from "@factbag/corpus";
-import type { Settings } from "../settings";
+import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";
 
 /** Retain the predicates relevant to this passage. This is the first pipeline step. */
@@ -10,7 +10,7 @@ export async function filterPredicates({
 }: {
   chunk: Chunk;
   predicates: readonly ClassifiablePredicate[];
-  config: Settings;
+  config: Pipeline;
 }): Promise<readonly ClassifiablePredicate[]> {
   if (!config.routing) {
     return predicates;

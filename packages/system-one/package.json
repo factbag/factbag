@@ -1,0 +1,60 @@
+{
+  "name": "@factbag/system-one",
+  "version": "0.1.0-next.0",
+  "description": "Factbag classification and resolution over any System One model, for provider packages.",
+  "keywords": [
+    "classification",
+    "evidence",
+    "ai",
+    "system-one",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/system-one#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/system-one"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "node ../../scripts/clean-output.ts dist && tsup src/index.ts --format esm --target node22 --platform node --splitting --sourcemap --out-dir dist && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@factbag/core": "workspace:*",
+    "@factbag/corpus": "workspace:*",
+    "@factbag/guards": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "private": true
+}

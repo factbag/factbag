@@ -3,10 +3,11 @@ import { predicate } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
-import { resolveSettings } from "../settings";
+import { normalize } from "../config";
+import type { Settings } from "../config";
 import { relevanceModel } from "../testing/fake-model";
+import { testProvider } from "../testing/provider";
 import type { Subject } from "../types/model";
-import type { Config } from "../types/config";
 import { classifiablePredicates } from "./classifiable-predicates";
 import { filterPredicates } from "./filter-predicates";
 
@@ -15,7 +16,7 @@ const signed = predicate("signed", {}, { description: "The contract was signed."
 const shipped = predicate("shipped", {}, { description: "The order was shipped." });
 
 /** Filter the three predicates, scoring each by name. */
-async function filter(scores: Readonly<Record<string, number>>, config: Config) {
+async function filter(scores: Readonly<Record<string, number>>, config: Settings) {
   const corpus = new Corpus();
   const text = "The invoice was paid and the order shipped.";
   corpus.add({ documentId: "record", text });
@@ -26,7 +27,7 @@ async function filter(scores: Readonly<Record<string, number>>, config: Config) 
     predicates: classifiablePredicates(
       guard(new KnowledgeBase()).permit("assert", paid, signed, shipped),
     ),
-    config: { ...resolveSettings(config), model: relevanceModel(score) },
+    config: { ...normalize(testProvider(), config), model: relevanceModel(score) },
   });
   return retained.map(({ declaration }) => declaration);
 }

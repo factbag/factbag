@@ -1,13 +1,7 @@
-/**
- * Settle contradictions in a knowledge base by reading each one's evidence together.
- *
- * @packageDocumentation
- */
 import { fieldEquals } from "@factbag/core/dsl";
 import type { AnyLiteral, KnowledgeBase } from "@factbag/core/kb";
 import type { Chunk, Corpus, Metadata } from "@factbag/corpus";
-import { resolveSettings } from "./settings";
-import type { Config } from "./types/config";
+import type { Pipeline } from "./pipeline";
 import type { Job, Run } from "./types/run";
 import { formatAtom } from "./utils";
 
@@ -19,14 +13,12 @@ import { formatAtom } from "./utils";
  * the surviving evidence means. The input KB is not modified. Throws during construction if
  * conflicting evidence has no source, and propagates corpus errors for sources that are not
  * resolvable chunk IDs. The consumer owns pacing and concurrency.
- * @beta
  */
 export function resolver<M extends Metadata = Metadata>(
   corpus: Corpus<M>,
   kb: KnowledgeBase,
-  inputConfig: Config = {},
+  config: Pipeline,
 ): Run {
-  const config = resolveSettings(inputConfig);
   const output = kb.fork();
   // Gather every passage now, so missing sources fail before any job exists.
   const jobs = contradictions(output.literals()).flatMap((literals) => {

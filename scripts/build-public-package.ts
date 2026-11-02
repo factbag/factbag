@@ -15,7 +15,13 @@ interface Manifest {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const destination = path.join(root, "packages/factbag/dist");
 // Workspace directories; each ships under dist/<directory name>.
-const components = ["packages/core", "packages/corpus", "packages/guards", "providers/jev"];
+const components = [
+  "packages/core",
+  "packages/corpus",
+  "packages/guards",
+  "packages/system-one",
+  "providers/jev",
+];
 const targets = new Map<string, { types: string; import: string }>();
 const publicManifest = await manifest("packages/factbag");
 

@@ -4,12 +4,10 @@ import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import type { GuardedKB } from "@factbag/guards";
-import type { ChoiceQuestion, NoulQuestion, SystemOneRequest } from "@typesafe-ai/sdk";
-import { UnsupportedPredicateError } from "../errors";
-import { mockClient } from "../testing/mock-client";
-import type { Outcome } from "../types/model";
+import { UnsupportedPredicateError } from "@factbag/core/exceptions";
+import type { SystemOneRequest } from "../provider";
+import { classifier, mockClient } from "../testing/provider";
 import type { Job } from "../types/run";
-import { classifier } from "./classifier";
 
 const admission = { minimumProbability: 0.3, ambiguityMargin: 0.05 };
 class Person {
@@ -20,7 +18,6 @@ class Company {
 }
 
 const valid = predicate("valid", {}, { description: "The record is valid." });
-type Questions = Record<string, NoulQuestion | ChoiceQuestion<Record<Outcome, string>>>;
 
 function answer(ASSERT = 0.95, DENY = 0.03, IRRELEVANT = 0.02) {
   return {
@@ -31,9 +28,9 @@ function answer(ASSERT = 0.95, DENY = 0.03, IRRELEVANT = 0.02) {
   };
 }
 
-/** A Jev that answers every classification with `result` and finds everything relevant. */
+/** A model that answers every classification with `result` and finds everything relevant. */
 function clientWith(result: unknown = answer()) {
-  return mockClient<Questions>(({ questions }) => ({
+  return mockClient(({ questions }) => ({
     model: "test",
     usage: { input_tokens: 0, output_tokens: 0 },
     answers: Object.fromEntries(
@@ -370,19 +367,18 @@ describe("classifier jobs", () => {
     {
       stage: "a later batch of the same predicate",
       routing: false,
-      fails: ({ state }: SystemOneRequest<Questions>) =>
-        JSON.stringify(state).includes('"value":69'),
+      fails: ({ state }: SystemOneRequest) => JSON.stringify(state).includes('"value":69'),
     },
     {
       stage: "another predicate's request",
       routing: false,
-      fails: ({ questions }: SystemOneRequest<Questions>) =>
+      fails: ({ questions }: SystemOneRequest) =>
         JSON.stringify(questions).includes('"name":"valid"'),
     },
     {
       stage: "a relevance request",
       routing: true,
-      fails: ({ questions }: SystemOneRequest<Questions>) =>
+      fails: ({ questions }: SystemOneRequest) =>
         Object.values(questions).some(({ type }) => type === "noul"),
     },
   ])("writes nothing when $stage fails, and the job can be retried", async ({ routing, fails }) => {

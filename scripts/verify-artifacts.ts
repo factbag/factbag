@@ -35,6 +35,7 @@ const packages = [
     directory: "providers/jev",
     entries: ["@factbag/jev"],
   },
+  { directory: "packages/system-one", entries: ["@factbag/system-one"] },
 ];
 
 for (const packageDefinition of packages) {

@@ -292,6 +292,9 @@ importers:
       '@factbag/jev':
         specifier: workspace:*
         version: link:../../providers/jev
+      '@factbag/system-one':
+        specifier: workspace:*
+        version: link:../system-one
       '@typesafe-ai/sdk':
         specifier: 'catalog:'
         version: 0.7.0
@@ -305,6 +308,31 @@ importers:
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/system-one:
+    dependencies:
+      '@factbag/core':
+        specifier: workspace:*
+        version: link:../core
+      '@factbag/corpus':
+        specifier: workspace:*
+        version: link:../corpus
+      '@factbag/guards':
+        specifier: workspace:*
+        version: link:../guards
+    devDependencies:
+      '@factbag/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -354,6 +382,9 @@ importers:
       '@factbag/guards':
         specifier: workspace:*
         version: link:../../packages/guards
+      '@factbag/system-one':
+        specifier: workspace:*
+        version: link:../../packages/system-one
       '@typesafe-ai/sdk':
         specifier: 'catalog:'
         version: 0.7.0

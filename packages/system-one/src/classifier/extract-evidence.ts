@@ -3,7 +3,7 @@ import type { Entity, GroundAtom, Scalar } from "@factbag/core/dsl";
 import type { KnowledgeBase, Literal } from "@factbag/core/kb";
 import type { Chunk } from "@factbag/corpus";
 import type { Judgement, Outcome } from "../types/model";
-import type { Settings } from "../settings";
+import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";
 
 /**
@@ -21,7 +21,7 @@ export async function extractEvidence({
   chunk: Chunk;
   predicates: readonly ClassifiablePredicate[];
   symbols: readonly (Scalar | Entity)[];
-  config: Settings;
+  config: Pipeline;
   kb: KnowledgeBase;
 }): Promise<void> {
   /**
@@ -57,7 +57,7 @@ async function judgeCandidateFacts({
   chunk: Chunk;
   predicate: ClassifiablePredicate;
   symbols: readonly (Scalar | Entity)[];
-  config: Settings;
+  config: Pipeline;
 }): Promise<readonly Literal[]> {
   const answers = await config.model.classify({
     text: chunk.text,
@@ -88,7 +88,7 @@ async function judgeCandidateFacts({
  */
 function admittedOutcomes(
   { probabilities }: Judgement<Outcome>,
-  config: Settings,
+  config: Pipeline,
 ): readonly ("ASSERT" | "DENY")[] {
   const strongest = Math.max(probabilities.ASSERT, probabilities.DENY);
   if (probabilities.IRRELEVANT >= strongest) {

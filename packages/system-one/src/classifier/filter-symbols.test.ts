@@ -4,9 +4,10 @@ import type { Entity, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
-import { resolveSettings } from "../settings";
+import { normalize } from "../config";
+import type { Settings } from "../config";
 import { relevanceModel } from "../testing/fake-model";
-import type { Config } from "../types/config";
+import { testProvider } from "../testing/provider";
 import { classifiablePredicates } from "./classifiable-predicates";
 import { filterSymbols } from "./filter-symbols";
 
@@ -34,7 +35,7 @@ async function shortlist({
 }: {
   predicates: readonly PredicateDeclaration[];
   score: (value: Scalar | Entity) => number;
-  config: Config;
+  config: Settings;
   entities?: readonly Entity[];
 }): Promise<readonly (Scalar | Entity)[]> {
   const kb = new KnowledgeBase();
@@ -46,7 +47,7 @@ async function shortlist({
     chunk: corpus.slice({ documentId: "record" }, { start: 0, end: text.length }),
     predicates: classifiablePredicates(guard(kb).permit("assert", ...predicates)),
     config: {
-      ...resolveSettings(config),
+      ...normalize(testProvider(), config),
       model: relevanceModel((subject) => ("value" in subject ? score(subject.value) : 0)),
     },
   });
