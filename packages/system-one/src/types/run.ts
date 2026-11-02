@@ -1,4 +1,4 @@
-import type { KnowledgeBase } from "@factbag/core/kb";
+import type { KnowledgeBase } from "factbag/kb";
 
 /** One opaque unit of work. Its effects are written to the run’s knowledge base. @beta */
 export type Job = {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { Corpus } from "@factbag/corpus";
+import { predicate } from "factbag/dsl";
+import { KnowledgeBase } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { classifier, createConfig } from "./index";
 import type { Config } from "./index";
 

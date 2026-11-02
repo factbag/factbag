@@ -4,10 +4,10 @@
 
 ```ts
 
-import type { Corpus } from '@factbag/corpus';
-import type { GuardedKB } from '@factbag/guards';
-import type { KnowledgeBase } from '@factbag/core/kb';
-import type { Metadata } from '@factbag/corpus';
+import type { Corpus } from 'factbag/corpus';
+import type { GuardedKB } from 'factbag/kb';
+import type { KnowledgeBase } from 'factbag/kb';
+import type { Metadata } from 'factbag/corpus';
 
 // @beta
 export type Config<Options extends object> = Settings & Partial<Options>;

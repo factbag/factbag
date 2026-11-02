@@ -1,7 +1,6 @@
-import { fieldEquals } from "@factbag/core/dsl";
-import type { Entity, GroundAtom, Scalar } from "@factbag/core/dsl";
-import type { KnowledgeBase, Literal } from "@factbag/core/kb";
-import type { Chunk } from "@factbag/corpus";
+import { fieldEquals, type Entity, type GroundAtom, type Scalar } from "factbag/dsl";
+import type { KnowledgeBase, Literal } from "factbag/kb";
+import type { Chunk } from "factbag/corpus";
 import type { Judgement, Outcome } from "../types/model";
 import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";

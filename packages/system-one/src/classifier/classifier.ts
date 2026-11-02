@@ -1,7 +1,5 @@
-import type { KnowledgeBase } from "@factbag/core/kb";
-import type { Chunk, Corpus, Metadata } from "@factbag/corpus";
-import { chunkers } from "@factbag/corpus";
-import { GuardedKB, guard } from "@factbag/guards";
+import { type KnowledgeBase, GuardedKB, guard } from "factbag/kb";
+import { type Chunk, type Corpus, type Metadata, chunkers } from "factbag/corpus";
 import { classifiablePredicates } from "./classifiable-predicates";
 import type { ClassifiablePredicate } from "./types";
 import { extractEvidence } from "./extract-evidence";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { enumeration, predicate } from "@factbag/core/dsl";
+import { enumeration, predicate } from "factbag/dsl";
 import type { Transport } from "../provider";
 import { mockClient } from "../testing/provider";
 import { systemOneModel } from "./model";

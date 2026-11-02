@@ -1,5 +1,5 @@
-import type { Entity, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
-import type { Operation } from "@factbag/guards";
+import type { Entity, PredicateDeclaration, Scalar } from "factbag/dsl";
+import type { Operation } from "factbag/kb";
 
 /** A permitted effect on a validated predicate: any guarded operation that writes. */
 export type Action = Exclude<Operation, "query">;

@@ -1,4 +1,4 @@
-import type { AnyAtom } from "@factbag/core/dsl";
+import type { AnyAtom } from "factbag/dsl";
 import type { JsonValue } from "./provider";
 
 /** Snapshot JSON data, including nested dates and entities identified by a string id. */

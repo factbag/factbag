@@ -24,7 +24,29 @@
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      "./dsl": {
+        "types": "./dist/dsl.d.ts",
+        "import": "./dist/dsl.js"
+      },
+      "./kb": {
+        "types": "./dist/kb.d.ts",
+        "import": "./dist/kb.js"
+      },
+      "./explain": {
+        "types": "./dist/explain.d.ts",
+        "import": "./dist/explain.js"
+      },
+      "./exceptions": {
+        "types": "./dist/exceptions.d.ts",
+        "import": "./dist/exceptions.js"
+      },
+      "./corpus": {
+        "types": "./dist/corpus.d.ts",
+        "import": "./dist/corpus.js"
+      }
+    }
   },
   "description": "Explainable fact and rule evaluation with document provenance and permission controls.",
   "homepage": "https://github.com/factbag/factbag/tree/main/packages/factbag#readme",
@@ -35,24 +57,39 @@
   },
   "exports": {
     "./dsl": {
-      "types": "./dist/dsl.d.ts",
-      "import": "./dist/dsl.js"
+      "published": {
+        "types": "./dist/dsl.d.ts",
+        "import": "./dist/dsl.js"
+      },
+      "default": "./src/dsl.ts"
     },
     "./kb": {
-      "types": "./dist/kb.d.ts",
-      "import": "./dist/kb.js"
+      "published": {
+        "types": "./dist/kb.d.ts",
+        "import": "./dist/kb.js"
+      },
+      "default": "./src/kb.ts"
     },
     "./explain": {
-      "types": "./dist/explain.d.ts",
-      "import": "./dist/explain.js"
+      "published": {
+        "types": "./dist/explain.d.ts",
+        "import": "./dist/explain.js"
+      },
+      "default": "./src/explain.ts"
     },
     "./exceptions": {
-      "types": "./dist/exceptions.d.ts",
-      "import": "./dist/exceptions.js"
+      "published": {
+        "types": "./dist/exceptions.d.ts",
+        "import": "./dist/exceptions.js"
+      },
+      "default": "./src/exceptions.ts"
     },
     "./corpus": {
-      "types": "./dist/corpus.d.ts",
-      "import": "./dist/corpus.js"
+      "published": {
+        "types": "./dist/corpus.d.ts",
+        "import": "./dist/corpus.js"
+      },
+      "default": "./src/corpus.ts"
     }
   },
   "scripts": {
@@ -62,9 +99,9 @@
     "entry": {
       "dsl": "src/dsl.ts",
       "kb": "src/kb.ts",
-      "explain": "../core/src/explanation/index.ts",
-      "exceptions": "../core/src/exceptions/index.ts",
-      "corpus": "../corpus/src/index.ts"
+      "explain": "src/explain.ts",
+      "exceptions": "src/exceptions.ts",
+      "corpus": "src/corpus.ts"
     },
     "dts": true,
     "fixedExtension": false,

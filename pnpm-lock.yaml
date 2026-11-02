@@ -323,15 +323,9 @@ importers:
 
   packages/system-one:
     dependencies:
-      '@factbag/core':
+      factbag:
         specifier: workspace:*
-        version: link:../core
-      '@factbag/corpus':
-        specifier: workspace:*
-        version: link:../corpus
-      '@factbag/guards':
-        specifier: workspace:*
-        version: link:../guards
+        version: link:../factbag
     devDependencies:
       '@factbag/tsconfig':
         specifier: workspace:*
@@ -379,15 +373,6 @@ importers:
 
   providers/clef:
     devDependencies:
-      '@factbag/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@factbag/corpus':
-        specifier: workspace:*
-        version: link:../../packages/corpus
-      '@factbag/guards':
-        specifier: workspace:*
-        version: link:../../packages/guards
       '@factbag/system-one':
         specifier: workspace:*
         version: link:../../packages/system-one
@@ -412,15 +397,6 @@ importers:
 
   providers/jev:
     devDependencies:
-      '@factbag/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@factbag/corpus':
-        specifier: workspace:*
-        version: link:../../packages/corpus
-      '@factbag/guards':
-        specifier: workspace:*
-        version: link:../../packages/guards
       '@factbag/system-one':
         specifier: workspace:*
         version: link:../../packages/system-one

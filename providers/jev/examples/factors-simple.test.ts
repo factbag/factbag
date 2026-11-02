@@ -1,11 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { enumeration, predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query } from "@factbag/core/query";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import { enumeration, predicate, query } from "factbag/dsl";
+import { KnowledgeBase, guard } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { classifier } from "../src/index";
 import { distribution } from "./fixtures";
 
