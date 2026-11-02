@@ -17,7 +17,7 @@
     },
     "factbag#build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "!README.md", "$TURBO_ROOT$/README.md"],
+      "inputs": ["$TURBO_DEFAULT$", "!*.md", "$TURBO_ROOT$/README.md"],
       "outputs": ["dist/**", "README.md"]
     },
     "//#oxlint": {},
@@ -32,6 +32,5 @@
       "dependsOn": ["^build", "^typecheck"],
       "outputs": []
     }
-  },
-  "globalDependencies": ["scripts/build-public-package.ts"]
+  }
 }
