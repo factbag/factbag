@@ -3,9 +3,8 @@
  *
  * @packageDocumentation
  */
-import type { KnowledgeBase } from "@factbag/core/kb";
-import type { Corpus, Metadata } from "@factbag/corpus";
-import type { GuardedKB } from "@factbag/guards";
+import type { KnowledgeBase, GuardedKB } from "factbag/kb";
+import type { Corpus, Metadata } from "factbag/corpus";
 import type { Normalized, Run } from "@factbag/system-one";
 import { clef } from "./clef";
 import type { Config } from "./clef";

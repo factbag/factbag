@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query } from "@factbag/core/query";
-import { Corpus } from "@factbag/corpus";
+import { predicate, query } from "factbag/dsl";
+import { KnowledgeBase } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { mockClient, resolver } from "./testing/provider";
 
 class Person {

@@ -1,5 +1,5 @@
-import type { LiteralSign } from "@factbag/core/kb";
-import type { Judgment, JudgmentSupportFor, Goal, QueryJudgment } from "@factbag/core/query";
+import type { LiteralSign } from "factbag/kb";
+import type { Judgment, JudgmentSupportFor, Goal, QueryJudgment } from "factbag/dsl";
 
 /**
  * Demo-only weakest-link/strongest-route scoring for settled positive atom,

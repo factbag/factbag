@@ -54,9 +54,7 @@
     "fixedExtension": false
   },
   "dependencies": {
-    "@factbag/core": "workspace:*",
-    "@factbag/corpus": "workspace:*",
-    "@factbag/guards": "workspace:*"
+    "factbag": "workspace:*"
   },
   "devDependencies": {
     "@factbag/tsconfig": "workspace:*",

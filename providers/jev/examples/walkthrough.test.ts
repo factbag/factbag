@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { and, enumeration, not, predicate } from "@factbag/core/dsl";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query } from "@factbag/core/query";
+import { and, enumeration, not, predicate, query } from "factbag/dsl";
+import { Corpus } from "factbag/corpus";
+import { guard, KnowledgeBase } from "factbag/kb";
 import { runSanctionsDemo } from "./sanctions";
 import { runFactorDemo } from "./factors";
 import { supportScore, evidenceScore } from "./support-score";

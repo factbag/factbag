@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { enumeration, predicate } from "@factbag/core/dsl";
-import type { Entity, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import {
+  enumeration,
+  predicate,
+  type Entity,
+  type PredicateDeclaration,
+  type Scalar,
+} from "factbag/dsl";
+import { KnowledgeBase, guard } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { normalize } from "../config";
 import type { Settings } from "../config";
 import { relevanceModel } from "../testing/fake-model";

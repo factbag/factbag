@@ -1,10 +1,8 @@
 import { record } from "./utils";
 import assert from "node:assert/strict";
-import { predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import type { GroundFields } from "@factbag/core/dsl";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import { predicate, type GroundFields } from "factbag/dsl";
+import { KnowledgeBase, guard } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { classifier } from "../src/index";
 

@@ -80,17 +80,6 @@
       "dts": true,
       "fixedExtension": false,
       "tsconfig": "tsconfig.public.json",
-      "outputOptions": {
-        "paths": {
-          "@factbag/core/dsl": "factbag/dsl",
-          "@factbag/core/kb": "factbag/kb",
-          "@factbag/core/query": "factbag/dsl",
-          "@factbag/core/explain": "factbag/explain",
-          "@factbag/core/exceptions": "factbag/exceptions",
-          "@factbag/corpus": "factbag/corpus",
-          "@factbag/guards": "factbag/kb"
-        }
-      },
       "deps": {
         "alwaysBundle": [
           "@factbag/system-one"
@@ -109,9 +98,6 @@
     }
   ],
   "devDependencies": {
-    "@factbag/core": "workspace:*",
-    "@factbag/corpus": "workspace:*",
-    "@factbag/guards": "workspace:*",
     "@factbag/system-one": "workspace:*",
     "@factbag/tsconfig": "workspace:*",
     "@types/node": "catalog:",

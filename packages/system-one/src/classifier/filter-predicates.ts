@@ -1,4 +1,4 @@
-import type { Chunk } from "@factbag/corpus";
+import type { Chunk } from "factbag/corpus";
 import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";
 

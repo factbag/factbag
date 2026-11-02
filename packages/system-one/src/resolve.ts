@@ -1,6 +1,6 @@
-import { fieldEquals } from "@factbag/core/dsl";
-import type { AnyLiteral, KnowledgeBase } from "@factbag/core/kb";
-import type { Chunk, Corpus, Metadata } from "@factbag/corpus";
+import { fieldEquals } from "factbag/dsl";
+import type { AnyLiteral, KnowledgeBase } from "factbag/kb";
+import type { Chunk, Corpus, Metadata } from "factbag/corpus";
 import type { Pipeline } from "./pipeline";
 import type { Job, Run } from "./types/run";
 import { formatAtom } from "./utils";

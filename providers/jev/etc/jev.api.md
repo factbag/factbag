@@ -4,17 +4,17 @@
 
 ```ts
 
-import type { Corpus } from '@factbag/corpus';
+import type { Corpus } from 'factbag/corpus';
 import { DEFAULT_AMBIGUITY_MARGIN } from '@factbag/system-one';
 import { DEFAULT_CANDIDATE_PRODUCT_CUTOFF } from '@factbag/system-one';
 import { DEFAULT_MINIMUM_PROBABILITY } from '@factbag/system-one';
 import { DEFAULT_PREDICATE_THRESHOLD } from '@factbag/system-one';
 import { DEFAULT_ROUTING_ENABLED } from '@factbag/system-one';
 import { DEFAULT_SYMBOL_THRESHOLD } from '@factbag/system-one';
-import type { GuardedKB } from '@factbag/guards';
+import type { GuardedKB } from 'factbag/kb';
 import { Job } from '@factbag/system-one';
-import type { KnowledgeBase } from '@factbag/core/kb';
-import type { Metadata } from '@factbag/corpus';
+import type { KnowledgeBase } from 'factbag/kb';
+import type { Metadata } from 'factbag/corpus';
 import { Normalized } from '@factbag/system-one';
 import { Run } from '@factbag/system-one';
 import { Settings } from '@factbag/system-one';

@@ -8,12 +8,9 @@
  */
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { enumeration, predicate } from "@factbag/core/dsl";
-import type { Atom, PredicateSchema } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { query } from "@factbag/core/query";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import { enumeration, predicate, type Atom, type PredicateSchema, query } from "factbag/dsl";
+import { KnowledgeBase, guard } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { classifier, resolver } from "../src/index";
 import type { Config, Run } from "../src/index";
 

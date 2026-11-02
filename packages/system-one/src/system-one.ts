@@ -1,6 +1,5 @@
-import type { KnowledgeBase } from "@factbag/core/kb";
-import type { Corpus, Metadata } from "@factbag/corpus";
-import type { GuardedKB } from "@factbag/guards";
+import type { KnowledgeBase, GuardedKB } from "factbag/kb";
+import type { Corpus, Metadata } from "factbag/corpus";
 import { classifier } from "./classifier/classifier";
 import { normalize, validateProvider } from "./config";
 import type { Config, Normalized } from "./config";

@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { enumeration, predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
-import type { GuardedKB } from "@factbag/guards";
-import { UnsupportedPredicateError } from "@factbag/core/exceptions";
+import { enumeration, predicate } from "factbag/dsl";
+import { KnowledgeBase, guard, type GuardedKB } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
+import { UnsupportedPredicateError } from "factbag/exceptions";
 import type { SystemOneRequest } from "../provider";
 import { classifier, mockClient } from "../testing/provider";
 import type { Job } from "../types/run";

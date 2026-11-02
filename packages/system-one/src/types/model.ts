@@ -1,5 +1,5 @@
-import type { AnyAtom, Entity, GroundAtom, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
-import type { AnnotationValue } from "@factbag/core/kb";
+import type { AnyAtom, Entity, GroundAtom, PredicateDeclaration, Scalar } from "factbag/dsl";
+import type { AnnotationValue } from "factbag/kb";
 
 /** How a passage bears on one complete candidate fact. */
 export type Outcome = "ASSERT" | "DENY" | "IRRELEVANT";

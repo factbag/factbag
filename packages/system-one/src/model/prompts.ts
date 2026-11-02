@@ -2,7 +2,7 @@
  * What a System One model is asked: request state and question wording. Questions refer to state by
  * path, such as `candidate_facts[0].fields`, so the two are defined side by side.
  */
-import type { AnyAtom, Entity, GroundAtom, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
+import type { AnyAtom, Entity, GroundAtom, PredicateDeclaration, Scalar } from "factbag/dsl";
 import type { JsonValue, Question } from "../provider";
 import type { Subject } from "../types/model";
 import { encode } from "../utils";

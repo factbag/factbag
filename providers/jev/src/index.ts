@@ -3,9 +3,8 @@
  *
  * @packageDocumentation
  */
-import type { KnowledgeBase } from "@factbag/core/kb";
-import type { Corpus, Metadata } from "@factbag/corpus";
-import type { GuardedKB } from "@factbag/guards";
+import type { KnowledgeBase, GuardedKB } from "factbag/kb";
+import type { Corpus, Metadata } from "factbag/corpus";
 import { systemOne } from "@factbag/system-one";
 import type { Normalized, Run, Settings, SystemOne } from "@factbag/system-one";
 import { TypeSafeClient } from "@typesafe-ai/sdk";

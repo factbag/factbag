@@ -1,6 +1,5 @@
-import type { Entity, Scalar } from "@factbag/core/dsl";
-import { fieldEquals } from "@factbag/core/dsl";
-import type { Chunk } from "@factbag/corpus";
+import { type Entity, type Scalar, fieldEquals } from "factbag/dsl";
+import type { Chunk } from "factbag/corpus";
 import type { Pipeline } from "../pipeline";
 import type { ClassifiablePredicate } from "./types";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { Corpus } from "@factbag/corpus";
+import { KnowledgeBase } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
 import { systemOne } from "./system-one";
 import { classifier, createConfig, mockClient, resolver, testProvider } from "./testing/provider";
 
