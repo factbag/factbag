@@ -5,6 +5,15 @@ Classification and resolution over Cloudflare's
 models on Workers AI. It exports the same names as `@factbag/jev`, from one entry point,
 `@factbag/clef`; only the model and how requests reach it differ.
 
+## Install
+
+```sh
+npm install factbag@alpha @factbag/clef@alpha
+```
+
+`@factbag/clef` is released with `factbag` and needs the same `factbag` version. It
+does not need the TypeSafe SDK.
+
 ## Inside a Worker
 
 Pass the Workers AI binding. No credentials are read.

@@ -5,7 +5,7 @@ import { query, type Judgment } from "factbag/query";
 import { explainJudgment, type Explanation } from "factbag/explain";
 import { Corpus } from "factbag/corpus";
 import { guard } from "factbag/guards";
-import { classifier, type Config, createConfig, resolver } from "factbag/clef";
+import { classifier, type Config, createConfig, resolver } from "@factbag/clef";
 
 const fact = predicate("without_sdk", { value: Boolean });
 const atom = fact({ value: true });

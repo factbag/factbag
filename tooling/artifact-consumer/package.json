@@ -7,6 +7,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@factbag/clef": "workspace:*",
+    "@factbag/jev": "workspace:*",
     "factbag": "workspace:*"
   },
   "devDependencies": {

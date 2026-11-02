@@ -10,13 +10,22 @@ The package has one entry point, `@factbag/jev`, which exports:
 - `resolver(corpus, kb, config?)`
 - `createConfig`, `Config`, and the `DEFAULT_*` constants
 
+## Install
+
+```sh
+npm install factbag@alpha @factbag/jev@alpha @typesafe-ai/sdk@^0.7.0
+```
+
+`@factbag/jev` is released with `factbag` and needs the same `factbag` version.
+Set `TYPESAFE_API_KEY`, or pass your own `TypeSafeClient` as `config.client`.
+
 ## Usage
 
 ```ts
-import { enumeration, predicate } from "@factbag/core/dsl";
-import { KnowledgeBase } from "@factbag/core/kb";
-import { Corpus } from "@factbag/corpus";
-import { guard } from "@factbag/guards";
+import { enumeration, predicate } from "factbag/dsl";
+import { KnowledgeBase } from "factbag/kb";
+import { Corpus } from "factbag/corpus";
+import { guard } from "factbag/guards";
 import { classifier } from "@factbag/jev";
 
 class Company {
@@ -88,7 +97,7 @@ classifier({ corpus, input: kb, config: { minimumProbability: 0.8, ambiguityMarg
   Unsupported predicates fail even if the corpus is empty; blocked predicates are
   not registered.
 
-`UnsupportedPredicateError` (from `@factbag/core/exceptions`) identifies the predicate and, where applicable, the
+`UnsupportedPredicateError` (from `factbag/exceptions`) identifies the predicate and, where applicable, the
 field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
@@ -251,13 +260,13 @@ const resolved = resolution.kb;
 
 This package only connects Jev to the shared workflows in `@factbag/system-one`:
 the TypeSafe client, Jev's batch limits, and the public signatures. Candidate
-selection, admission, prompts, batching, and answer validation live there, and
-the same code serves `@factbag/clef`.
+selection, admission, prompts, batching, and answer validation live there and are
+bundled into the published package. The same code serves `@factbag/clef`.
 
 ## Examples and checks
 
-Read [Fix one fact, not the whole answer](docs/README.md) for the narrative, or the
-[example notes](examples/README.md) for the runnable scenarios.
+Read [Fix one fact, not the whole answer](https://github.com/factbag/factbag/blob/main/providers/jev/docs/README.md) for the narrative, or the
+[example notes](https://github.com/factbag/factbag/blob/main/providers/jev/examples/README.md) for the runnable scenarios.
 
 ```sh
 pnpm --filter @factbag/jev demo

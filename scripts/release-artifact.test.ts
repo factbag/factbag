@@ -7,6 +7,10 @@ import { test } from "node:test";
 import { integrity, readReleasePlan, verifyTarball } from "./release-artifact.ts";
 
 const version = "0.0.0-alpha.1";
+const expected = new Map([
+  ["factbag", version],
+  ["@factbag/jev", version],
+]);
 
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), "factbag-release-test-"));
@@ -40,12 +44,13 @@ async function fixture() {
     tag: "latest",
     tarball: { path: "factbag.tgz", integrity: integrity(bytes, "sha256") },
   };
-  const plan = { version: 1, plan: [[release]] };
+  const provider = { ...release, name: "@factbag/jev", tarball: { ...release.tarball } };
+  const plan = { version: 1, plan: [[release], [provider]] };
   async function save() {
     await writeFile(path.join(directory, "publish-plan.json"), JSON.stringify(plan));
   }
   await save();
-  return { root, directory, manifest, bytes, pack, release, plan, save };
+  return { root, directory, manifest, bytes, pack, release, provider, plan, save };
 }
 
 test("accepts standard alpha and stable release plans", async (t) => {
@@ -53,13 +58,20 @@ test("accepts standard alpha and stable release plans", async (t) => {
   t.after(() => rm(f.root, { recursive: true, force: true }));
   for (const tag of ["alpha", "latest"]) {
     f.release.tag = tag;
+    f.provider.tag = tag;
     await f.save();
-    const release = await readReleasePlan(f.directory, version, tag);
-    await verifyTarball(
-      path.join(f.directory, release.tarball.path),
-      version,
-      release.tarball.integrity,
+    const releases = await readReleasePlan(f.directory, expected, tag);
+    assert.deepEqual(
+      releases.map((release) => release.name),
+      ["factbag", "@factbag/jev"],
     );
+    const [release] = releases;
+    assert.ok(release);
+    await verifyTarball(path.join(f.directory, release.tarball.path), {
+      name: "factbag",
+      version,
+      integrity: release.tarball.integrity,
+    });
   }
 });
 
@@ -68,12 +80,16 @@ test("rejects a changed tarball before publishing", async (t) => {
   t.after(() => rm(f.root, { recursive: true, force: true }));
   await writeFile(path.join(f.directory, "factbag.tgz"), "tampered");
   await assert.rejects(
-    verifyTarball(path.join(f.directory, "factbag.tgz"), version, integrity(f.bytes, "sha512")),
+    verifyTarball(path.join(f.directory, "factbag.tgz"), {
+      name: "factbag",
+      version,
+      integrity: integrity(f.bytes, "sha512"),
+    }),
     /integrity mismatch/u,
   );
 });
 
-for (const mutation of ["package", "version", "tag", "extra", "empty"] as const) {
+for (const mutation of ["package", "version", "tag", "extra", "missing", "empty"] as const) {
   test(`rejects an unexpected release plan: ${mutation}`, async (t) => {
     const f = await fixture();
     t.after(() => rm(f.root, { recursive: true, force: true }));
@@ -81,9 +97,10 @@ for (const mutation of ["package", "version", "tag", "extra", "empty"] as const)
     if (mutation === "version") f.release.version = "1.0.0";
     if (mutation === "tag") f.release.tag = "next";
     if (mutation === "extra") f.plan.plan[0]?.push(f.release);
+    if (mutation === "missing") f.plan.plan = [[f.release]];
     if (mutation === "empty") f.plan.plan = [];
     await f.save();
-    await assert.rejects(readReleasePlan(f.directory, version, "latest"));
+    await assert.rejects(readReleasePlan(f.directory, expected, "latest"));
   });
 }
 
@@ -95,7 +112,7 @@ test("rejects paths and symlinks outside the release directory", async (t) => {
   for (const filename of ["../outside.tgz", "link.tgz", path.join(f.root, "outside.tgz")]) {
     f.release.tarball.path = filename;
     await f.save();
-    await assert.rejects(readReleasePlan(f.directory, version, "latest"));
+    await assert.rejects(readReleasePlan(f.directory, expected, "latest"));
   }
 });
 
@@ -111,7 +128,11 @@ test("rejects publishConfig overrides and a mismatched packed identity", async (
   ]) {
     const bytes = await f.pack({ ...f.manifest, ...overrides });
     await assert.rejects(
-      verifyTarball(path.join(f.directory, "factbag.tgz"), version, integrity(bytes, "sha512")),
+      verifyTarball(path.join(f.directory, "factbag.tgz"), {
+        name: "factbag",
+        version,
+        integrity: integrity(bytes, "sha512"),
+      }),
     );
   }
 });
