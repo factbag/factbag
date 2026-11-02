@@ -67,12 +67,7 @@ into three conditions:
 Declare the facts we'll combine, and describe the claims Jev will assess.
 
 ```ts
-import { and, enumeration, predicate, variable } from "factbag/dsl";
-import { KnowledgeBase } from "factbag/kb";
-import { query } from "factbag/query";
-import { Corpus } from "factbag/corpus";
-import { guard } from "factbag/guards";
-import { classifier } from "@factbag/jev";
+import { enumeration, predicate } from "factbag/dsl";
 
 class Person {
   constructor(
@@ -116,6 +111,9 @@ All three income conditions must hold for this route to qualification. Our
 application also requires verified identity before sending an investor for review.
 
 ```ts
+import { and, variable } from "factbag/dsl";
+import { KnowledgeBase } from "factbag/kb";
+
 const person = variable("person");
 const kb = new KnowledgeBase();
 
@@ -138,6 +136,8 @@ Identity verification comes directly from our onboarding system. Income evidence
 goes into the corpus for Jev to assess.
 
 ```ts
+import { Corpus } from "factbag/corpus";
+
 const alice = new Person("alice", "Alice");
 kb.entities.add(alice);
 
@@ -164,6 +164,8 @@ The guard starts with no permissions. Permit Jev to assert or deny the two incom
 predicates.
 
 ```ts
+import { guard } from "factbag/guards";
+
 const incomeEvidence = guard(kb)
   .permit("assert", hasIncomeOver200k)
   .permit("deny", hasIncomeOver200k)
@@ -174,6 +176,8 @@ const incomeEvidence = guard(kb)
 ### 6. Ask Jev to assess the income evidence
 
 ```ts
+import { classifier } from "@factbag/jev";
+
 const run = classifier({ corpus, input: incomeEvidence });
 
 for (const job of run) {
@@ -187,6 +191,8 @@ The output knowledge base combines the imported fact and rules with the admitted
 evidence.
 
 ```ts
+import { query } from "factbag/query";
+
 const qualification = query(run.kb, isQualifiedInvestor({ person: alice }));
 const reviewReadiness = query(run.kb, isReadyForReview({ person: alice }));
 
