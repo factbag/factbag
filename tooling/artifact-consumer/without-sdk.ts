@@ -1,9 +1,11 @@
 import { predicate } from "factbag/dsl";
+import { UnsupportedPredicateError } from "factbag/exceptions";
 import { KnowledgeBase } from "factbag/kb";
 import { query, type Judgment } from "factbag/query";
 import { explainJudgment, type Explanation } from "factbag/explain";
 import { Corpus } from "factbag/corpus";
 import { guard } from "factbag/guards";
+import { classifier, type Config, createConfig, resolver } from "factbag/clef";
 
 const fact = predicate("without_sdk", { value: Boolean });
 const atom = fact({ value: true });
@@ -16,3 +18,9 @@ void guardedJudgment;
 const explanation: Explanation = explainJudgment(judgment);
 const corpus = new Corpus();
 corpus.add({ documentId: "without-sdk", text: explanation.claim });
+
+const options: Config = { model: "clef", accountId: "account", apiToken: "token", batchSize: 32 };
+const config = createConfig(options);
+const runs = [classifier({ corpus, input: guarded, config }), resolver(corpus, kb, config)];
+void runs;
+void UnsupportedPredicateError;

@@ -13,7 +13,8 @@
         "@factbag/corpus",
         "@factbag/guards",
         "@factbag/system-one",
-        "@factbag/jev"
+        "@factbag/jev",
+        "@factbag/clef"
       ]
     }
   }

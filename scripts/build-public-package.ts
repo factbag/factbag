@@ -21,6 +21,7 @@ const components = [
   "packages/guards",
   "packages/system-one",
   "providers/jev",
+  "providers/clef",
 ];
 const targets = new Map<string, { types: string; import: string }>();
 const publicManifest = await manifest("packages/factbag");

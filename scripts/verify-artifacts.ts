@@ -17,6 +17,7 @@ const packages = [
       "factbag/corpus",
       "factbag/guards",
       "factbag/jev",
+      "factbag/clef",
     ],
   },
   {
@@ -36,6 +37,10 @@ const packages = [
     entries: ["@factbag/jev"],
   },
   { directory: "packages/system-one", entries: ["@factbag/system-one"] },
+  {
+    directory: "providers/clef",
+    entries: ["@factbag/clef"],
+  },
 ];
 
 for (const packageDefinition of packages) {
