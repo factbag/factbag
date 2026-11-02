@@ -289,9 +289,6 @@ importers:
       '@arethetypeswrong/core':
         specifier: 'catalog:'
         version: 0.18.5
-      '@factbag/clef':
-        specifier: workspace:*
-        version: link:../../providers/clef
       '@factbag/core':
         specifier: workspace:*
         version: link:../core
@@ -301,18 +298,9 @@ importers:
       '@factbag/guards':
         specifier: workspace:*
         version: link:../guards
-      '@factbag/jev':
-        specifier: workspace:*
-        version: link:../../providers/jev
-      '@factbag/system-one':
-        specifier: workspace:*
-        version: link:../system-one
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
-      '@typesafe-ai/sdk':
-        specifier: 'catalog:'
-        version: 0.7.0
       publint:
         specifier: 'catalog:'
         version: 0.3.25
@@ -390,7 +378,7 @@ importers:
         version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   providers/clef:
-    dependencies:
+    devDependencies:
       '@factbag/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -403,13 +391,15 @@ importers:
       '@factbag/system-one':
         specifier: workspace:*
         version: link:../../packages/system-one
-    devDependencies:
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
+      factbag:
+        specifier: workspace:*
+        version: link:../../packages/factbag
       tsx:
         specifier: 'catalog:'
         version: 4.23.15
@@ -421,7 +411,7 @@ importers:
         version: 5.0.5(@types/node@22.20.0)(msw@2.15.0(@types/node@22.20.0)(typescript@7.0.2))(vite@8.3.5(@types/node@22.20.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   providers/jev:
-    dependencies:
+    devDependencies:
       '@factbag/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -434,16 +424,18 @@ importers:
       '@factbag/system-one':
         specifier: workspace:*
         version: link:../../packages/system-one
-      '@typesafe-ai/sdk':
-        specifier: 'catalog:'
-        version: 0.7.0
-    devDependencies:
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
+      '@typesafe-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.7.0
+      factbag:
+        specifier: workspace:*
+        version: link:../../packages/factbag
       msw:
         specifier: 'catalog:'
         version: 2.15.0(@types/node@22.20.0)(typescript@7.0.2)
@@ -459,6 +451,12 @@ importers:
 
   tooling/artifact-consumer:
     dependencies:
+      '@factbag/clef':
+        specifier: workspace:*
+        version: link:../../providers/clef
+      '@factbag/jev':
+        specifier: workspace:*
+        version: link:../../providers/jev
       factbag:
         specifier: workspace:*
         version: link:../../packages/factbag

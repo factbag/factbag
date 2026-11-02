@@ -23,12 +23,18 @@ interface CompilerManifest {
 console.log(`Verifying packed packages on Node ${process.versions.node}`);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const packageDirectory = path.join(root, "packages/factbag");
-const packageManifest = JSON.parse(
-  await readFile(path.join(packageDirectory, "package.json"), "utf8"),
-) as PackedManifest;
-assert.equal(packageManifest.name, "factbag");
-assert.notEqual(packageManifest.private, true);
+// Released together through a Changesets fixed group.
+const publicPackages = ["packages/factbag", "providers/jev", "providers/clef"];
+const manifests = await Promise.all(
+  publicPackages.map(async (directory) => {
+    const manifest = JSON.parse(
+      await readFile(path.join(root, directory, "package.json"), "utf8"),
+    ) as PackedManifest;
+    assert.notEqual(manifest.private, true, `${manifest.name} must be publishable`);
+    return { directory, manifest };
+  }),
+);
+const expected = new Map(manifests.map(({ manifest }) => [manifest.name, manifest.version]));
 const releaseMode = process.argv.includes("--release");
 const releaseDirectory = releaseMode
   ? path.join(root, ".release")
@@ -44,33 +50,37 @@ try {
         throw error;
       });
     const tag = preState?.mode === "pre" ? preState.tag : "latest";
-    releases = [await readReleasePlan(releaseDirectory, packageManifest.version, tag)];
+    releases = await readReleasePlan(releaseDirectory, expected, tag);
   } else {
-    // CI verifies this checkout even when its version is already on npm.
-    const tarballPath = "factbag.tgz";
-    runPnpm(["pack", "--out", path.join(releaseDirectory, tarballPath)], packageDirectory);
-    releases = [
-      {
-        name: packageManifest.name,
-        version: packageManifest.version,
+    // CI verifies this checkout even when its versions are already on npm.
+    releases = [];
+    for (const { directory, manifest } of manifests) {
+      const tarballPath = `${path.basename(directory)}.tgz`;
+      runPnpm(
+        ["pack", "--out", path.join(releaseDirectory, tarballPath)],
+        path.join(root, directory),
+      );
+      releases.push({
+        name: manifest.name,
+        version: manifest.version,
         tarball: {
           path: tarballPath,
           integrity: integrity(await readFile(path.join(releaseDirectory, tarballPath)), "sha256"),
         },
-      },
-    ];
+      });
+    }
   }
 
+  const tarballs = new Map<string, string>();
   for (const release of releases) {
-    assert.equal(release.version, packageManifest.version);
-
-    // publint and attw check exports and types when the package builds.
+    // publint and attw check exports and types when each package builds.
     const tarball = path.join(releaseDirectory, release.tarball.path);
-    await verifyTarball(tarball, release.version, release.tarball.integrity);
+    await verifyTarball(tarball, { ...release, integrity: release.tarball.integrity });
     const files = tar(["-tf", tarball]).trim().split("\n").filter(Boolean);
     for (const required of ["LICENSE", "README.md", "CHANGELOG.md"]) {
       assert.ok(files.includes(`package/${required}`), `${release.name} is missing ${required}`);
     }
+    tarballs.set(release.name, `file:${tarball}`);
   }
 
   const compilerNames = ["typescript6", "typescript"];
@@ -96,17 +106,17 @@ try {
   const storePath = workspaceStorePath();
 
   for (const withSdk of [false, true]) {
-    console.log(
-      `Checking ${withSdk ? "Jev with an explicit SDK" : "core, corpus, and guards without the SDK"}`,
-    );
+    console.log(`Checking ${withSdk ? "Jev with the SDK" : "factbag and Clef without the SDK"}`);
     const consumerDirectory = await mkdtemp(path.join(os.tmpdir(), "factbag-packed-consumer-"));
     try {
       const realConsumerDirectory = await realpath(consumerDirectory);
-      const dependencies = Object.fromEntries(
-        releases.map((release) => [
-          release.name,
-          `file:${path.join(releaseDirectory, release.tarball.path)}`,
-        ]),
+      const installed = ["factbag", withSdk ? "@factbag/jev" : "@factbag/clef"];
+      const dependencies: Record<string, string> = Object.fromEntries(
+        installed.map((name) => {
+          const tarball = tarballs.get(name);
+          assert.ok(tarball, `No tarball for ${name}`);
+          return [name, tarball];
+        }),
       );
       if (withSdk) dependencies["@typesafe-ai/sdk"] = sdkManifest.version;
       await writeFile(
@@ -127,7 +137,7 @@ try {
       );
       await writeFile(
         path.join(consumerDirectory, "pnpm-workspace.yaml"),
-        `packages:\n  - "."\noverrides:\n${Object.entries(dependencies)
+        `packages:\n  - "."\noverrides:\n${[...tarballs]
           .map(([name, tarball]) => `  "${name}": "${tarball}"`)
           .join("\n")}\n`,
       );
@@ -163,13 +173,13 @@ try {
         consumerDirectory,
       );
 
-      for (const release of releases) {
+      for (const name of installed) {
         const installedPackage = await realpath(
-          path.join(consumerDirectory, "node_modules", ...release.name.split("/")),
+          path.join(consumerDirectory, "node_modules", ...name.split("/")),
         );
         assert.ok(
           installedPackage.startsWith(`${realConsumerDirectory}${path.sep}`),
-          `${release.name} resolved outside the isolated consumer: ${installedPackage}`,
+          `${name} resolved outside the isolated consumer: ${installedPackage}`,
         );
       }
 

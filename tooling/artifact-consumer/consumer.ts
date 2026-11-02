@@ -6,7 +6,7 @@ import { KnowledgeBase } from "factbag/kb";
 import { query, type Judgment } from "factbag/query";
 import { Corpus, chunkers } from "factbag/corpus";
 import { guard } from "factbag/guards";
-import { classifier, type Config, createConfig, resolver } from "factbag/jev";
+import { classifier, type Config, createConfig, resolver } from "@factbag/jev";
 
 const fact = predicate(
   "artifact_smoke",

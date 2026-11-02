@@ -1,6 +1,6 @@
 {
   "name": "@factbag/jev",
-  "version": "0.1.0-next.0",
+  "version": "0.0.0-alpha.4",
   "description": "Lazy AI-assisted classification and evidence resolution for Factbag.",
   "keywords": [
     "classification",
@@ -22,7 +22,7 @@
   "sideEffects": false,
   "type": "module",
   "files": [
-    "dist",
+    "dist/public",
     "docs/README.md",
     "CHANGELOG.md",
     "README.md",
@@ -30,6 +30,10 @@
   ],
   "exports": {
     ".": {
+      "published": {
+        "types": "./dist/public/index.d.ts",
+        "import": "./dist/public/index.js"
+      },
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
@@ -38,7 +42,13 @@
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/public/index.d.ts",
+        "import": "./dist/public/index.js"
+      }
+    }
   },
   "scripts": {
     "api-report": "api-extractor run --local",
@@ -49,28 +59,71 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "tsdown": {
-    "entry": [
-      "src/index.ts"
-    ],
-    "dts": false,
-    "sourcemap": true,
-    "fixedExtension": false
-  },
-  "dependencies": {
+  "tsdown": [
+    {
+      "entry": [
+        "src/index.ts"
+      ],
+      "dts": false,
+      "sourcemap": true,
+      "fixedExtension": false,
+      "deps": {
+        "neverBundle": true
+      }
+    },
+    {
+      "entry": {
+        "index": "src/index.ts"
+      },
+      "outDir": "dist/public",
+      "clean": false,
+      "dts": true,
+      "fixedExtension": false,
+      "tsconfig": "tsconfig.public.json",
+      "outputOptions": {
+        "paths": {
+          "@factbag/core/dsl": "factbag/dsl",
+          "@factbag/core/kb": "factbag/kb",
+          "@factbag/core/query": "factbag/query",
+          "@factbag/core/explain": "factbag/explain",
+          "@factbag/core/exceptions": "factbag/exceptions",
+          "@factbag/corpus": "factbag/corpus",
+          "@factbag/guards": "factbag/guards"
+        }
+      },
+      "deps": {
+        "alwaysBundle": [
+          "@factbag/system-one"
+        ],
+        "neverBundle": true,
+        "onlyImport": [
+          "factbag",
+          "@typesafe-ai/sdk"
+        ]
+      },
+      "publint": true,
+      "attw": {
+        "profile": "esm-only",
+        "level": "error"
+      }
+    }
+  ],
+  "devDependencies": {
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",
     "@factbag/system-one": "workspace:*",
-    "@typesafe-ai/sdk": "catalog:"
-  },
-  "devDependencies": {
     "@factbag/tsconfig": "workspace:*",
     "@types/node": "catalog:",
+    "@typesafe-ai/sdk": "catalog:",
+    "factbag": "workspace:*",
     "msw": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "private": true
+  "peerDependencies": {
+    "factbag": "workspace:*",
+    "@typesafe-ai/sdk": "^0.7.0"
+  }
 }

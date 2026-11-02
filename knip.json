@@ -12,10 +12,7 @@
         "publint",
         "@factbag/core",
         "@factbag/corpus",
-        "@factbag/guards",
-        "@factbag/system-one",
-        "@factbag/jev",
-        "@factbag/clef"
+        "@factbag/guards"
       ]
     }
   }

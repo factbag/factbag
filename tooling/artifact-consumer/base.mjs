@@ -15,8 +15,6 @@ for (const name of [
   "@factbag/corpus",
   "@factbag/guards",
   "@factbag/system-one",
-  "@factbag/jev",
-  "@factbag/clef",
 ]) {
   assert.throws(() => require.resolve(name), { code: "MODULE_NOT_FOUND" });
 }

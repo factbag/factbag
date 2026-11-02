@@ -1,0 +1,9 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The published build bundles System One from source; factbag stays a peer.
+    "paths": { "@factbag/system-one": ["../../packages/system-one/src/index.ts"] }
+  },
+  "files": []
+}

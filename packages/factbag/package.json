@@ -26,7 +26,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Explainable fact and rule evaluation, document provenance, permission controls, and Jev and Cloudflare Clef integrations.",
+  "description": "Explainable fact and rule evaluation with document provenance and permission controls.",
   "homepage": "https://github.com/factbag/factbag/tree/main/packages/factbag#readme",
   "repository": {
     "type": "git",
@@ -61,14 +61,6 @@
     "./guards": {
       "types": "./dist/guards.d.ts",
       "import": "./dist/guards.js"
-    },
-    "./jev": {
-      "types": "./dist/jev.d.ts",
-      "import": "./dist/jev.js"
-    },
-    "./clef": {
-      "types": "./dist/clef.d.ts",
-      "import": "./dist/clef.js"
     }
   },
   "scripts": {
@@ -82,9 +74,7 @@
       "explain": "../core/src/explanation/index.ts",
       "exceptions": "../core/src/exceptions/index.ts",
       "corpus": "../corpus/src/index.ts",
-      "guards": "../guards/src/index.ts",
-      "jev": "../../providers/jev/src/index.ts",
-      "clef": "../../providers/clef/src/index.ts"
+      "guards": "../guards/src/index.ts"
     },
     "dts": true,
     "fixedExtension": false,
@@ -96,9 +86,7 @@
     ],
     "deps": {
       "onlyBundle": [],
-      "onlyImport": [
-        "@typesafe-ai/sdk"
-      ]
+      "onlyImport": []
     },
     "publint": true,
     "attw": {
@@ -108,22 +96,10 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "catalog:",
-    "@factbag/clef": "workspace:*",
     "@factbag/core": "workspace:*",
     "@factbag/corpus": "workspace:*",
     "@factbag/guards": "workspace:*",
-    "@factbag/jev": "workspace:*",
-    "@factbag/system-one": "workspace:*",
     "@factbag/tsconfig": "workspace:*",
-    "@typesafe-ai/sdk": "catalog:",
     "publint": "catalog:"
-  },
-  "peerDependencies": {
-    "@typesafe-ai/sdk": "^0.6.0"
-  },
-  "peerDependenciesMeta": {
-    "@typesafe-ai/sdk": {
-      "optional": true
-    }
   }
 }

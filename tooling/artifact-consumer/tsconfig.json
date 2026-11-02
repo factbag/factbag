@@ -10,7 +10,8 @@
     "types": ["node"],
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "allowJs": true,
-    "checkJs": true
+    "checkJs": true,
+    "customConditions": ["published"]
   },
   "include": ["consumer.ts", "runtime.mjs", "without-sdk.ts", "without-sdk.mjs", "base.mjs"]
 }
