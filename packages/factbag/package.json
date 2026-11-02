@@ -35,44 +35,65 @@
   },
   "exports": {
     "./dsl": {
-      "types": "./dist/core/dsl/index.d.ts",
-      "import": "./dist/core/dsl/index.js"
+      "types": "./dist/dsl.d.ts",
+      "import": "./dist/dsl.js"
     },
     "./kb": {
-      "types": "./dist/core/knowledge-base/index.d.ts",
-      "import": "./dist/core/knowledge-base/index.js"
+      "types": "./dist/kb.d.ts",
+      "import": "./dist/kb.js"
     },
     "./query": {
-      "types": "./dist/core/query/index.d.ts",
-      "import": "./dist/core/query/index.js"
+      "types": "./dist/query.d.ts",
+      "import": "./dist/query.js"
     },
     "./explain": {
-      "types": "./dist/core/explanation/index.d.ts",
-      "import": "./dist/core/explanation/index.js"
+      "types": "./dist/explain.d.ts",
+      "import": "./dist/explain.js"
     },
     "./exceptions": {
-      "types": "./dist/core/exceptions/index.d.ts",
-      "import": "./dist/core/exceptions/index.js"
+      "types": "./dist/exceptions.d.ts",
+      "import": "./dist/exceptions.js"
     },
     "./corpus": {
-      "types": "./dist/corpus/index.d.ts",
-      "import": "./dist/corpus/index.js"
+      "types": "./dist/corpus.d.ts",
+      "import": "./dist/corpus.js"
     },
     "./guards": {
-      "types": "./dist/guards/index.d.ts",
-      "import": "./dist/guards/index.js"
+      "types": "./dist/guards.d.ts",
+      "import": "./dist/guards.js"
     },
     "./jev": {
-      "types": "./dist/jev/index.d.ts",
-      "import": "./dist/jev/index.js"
+      "types": "./dist/jev.d.ts",
+      "import": "./dist/jev.js"
     },
     "./clef": {
-      "types": "./dist/clef/index.d.ts",
-      "import": "./dist/clef/index.js"
+      "types": "./dist/clef.d.ts",
+      "import": "./dist/clef.js"
     }
   },
   "scripts": {
-    "build": "node ../../scripts/build-public-package.ts"
+    "build": "tsdown"
+  },
+  "tsdown": {
+    "entry": {
+      "dsl": "../core/src/dsl/index.ts",
+      "kb": "../core/src/knowledge-base/index.ts",
+      "query": "../core/src/query/index.ts",
+      "explain": "../core/src/explanation/index.ts",
+      "exceptions": "../core/src/exceptions/index.ts",
+      "corpus": "../corpus/src/index.ts",
+      "guards": "../guards/src/index.ts",
+      "jev": "../../providers/jev/src/index.ts",
+      "clef": "../../providers/clef/src/index.ts"
+    },
+    "dts": true,
+    "fixedExtension": false,
+    "copy": [
+      {
+        "from": "../../README.md",
+        "to": "."
+      }
+    ]
   },
   "devDependencies": {
     "@factbag/clef": "workspace:*",
@@ -81,6 +102,7 @@
     "@factbag/guards": "workspace:*",
     "@factbag/jev": "workspace:*",
     "@factbag/system-one": "workspace:*",
+    "@factbag/tsconfig": "workspace:*",
     "@typesafe-ai/sdk": "catalog:"
   },
   "peerDependencies": {

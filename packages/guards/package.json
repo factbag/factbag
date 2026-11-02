@@ -42,7 +42,7 @@
   "scripts": {
     "api-report": "api-extractor run --local",
     "api-report:check": "api-extractor run",
-    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

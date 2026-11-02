@@ -58,7 +58,7 @@
   "scripts": {
     "api-report": "api-extractor run --local --config api-extractor.dsl.json && api-extractor run --local --config api-extractor.kb.json && api-extractor run --local --config api-extractor.query.json && api-extractor run --local --config api-extractor.explain.json && api-extractor run --local --config api-extractor.exceptions.json",
     "api-report:check": "api-extractor run --config api-extractor.dsl.json && api-extractor run --config api-extractor.kb.json && api-extractor run --config api-extractor.query.json && api-extractor run --config api-extractor.explain.json && api-extractor run --config api-extractor.exceptions.json",
-    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly && node ../../scripts/fix-declaration-specifiers.ts dist",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest run",
     "test:examples": "vitest run examples/test-runner.test.ts",
     "typecheck": "tsc --noEmit"

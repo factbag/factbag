@@ -1,0 +1,18 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Bundle component sources so every entry point shares one copy of core.
+    "paths": {
+      "@factbag/core/dsl": ["../core/src/dsl/index.ts"],
+      "@factbag/core/kb": ["../core/src/knowledge-base/index.ts"],
+      "@factbag/core/query": ["../core/src/query/index.ts"],
+      "@factbag/core/explain": ["../core/src/explanation/index.ts"],
+      "@factbag/core/exceptions": ["../core/src/exceptions/index.ts"],
+      "@factbag/corpus": ["../corpus/src/index.ts"],
+      "@factbag/guards": ["../guards/src/index.ts"],
+      "@factbag/system-one": ["../system-one/src/index.ts"]
+    }
+  },
+  "files": []
+}
