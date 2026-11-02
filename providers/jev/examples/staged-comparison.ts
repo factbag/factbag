@@ -6,7 +6,7 @@ import type { GroundFields } from "@factbag/core/dsl";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
-import { classifier } from "../src/classifier";
+import { classifier } from "../src/index";
 
 class Person {
   constructor(readonly id: string) {}

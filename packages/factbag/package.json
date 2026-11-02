@@ -62,21 +62,9 @@
       "types": "./dist/guards/index.d.ts",
       "import": "./dist/guards/index.js"
     },
-    "./jev/classifier": {
-      "types": "./dist/jev/classifier/index.d.ts",
-      "import": "./dist/jev/classifier/index.js"
-    },
-    "./jev/errors": {
-      "types": "./dist/jev/errors.d.ts",
-      "import": "./dist/jev/errors.js"
-    },
-    "./jev/resolve": {
-      "types": "./dist/jev/resolve.d.ts",
-      "import": "./dist/jev/resolve.js"
-    },
-    "./jev/config": {
-      "types": "./dist/jev/config.d.ts",
-      "import": "./dist/jev/config.js"
+    "./jev": {
+      "types": "./dist/jev/index.d.ts",
+      "import": "./dist/jev/index.js"
     }
   },
   "scripts": {

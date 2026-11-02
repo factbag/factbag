@@ -1,17 +1,15 @@
+import { UnsupportedPredicateError } from "factbag/exceptions";
 import { KnowledgeBase } from "factbag/kb";
 import { query } from "factbag/query";
 import { guard } from "factbag/guards";
-import { classifier } from "factbag/jev/classifier";
-import { UnsupportedPredicateError } from "factbag/jev/errors";
-import { resolver } from "factbag/jev/resolve";
-import { createConfig } from "factbag/jev/config";
+import { classifier, createConfig, resolver } from "factbag/jev";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { invariant, atom, kb, corpus, document, guarded } from "./base.mjs";
 
 const jobs = classifier({ corpus, input: guarded });
 invariant(typeof jobs[Symbol.iterator] === "function", "Jev classifier did not return jobs");
 invariant(typeof resolver === "function", "Jev resolver export is not callable");
-invariant(typeof UnsupportedPredicateError === "function", "Jev error export is not constructable");
+invariant(typeof UnsupportedPredicateError === "function", "Error export is not constructable");
 
 // Execute both Jev entry points through a real SDK client over a scripted transport,
 // without credentials or network calls. Adjudication questions offer KEEP; classification

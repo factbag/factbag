@@ -10,7 +10,7 @@ import { supportScore, evidenceScore } from "./support-score";
 import { distribution } from "./fixtures";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { mockJev } from "./mock-jev";
-import { classifier } from "../src/classifier";
+import { classifier } from "../src/index";
 
 describe("standalone walkthrough", () => {
   it("surfaces disagreement, reviews the source, and retains the excluded evidence", async () => {

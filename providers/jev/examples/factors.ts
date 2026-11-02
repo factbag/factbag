@@ -4,7 +4,7 @@ import { query } from "@factbag/core/query";
 import type { QueryJudgment, Judgment } from "@factbag/core/query";
 import { Corpus } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
-import { classifier } from "../src/classifier";
+import { classifier } from "../src/index";
 import { distribution } from "./fixtures";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { mockJev } from "./mock-jev";

@@ -186,7 +186,7 @@ added separately; this version accepts text directly.
 Jev's lazy classifier reads the whole corpus; only executing a job calls the model:
 
 ```ts
-import { classifier } from "@factbag/jev/classifier";
+import { classifier } from "@factbag/jev";
 import { guard } from "@factbag/guards";
 
 const run = classifier({ corpus, input: guard(kb).permit("assert", licensed), config: jevOptions });

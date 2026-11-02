@@ -5,7 +5,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { query } from "@factbag/core/query";
 import { guard } from "@factbag/guards";
-import { classifier } from "@factbag/jev/classifier";
+import { classifier } from "@factbag/jev";
 import createJ1Scenario from "@factbag/scenarios/j1";
 
 const server = setupServer();
