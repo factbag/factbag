@@ -1,4 +1,4 @@
-import type { AnyAtom } from "@factbag/core/dsl";
+import type { AnyAtom, Entity } from "@factbag/core/dsl";
 import type { JsonValue } from "./provider";
 
 /** Snapshot JSON data, including nested dates and entities identified by a string id. */
@@ -39,6 +39,17 @@ function format(value: unknown): string {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** An entity value: an object with a string id, other than a Date. */
+export function isEntity(value: unknown): value is Entity {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !(value instanceof Date) &&
+    "id" in value &&
+    typeof value.id === "string"
+  );
 }
 
 /** A finite probability, including both endpoints. */

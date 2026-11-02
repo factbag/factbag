@@ -4,13 +4,25 @@
 
 ```ts
 
+import type { Chunk } from '@factbag/corpus';
 import type { Corpus } from '@factbag/corpus';
+import type { Entity } from '@factbag/core/dsl';
 import type { GuardedKB } from '@factbag/guards';
 import type { KnowledgeBase } from '@factbag/core/kb';
 import type { Metadata } from '@factbag/corpus';
+import type { PredicateDeclaration } from '@factbag/core/dsl';
+import type { Scalar } from '@factbag/core/dsl';
+
+// @beta
+export type ChunkSymbolExtractor = {
+    readonly query: (requests: ReadonlyMap<PredicateDeclaration, readonly string[]>) => SymbolAnswer | Promise<SymbolAnswer>;
+};
 
 // @beta
 export type Config<Options extends object> = Settings & Partial<Options>;
+
+// @beta
+export type CreateChunkSymbolExtractor = (chunks: readonly Chunk[]) => ChunkSymbolExtractor;
 
 // @beta
 export const DEFAULT_AMBIGUITY_MARGIN = 0;
@@ -86,12 +98,16 @@ export type Settings = {
 };
 
 // @beta
+export type SymbolAnswer = ReadonlyMap<PredicateDeclaration, Readonly<Record<string, readonly (Scalar | Entity)[]>>>;
+
+// @beta
 export type SystemOne<Options extends object> = {
     readonly createConfig: (config?: Config<Options>) => Normalized & Partial<Options>;
     readonly classifier: <M extends Metadata = Metadata>(input: {
         corpus: Corpus<M>;
         input: KnowledgeBase | GuardedKB;
         config?: Config<Options>;
+        createChunkSymbolExtractor?: CreateChunkSymbolExtractor;
     }) => Run;
     readonly resolver: <M extends Metadata = Metadata>(corpus: Corpus<M>, kb: KnowledgeBase, config?: Config<Options>) => Run;
 };

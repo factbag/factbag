@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { enumeration, predicate } from "@factbag/core/dsl";
+import type { Entity, PredicateDeclaration, Scalar } from "@factbag/core/dsl";
 import { KnowledgeBase } from "@factbag/core/kb";
 import { Corpus } from "@factbag/corpus";
+import type { Chunk } from "@factbag/corpus";
 import { guard } from "@factbag/guards";
 import type { GuardedKB } from "@factbag/guards";
 import { UnsupportedPredicateError } from "@factbag/core/exceptions";
 import type { SystemOneRequest } from "../provider";
 import { classifier, mockClient } from "../testing/provider";
 import type { Job } from "../types/run";
+import type { ChunkSymbolExtractor, SymbolAnswer } from "./types";
 
 const admission = { minimumProbability: 0.3, ambiguityMargin: 0.05 };
 class Person {
@@ -447,5 +450,358 @@ describe("classifier jobs", () => {
     // Assert
     expect(afterSecond).toEqual(["second"]);
     expect(sourceDocuments(run, corpus)).toEqual(["second", "first"]);
+  });
+});
+
+type Requests = ReadonlyMap<PredicateDeclaration, readonly string[]>;
+
+/**
+ * An extractor factory answering every requested field from `offer`, given the chunks it
+ * was built over and the field. It records the chunks of each build and every query.
+ */
+function extractor(
+  offer: (
+    chunks: readonly Chunk[],
+    declaration: PredicateDeclaration,
+    name: string,
+  ) => readonly (Scalar | Entity)[],
+) {
+  const queries: Requests[] = [];
+  const create = vi.fn((chunks: readonly Chunk[]): ChunkSymbolExtractor => ({
+    query: (requests) => {
+      queries.push(requests);
+      return new Map(
+        [...requests].map(([declaration, fields]) => [
+          declaration,
+          Object.fromEntries(fields.map((name) => [name, offer(chunks, declaration, name)])),
+        ]),
+      );
+    },
+  }));
+  return { create, queries };
+}
+
+describe("classifier createChunkSymbolExtractor", () => {
+  it("queries each job's chunk for the open fields of its predicates and classifies the values offered", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const paid = predicate(
+      "paid",
+      { payee: String, amount: Number, on: Date, cash: Boolean, kind: enumeration("fee") },
+      { description: "The payee was paid the amount on the day." },
+    );
+    const day = new Date("2017-02-03T00:00:00Z");
+    const offered: Readonly<Record<string, readonly (Scalar | Entity)[]>> = {
+      payee: ["Harbor"],
+      amount: [500],
+      on: [day],
+    };
+    const { create, queries } = extractor((_, __, name) => offered[name] ?? []);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", paid, valid),
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(create.mock.calls.map(([chunks]) => chunks.map(({ text }) => text))).toEqual([
+      ["This record is valid."],
+    ]);
+    expect(queries.map((requests) => [...requests])).toEqual([[[paid, ["payee", "amount", "on"]]]]);
+    expect(
+      run.kb
+        .literals()
+        .filter(({ atom }) => atom.predicate === paid)
+        .map(({ atom }) => atom.fields),
+    ).toEqual([
+      { payee: "Harbor", amount: 500, on: day, cash: false, kind: "fee" },
+      { payee: "Harbor", amount: 500, on: day, cash: true, kind: "fee" },
+    ]);
+  });
+
+  /** Years and amounts are both numbers; the extractor, not the type, tells them apart. */
+  it("gives each field the values answered for it, even fields of the same type", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const earned = predicate(
+      "earned",
+      { year: Number, amount: Number },
+      { description: "The amount was earned in the year." },
+    );
+    const { create } = extractor((_, __, name) => (name === "year" ? [2017] : [33_200]));
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", earned),
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(run.kb.literals().map(({ atom }) => atom.fields)).toEqual([
+      { year: 2017, amount: 33_200 },
+    ]);
+  });
+
+  it("adds extracted entities to registered ones, and registers them as one entity per type and id", async () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const alice = new Person("Alice");
+    kb.entities.add(alice);
+    const married = predicate(
+      "married",
+      { spouse: Person, other: Person },
+      { description: "The two people are married." },
+    );
+    const corpus = new Corpus();
+    corpus.add({ documentId: "first", text: "Alice married Bob." });
+    corpus.add({ documentId: "second", text: "Bob is married." });
+    const { create } = extractor(() => [new Person("Bob")]);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", married),
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await Promise.all([...run].map(async (job) => await job.execute()));
+
+    // Assert
+    expect(run.kb.entities.ids(Person)).toEqual(["Alice", "Bob"]);
+    expect(run.kb.entities.get(Person, "Alice")).toBe(alice);
+    expect(sourceDocuments(run, corpus).toSorted()).toEqual(["first", "first", "second", "second"]);
+    expect(kb.entities.ids(Person)).toEqual(["Alice"]);
+  });
+
+  /** Extracted values are guesses until judged, so only those in evidence persist. */
+  it("registers only extracted entities that written evidence mentions", async () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const present = predicate(
+      "present",
+      { who: Person },
+      { description: "The person was present." },
+    );
+    const corpus = new Corpus();
+    corpus.add({ documentId: "first", text: "Alice came; Bob did not; Harbor is a company." });
+    /** Candidates follow the offered order: Alice is asserted, Bob denied, Harbor irrelevant. */
+    const judged: Readonly<Record<string, ReturnType<typeof answer>>> = {
+      candidate_0: answer(),
+      candidate_1: answer(0.03, 0.95, 0.02),
+      candidate_2: answer(0.02, 0.03, 0.95),
+    };
+    const client = mockClient(({ questions }) => ({
+      model: "test",
+      usage: { input_tokens: 0, output_tokens: 0 },
+      answers: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === "noul" ? { type: "noul", noul: 1 } : judged[id],
+        ]),
+      ),
+    }));
+    const { create } = extractor(() => [
+      new Person("Alice"),
+      new Person("Bob"),
+      new Person("Harbor"),
+    ]);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", present).permit("deny", present),
+      config: { client },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(run.kb.literals().map(({ sign, atom }) => [sign, atom.fields["who"]])).toEqual([
+      ["+", new Person("Alice")],
+      ["-", new Person("Bob")],
+    ]);
+    expect(run.kb.entities.ids(Person)).toEqual(["Alice", "Bob"]);
+  });
+
+  it("asks nothing about a predicate when the chunk offers no values for one of its fields", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const born = predicate("born", { on: Date }, { description: "Someone was born on the day." });
+    const client = clientWith();
+    const { create } = extractor(() => []);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", born, valid),
+      config: { client },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(JSON.stringify(client.requests)).not.toContain('"name":"born"');
+    expect(run.kb.literals().map(({ atom }) => atom.predicate)).toEqual([valid]);
+  });
+
+  /** Extraction may be costly, so predicates routing drops are never queried. */
+  it("queries only the predicates relevance routing retains", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const born = predicate("born", { on: Date }, { description: "Someone was born on the day." });
+    const died = predicate("died", { on: Date }, { description: "Someone died on the day." });
+    const client = mockClient(({ questions }) => ({
+      model: "test",
+      usage: { input_tokens: 0, output_tokens: 0 },
+      answers: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === "noul"
+            ? { type: "noul", noul: JSON.stringify(question).includes('"name":"died"') ? 0 : 1 }
+            : answer(),
+        ]),
+      ),
+    }));
+    const { create, queries } = extractor(() => [new Date(0)]);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", born, died),
+      config: { client, routing: true },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(queries.map((requests) => [...requests.keys()])).toEqual([[born]]);
+  });
+
+  it("builds no extractor when no retained predicate has open fields", async () => {
+    // Arrange
+    const { corpus, access } = setup();
+    const { create } = extractor(() => []);
+    const run = classifier({
+      corpus,
+      input: access,
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(create).not.toHaveBeenCalled();
+    expect(run.kb.literals()).toHaveLength(1);
+  });
+
+  it("accepts open-ended and unregistered entity fields at construction only with an extractor", () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const owns = predicate(
+      "owns",
+      { company: Company, since: Date },
+      { description: "The company has been owned since the day." },
+    );
+    const input = guard(kb).permit("assert", owns);
+    const { create } = extractor(() => []);
+
+    // Act
+    const without = () => classifier({ corpus, input });
+    const withExtractor = () => classifier({ corpus, input, createChunkSymbolExtractor: create });
+
+    // Assert
+    expect(without).toThrow(UnsupportedPredicateError);
+    expect(withExtractor).not.toThrow();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      reason: "an omitted predicate",
+      answer: (): SymbolAnswer => new Map(),
+    },
+    {
+      reason: "an unrequested predicate",
+      answer: (earned: PredicateDeclaration): SymbolAnswer =>
+        new Map([
+          [earned, { year: [2017] }],
+          [valid, {}],
+        ]),
+    },
+    {
+      reason: "an omitted field",
+      answer: (earned: PredicateDeclaration): SymbolAnswer => new Map([[earned, {}]]),
+    },
+    {
+      reason: "an unrequested field",
+      answer: (earned: PredicateDeclaration): SymbolAnswer =>
+        new Map([[earned, { year: [2017], amount: [1] }]]),
+    },
+    {
+      reason: "a value of another type",
+      answer: (earned: PredicateDeclaration): SymbolAnswer =>
+        new Map([[earned, { year: ["2017"] }]]),
+    },
+    {
+      reason: "a NaN",
+      answer: (earned: PredicateDeclaration): SymbolAnswer =>
+        new Map([[earned, { year: [Number.NaN] }]]),
+    },
+  ])("rejects the job and writes nothing for $reason", async ({ answer: respond }) => {
+    // Arrange: the extractor's faulty answer comes from the table.
+    const { kb, corpus } = setup();
+    const earned = predicate("earned", { year: Number }, { description: "Earned in the year." });
+    const client = clientWith();
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", earned),
+      config: { client },
+      createChunkSymbolExtractor: () => ({ query: () => respond(earned) }),
+    });
+
+    // Act
+    const job = nextJob(run).execute();
+
+    // Assert
+    await expect(job).rejects.toThrow(TypeError);
+    expect(client.transport).not.toHaveBeenCalled();
+    expect(run.kb.literals()).toEqual([]);
+  });
+
+  it.each([
+    { reason: "an invalid date", value: (): Scalar | Entity => new Date(Number.NaN) },
+    { reason: "an entity of another type", value: (): Scalar | Entity => new Company("Harbor") },
+  ])("rejects the job for $reason in a field", async ({ value }) => {
+    // Arrange: the faulty value comes from the table.
+    const { kb, corpus } = setup();
+    const met = predicate(
+      "met",
+      { person: Person, on: Date },
+      { description: "The person was met on the day." },
+    );
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", met),
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: () => ({
+        query: () => new Map([[met, { person: [value()], on: [value()] }]]),
+      }),
+    });
+
+    // Act
+    const job = nextJob(run).execute();
+
+    // Assert
+    await expect(job).rejects.toThrow(TypeError);
+    expect(run.kb.literals()).toEqual([]);
   });
 });
