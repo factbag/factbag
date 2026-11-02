@@ -1,11 +1,9 @@
 import { TypeSafeClient } from "@typesafe-ai/sdk";
-import { predicate } from "factbag/dsl";
+import { predicate, query, type Judgment } from "factbag/dsl";
 import { explainJudgment, type Explanation } from "factbag/explain";
 import { UnsupportedPredicateError } from "factbag/exceptions";
-import { KnowledgeBase } from "factbag/kb";
-import { query, type Judgment } from "factbag/query";
+import { KnowledgeBase, guard } from "factbag/kb";
 import { Corpus, chunkers } from "factbag/corpus";
-import { guard } from "factbag/guards";
 import { classifier, type Config, createConfig, resolver } from "@factbag/jev";
 
 const fact = predicate(

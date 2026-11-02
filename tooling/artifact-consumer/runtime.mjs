@@ -1,7 +1,6 @@
 import { UnsupportedPredicateError } from "factbag/exceptions";
-import { KnowledgeBase } from "factbag/kb";
-import { query } from "factbag/query";
-import { guard } from "factbag/guards";
+import { KnowledgeBase, guard } from "factbag/kb";
+import { query } from "factbag/dsl";
 import { classifier, createConfig, resolver } from "@factbag/jev";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { invariant, atom, kb, corpus, document, guarded } from "./base.mjs";

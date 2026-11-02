@@ -1,7 +1,7 @@
 import { invariant, atom, corpus, guarded } from "./base.mjs";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { query } from "factbag/query";
+import { query } from "factbag/dsl";
 import { classifier, createConfig } from "@factbag/clef";
 
 // Check from both the application and the installed package. A transitive or

@@ -25,7 +25,7 @@ Set `TYPESAFE_API_KEY`, or pass your own `TypeSafeClient` as `config.client`.
 import { enumeration, predicate } from "factbag/dsl";
 import { KnowledgeBase } from "factbag/kb";
 import { Corpus } from "factbag/corpus";
-import { guard } from "factbag/guards";
+import { guard } from "factbag/kb";
 import { classifier } from "@factbag/jev";
 
 class Company {

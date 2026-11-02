@@ -164,7 +164,7 @@ The guard starts with no permissions. Permit Jev to assert or deny the two incom
 predicates.
 
 ```ts
-import { guard } from "factbag/guards";
+import { guard } from "factbag/kb";
 
 const incomeEvidence = guard(kb)
   .permit("assert", hasIncomeOver200k)
@@ -191,7 +191,7 @@ The output knowledge base combines the imported fact and rules with the admitted
 evidence.
 
 ```ts
-import { query } from "factbag/query";
+import { query } from "factbag/dsl";
 
 const qualification = query(run.kb, isQualifiedInvestor({ person: alice }));
 const reviewReadiness = query(run.kb, isReadyForReview({ person: alice }));
