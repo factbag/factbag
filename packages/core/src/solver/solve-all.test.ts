@@ -267,6 +267,37 @@ describe("solveQueryAll", () => {
     expect(query(kb, approved({ person: alice })).value).toBe("unknown");
   });
 
+  it.fails("derives through distinct predicates with the same display name", () => {
+    // Arrange
+    const alice = new Person("alice");
+    const P = variable("P");
+    const downstream = predicate("eligible", { person: Person });
+    const upstream = predicate("eligible", { person: Person });
+    const seeded = predicate("seeded", { person: Person });
+    const rules = [
+      {
+        kind: "iff",
+        head: { sign: "+", atom: upstream({ person: P }) },
+        body: seeded({ person: P }),
+      },
+      {
+        kind: "iff",
+        head: { sign: "+", atom: downstream({ person: P }) },
+        body: upstream({ person: P }),
+      },
+    ] as const;
+
+    // Act
+    const [result] = solveQueryAll(
+      [{ sign: "+", atom: seeded({ person: alice }) }],
+      rules,
+      downstream({ person: alice }),
+    );
+
+    // Assert
+    expect(result?.value).toBe("true");
+  });
+
   it("does not throw when a variable query matches multiple grounded results", () => {
     const alice = new Person("alice");
     const bob = new Person("bob");
