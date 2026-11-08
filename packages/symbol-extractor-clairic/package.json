@@ -1,0 +1,55 @@
+{
+  "name": "@factbag/symbol-extractor-clairic",
+  "version": "0.1.0-next.0",
+  "private": true,
+  "description": "Candidate symbol extraction for Factbag with Cloudflare's Clairic model on Workers AI.",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/symbol-extractor-clairic"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "live": "tsx examples/live.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "tsdown": {
+    "entry": [
+      "src/index.ts"
+    ],
+    "dts": false,
+    "sourcemap": true,
+    "fixedExtension": false
+  },
+  "dependencies": {
+    "@factbag/system-one": "workspace:*",
+    "factbag": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/clef": "workspace:*",
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
