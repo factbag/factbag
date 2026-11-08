@@ -526,6 +526,56 @@ describe("classifier createChunkSymbolExtractor", () => {
     ]);
   });
 
+  /** Extracted values are guesses until judged, so only those in evidence persist. */
+  it("adds extracted entities to registered ones, registering only those written evidence mentions", async () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const alice = new Person("Alice");
+    kb.entities.add(alice);
+    const present = predicate(
+      "present",
+      { who: Person },
+      { description: "The person was present." },
+    );
+    const corpus = new Corpus();
+    corpus.add({ documentId: "first", text: "Alice came; Bob did not; Harbor is a company." });
+    /** Registered entities come first: Alice is asserted, Bob denied, Harbor irrelevant. */
+    const judged: Readonly<Record<string, ReturnType<typeof answer>>> = {
+      candidate_0: answer(),
+      candidate_1: answer(0.03, 0.95, 0.02),
+      candidate_2: answer(0.02, 0.03, 0.95),
+    };
+    const client = mockClient(({ questions }) => ({
+      model: "test",
+      usage: { input_tokens: 0, output_tokens: 0 },
+      answers: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === "noul" ? { type: "noul", noul: 1 } : judged[id],
+        ]),
+      ),
+    }));
+    const { create } = extractor(() => [new Person("Bob"), new Person("Harbor")]);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", present).permit("deny", present),
+      config: { client },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(run.kb.literals().map(({ sign, atom }) => [sign, atom.fields["who"]])).toEqual([
+      ["+", alice],
+      ["-", new Person("Bob")],
+    ]);
+    expect(run.kb.entities.ids(Person)).toEqual(["Alice", "Bob"]);
+    expect(run.kb.entities.get(Person, "Alice")).toBe(alice);
+    expect(kb.entities.ids(Person)).toEqual(["Alice"]);
+  });
+
   it("accepts open-ended and unregistered entity fields at construction only with an extractor", () => {
     // Arrange
     const { kb, corpus } = setup();
