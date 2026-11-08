@@ -10,7 +10,9 @@ import type { Action, ClassifiablePredicate } from "./types";
  * Query-only predicates are excluded.
  *
  * Called once when constructing a run, so unsupported predicates fail before reading
- * the corpus or calling Jev. Candidate combinations are built later, after filtering.
+ * the corpus or calling Jev. Each field starts with the values known before any passage
+ * is read: open-ended fields, and entity fields with no registered entities, start empty.
+ * Candidate combinations are built later, after filtering.
  */
 export function classifiablePredicates(access: GuardedKB): readonly ClassifiablePredicate[] {
   const actions = new Map<PredicateDeclaration, Set<Action>>();
@@ -39,7 +41,7 @@ export function classifiablePredicates(access: GuardedKB): readonly Classifiable
   });
 }
 
-/** Validate a finite field domain and collect its values. */
+/** Validate a field's type and collect the values known before reading any passage. */
 function fieldValues({
   predicate,
   name,
@@ -50,12 +52,16 @@ function fieldValues({
   kb: KnowledgeBase;
 }): readonly (Scalar | Entity)[] {
   const type = predicate.params[name];
-  if (type === String || type === Number || type === Date || type === undefined) {
+  if (type === undefined) {
     throw new UnsupportedPredicateError(
-      `Cannot classify predicate "${predicate.name}": field "${name}" has an unsupported open-ended domain. Use Boolean, enumeration(...), or registered entities.`,
+      `Invalid schema for ${predicate.name}: field "${name}" has no type`,
       predicate,
       name,
     );
+  }
+  /** Open-ended fields take values only from passages. */
+  if (type === String || type === Number || type === Date) {
+    return [];
   }
   if (type === Boolean) {
     return [false, true];
@@ -79,15 +85,7 @@ function fieldValues({
     }
     return [...type.values];
   }
-  const ids = kb.entities.ids(type);
-  if (ids.length === 0) {
-    throw new UnsupportedPredicateError(
-      `No registered entities for ${predicate.name}.${name}`,
-      predicate,
-      name,
-    );
-  }
-  return ids.map((id) => {
+  return kb.entities.ids(type).map((id) => {
     const entity = kb.entities.get(type, id);
     if (entity === undefined) {
       throw new Error("A registered entity domain was modified");
