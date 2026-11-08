@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { enumeration, predicate } from "factbag/dsl";
+import type { Entity, PredicateDeclaration, Scalar } from "factbag/dsl";
 import { KnowledgeBase, guard, type GuardedKB } from "factbag/kb";
 import { Corpus } from "factbag/corpus";
+import type { Chunk } from "factbag/corpus";
 import { UnsupportedPredicateError } from "factbag/exceptions";
 import type { SystemOneRequest } from "../provider";
 import { classifier, mockClient } from "../testing/provider";
 import type { Job } from "../types/run";
+import type { ChunkSymbolExtractor } from "./types";
 
 const admission = { minimumProbability: 0.3, ambiguityMargin: 0.05 };
 class Person {
@@ -445,5 +448,152 @@ describe("classifier jobs", () => {
     // Assert
     expect(afterSecond).toEqual(["second"]);
     expect(sourceDocuments(run, corpus)).toEqual(["second", "first"]);
+  });
+});
+
+type Requests = ReadonlyMap<PredicateDeclaration, readonly string[]>;
+
+/**
+ * An extractor factory answering every requested field from `offer`, by field name. It
+ * records the chunks of each build and every query.
+ */
+function extractor(offer: (name: string) => readonly (Scalar | Entity)[]) {
+  const queries: Requests[] = [];
+  const create = vi.fn((_chunks: readonly Chunk[]): ChunkSymbolExtractor => ({
+    query: (requests) => {
+      queries.push(requests);
+      return new Map(
+        [...requests].map(([declaration, fields]) => [
+          declaration,
+          Object.fromEntries(fields.map((name) => [name, offer(name)])),
+        ]),
+      );
+    },
+  }));
+  return { create, queries };
+}
+
+describe("classifier createChunkSymbolExtractor", () => {
+  /** Years and amounts are both numbers; the extractor, not the type, tells them apart. */
+  it("queries each job's chunk for the open fields of its predicates and classifies the values offered for each field", async () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const paid = predicate(
+      "paid",
+      {
+        payee: String,
+        amount: Number,
+        year: Number,
+        on: Date,
+        cash: Boolean,
+        kind: enumeration("fee"),
+      },
+      { description: "The payee was paid the amount for the year on the day." },
+    );
+    const day = new Date("2017-02-03T00:00:00Z");
+    const offered: Readonly<Record<string, readonly (Scalar | Entity)[]>> = {
+      payee: ["Harbor"],
+      amount: [500],
+      year: [2016],
+      on: [day],
+    };
+    const { create, queries } = extractor((name) => offered[name] ?? []);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", paid, valid),
+      config: { client: clientWith() },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(create.mock.calls.map(([chunks]) => chunks.map(({ text }) => text))).toEqual([
+      ["This record is valid."],
+    ]);
+    expect(queries.map((requests) => [...requests])).toEqual([
+      [[paid, ["payee", "amount", "year", "on"]]],
+    ]);
+    expect(
+      run.kb
+        .literals()
+        .filter(({ atom }) => atom.predicate === paid)
+        .map(({ atom }) => atom.fields),
+    ).toEqual([
+      { payee: "Harbor", amount: 500, year: 2016, on: day, cash: false, kind: "fee" },
+      { payee: "Harbor", amount: 500, year: 2016, on: day, cash: true, kind: "fee" },
+    ]);
+  });
+
+  /** Extracted values are guesses until judged, so only those in evidence persist. */
+  it("adds extracted entities to registered ones, registering only those written evidence mentions", async () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const alice = new Person("Alice");
+    kb.entities.add(alice);
+    const present = predicate(
+      "present",
+      { who: Person },
+      { description: "The person was present." },
+    );
+    const corpus = new Corpus();
+    corpus.add({ documentId: "first", text: "Alice came; Bob did not; Harbor is a company." });
+    /** Registered entities come first: Alice is asserted, Bob denied, Harbor irrelevant. */
+    const judged: Readonly<Record<string, ReturnType<typeof answer>>> = {
+      candidate_0: answer(),
+      candidate_1: answer(0.03, 0.95, 0.02),
+      candidate_2: answer(0.02, 0.03, 0.95),
+    };
+    const client = mockClient(({ questions }) => ({
+      model: "test",
+      usage: { input_tokens: 0, output_tokens: 0 },
+      answers: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === "noul" ? { type: "noul", noul: 1 } : judged[id],
+        ]),
+      ),
+    }));
+    const { create } = extractor(() => [new Person("Bob"), new Person("Harbor")]);
+    const run = classifier({
+      corpus,
+      input: guard(kb).permit("assert", present).permit("deny", present),
+      config: { client },
+      createChunkSymbolExtractor: create,
+    });
+
+    // Act
+    await nextJob(run).execute();
+
+    // Assert
+    expect(run.kb.literals().map(({ sign, atom }) => [sign, atom.fields["who"]])).toEqual([
+      ["+", alice],
+      ["-", new Person("Bob")],
+    ]);
+    expect(run.kb.entities.ids(Person)).toEqual(["Alice", "Bob"]);
+    expect(run.kb.entities.get(Person, "Alice")).toBe(alice);
+    expect(kb.entities.ids(Person)).toEqual(["Alice"]);
+  });
+
+  it("accepts open-ended and unregistered entity fields at construction only with an extractor", () => {
+    // Arrange
+    const { kb, corpus } = setup();
+    const owns = predicate(
+      "owns",
+      { company: Company, since: Date },
+      { description: "The company has been owned since the day." },
+    );
+    const input = guard(kb).permit("assert", owns);
+    const { create } = extractor(() => []);
+
+    // Act
+    const without = () => classifier({ corpus, input });
+    const withExtractor = () => classifier({ corpus, input, createChunkSymbolExtractor: create });
+
+    // Assert
+    expect(without).toThrow(UnsupportedPredicateError);
+    expect(withExtractor).not.toThrow();
+    expect(create).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,13 @@
 import type { KnowledgeBase, GuardedKB } from "factbag/kb";
 import type { Corpus, Metadata } from "factbag/corpus";
 import { systemOne } from "@factbag/system-one";
-import type { Normalized, Run, Settings, SystemOne } from "@factbag/system-one";
+import type {
+  CreateChunkSymbolExtractor,
+  Normalized,
+  Run,
+  Settings,
+  SystemOne,
+} from "@factbag/system-one";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 export {
   DEFAULT_AMBIGUITY_MARGIN,
@@ -16,7 +22,15 @@ export {
   DEFAULT_ROUTING_ENABLED,
   DEFAULT_SYMBOL_THRESHOLD,
 } from "@factbag/system-one";
-export type { Job, Normalized, Run, Settings } from "@factbag/system-one";
+export type {
+  ChunkSymbolExtractor,
+  CreateChunkSymbolExtractor,
+  Job,
+  Normalized,
+  Run,
+  Settings,
+  SymbolAnswer,
+} from "@factbag/system-one";
 
 /**
  * Jev settings. Model, timeout, and retry settings belong to the SDK client. `batchSize`
@@ -56,12 +70,15 @@ export function createConfig(config?: Config): Normalized & Config {
  * Validate available predicates eagerly and return a lazy iterator of executable jobs.
  * Bare KBs expose all known predicates; explicit guards retain their permission policy.
  * Only job.execute() makes a remote call. The consumer owns pacing and concurrency.
+ * With `createChunkSymbolExtractor`, open-ended and entity fields also take the values
+ * each chunk offers, so they need no finite domain up front.
  * @beta
  */
 export function classifier<M extends Metadata = Metadata>(input: {
   corpus: Corpus<M>;
   input: KnowledgeBase | GuardedKB;
   config?: Config;
+  createChunkSymbolExtractor?: CreateChunkSymbolExtractor;
 }): Run {
   return jev.classifier(input);
 }

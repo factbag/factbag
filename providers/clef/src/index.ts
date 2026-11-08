@@ -5,7 +5,7 @@
  */
 import type { KnowledgeBase, GuardedKB } from "factbag/kb";
 import type { Corpus, Metadata } from "factbag/corpus";
-import type { Normalized, Run } from "@factbag/system-one";
+import type { CreateChunkSymbolExtractor, Normalized, Run } from "@factbag/system-one";
 import { clef } from "./clef";
 import type { Config } from "./clef";
 export {
@@ -16,7 +16,15 @@ export {
   DEFAULT_ROUTING_ENABLED,
   DEFAULT_SYMBOL_THRESHOLD,
 } from "@factbag/system-one";
-export type { Job, Normalized, Run, Settings } from "@factbag/system-one";
+export type {
+  ChunkSymbolExtractor,
+  CreateChunkSymbolExtractor,
+  Job,
+  Normalized,
+  Run,
+  Settings,
+  SymbolAnswer,
+} from "@factbag/system-one";
 export type { Config } from "./clef";
 
 /** Normalize settings once, sharing one connection when reused across runs. @beta */
@@ -29,12 +37,15 @@ export function createConfig(config?: Config): Normalized & Config {
  * Validate available predicates eagerly and return a lazy iterator of executable jobs.
  * Bare KBs expose all known predicates; explicit guards retain their permission policy.
  * Only job.execute() makes a remote call. The consumer owns pacing and concurrency.
+ * With `createChunkSymbolExtractor`, open-ended and entity fields also take the values
+ * each chunk offers, so they need no finite domain up front.
  * @beta
  */
 export function classifier<M extends Metadata = Metadata>(input: {
   corpus: Corpus<M>;
   input: KnowledgeBase | GuardedKB;
   config?: Config;
+  createChunkSymbolExtractor?: CreateChunkSymbolExtractor;
 }): Run {
   return clef.classifier(input);
 }

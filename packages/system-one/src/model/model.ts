@@ -1,6 +1,6 @@
 import type { Judgement, Model, Outcome, Verdict } from "../types/model";
 import type { Question, SystemOneRequest, Transport } from "../provider";
-import { isProbability, isRecord } from "../utils";
+import { assert, isProbability, isRecord } from "../utils";
 import {
   adjudicationQuestion,
   adjudicationState,
@@ -71,17 +71,19 @@ export function systemOneModel(endpoint: Endpoint): Model {
           }),
       ),
     adjudicate: async ({ atom, passages }) =>
-      await ask({
-        endpoint,
-        prefix: "passage",
-        items: passages,
-        state: () => adjudicationState(passages, atom),
-        question: (_, index) => adjudicationQuestion(atom, index),
-        answer: (response, passage, id) => ({
-          passage,
-          judgement: choice(response, VERDICTS, id, name),
-        }),
-      }),
+      passages.length === 0
+        ? []
+        : await ask({
+            endpoint,
+            prefix: "passage",
+            items: passages,
+            state: () => adjudicationState(passages, atom),
+            question: (_, index) => adjudicationQuestion(atom, index),
+            answer: (response, passage, id) => ({
+              passage,
+              judgement: choice(response, VERDICTS, id, name),
+            }),
+          }),
   };
 }
 
@@ -101,7 +103,9 @@ async function inBatches<Item, Result>(
  * Ask one question per item in a single request and turn each answer into a result.
  * Question keys are positional, so they are minted and matched only here. Validation
  * happens while building results, so one bad answer rejects the whole request.
- * Nothing to ask sends nothing; more than the provider allows sends nothing and throws.
+ * Every request holds at least one question: callers send nothing when there is nothing
+ * to ask, so an empty request is a bug. More than the provider allows sends nothing and
+ * throws.
  */
 async function ask<Item, Result>({
   endpoint: { name, maxBatchSize, transport },
@@ -118,9 +122,7 @@ async function ask<Item, Result>({
   question: (item: Item, index: number) => Question;
   answer: (response: unknown, item: Item, id: string) => Result;
 }): Promise<readonly Result[]> {
-  if (items.length === 0) {
-    return [];
-  }
+  assert(items.length > 0, `Asked ${name} an empty ${prefix} request`);
   if (items.length > maxBatchSize) {
     throw new RangeError(
       `Cannot ask ${items.length} ${prefix} questions in one request: ${name} accepts at most ${maxBatchSize}`,

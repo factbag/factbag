@@ -25,3 +25,8 @@ export {
 } from "./config";
 export type { Config, Normalized, Settings } from "./config";
 export type { Job, Run } from "./types/run";
+export type {
+  ChunkSymbolExtractor,
+  CreateChunkSymbolExtractor,
+  SymbolAnswer,
+} from "./classifier/types";

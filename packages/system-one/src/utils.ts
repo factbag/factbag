@@ -1,4 +1,4 @@
-import type { AnyAtom } from "factbag/dsl";
+import type { AnyAtom, Entity } from "factbag/dsl";
 import type { JsonValue } from "./provider";
 
 /** Snapshot JSON data, including nested dates and entities identified by a string id. */
@@ -37,8 +37,29 @@ function format(value: unknown): string {
   return isRecord(value) && "id" in value ? String(value["id"]) : String(value);
 }
 
+/**
+ * Fail fast when an invariant breaks: a bug in Factbag, never bad input from the caller,
+ * which gets a descriptive error of its own.
+ */
+export function assert(condition: boolean, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(`Assertion failed: ${message}`);
+  }
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** An entity value: an object with a string id, other than a Date. */
+export function isEntity(value: unknown): value is Entity {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !(value instanceof Date) &&
+    "id" in value &&
+    typeof value.id === "string"
+  );
 }
 
 /** A finite probability, including both endpoints. */
