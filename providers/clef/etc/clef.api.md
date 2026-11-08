@@ -4,7 +4,9 @@
 
 ```ts
 
+import { ChunkSymbolExtractor } from '@factbag/system-one';
 import type { Corpus } from 'factbag/corpus';
+import { CreateChunkSymbolExtractor } from '@factbag/system-one';
 import { DEFAULT_AMBIGUITY_MARGIN } from '@factbag/system-one';
 import { DEFAULT_CANDIDATE_PRODUCT_CUTOFF } from '@factbag/system-one';
 import { DEFAULT_MINIMUM_PROBABILITY } from '@factbag/system-one';
@@ -18,12 +20,16 @@ import type { Metadata } from 'factbag/corpus';
 import { Normalized } from '@factbag/system-one';
 import { Run } from '@factbag/system-one';
 import { Settings } from '@factbag/system-one';
+import { SymbolAnswer } from '@factbag/system-one';
+
+export { ChunkSymbolExtractor }
 
 // @beta
 export function classifier<M extends Metadata = Metadata>(input: {
     corpus: Corpus<M>;
     input: KnowledgeBase | GuardedKB;
     config?: Config;
+    createChunkSymbolExtractor?: CreateChunkSymbolExtractor;
 }): Run;
 
 // @beta
@@ -36,6 +42,8 @@ export type Config = Settings & {
     readonly apiToken?: string;
     readonly fetch?: typeof globalThis.fetch;
 };
+
+export { CreateChunkSymbolExtractor }
 
 // @beta
 export function createConfig(config?: Config): Normalized & Config;
@@ -62,5 +70,7 @@ export function resolver<M extends Metadata = Metadata>(corpus: Corpus<M>, kb: K
 export { Run }
 
 export { Settings }
+
+export { SymbolAnswer }
 
 ```

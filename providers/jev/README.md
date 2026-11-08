@@ -102,14 +102,14 @@ field that cannot be classified. A nonempty metadata description is required.
 
 Supported field domains:
 
-| Schema field               | Candidate values                         |
-| -------------------------- | ---------------------------------------- |
-| `Boolean`                  | `false`, `true`                          |
-| `enumeration(...)`         | Explicit string, number, or Date members |
-| Entity constructor         | Instances registered in `kb.entities`    |
-| `String`, `Number`, `Date` | Unsupported open-ended domains           |
+| Schema field               | Candidate values                                     |
+| -------------------------- | ---------------------------------------------------- |
+| `Boolean`                  | `false`, `true`                                      |
+| `enumeration(...)`         | Explicit string, number, or Date members             |
+| Entity constructor         | Registered instances, plus each chunk's extracted    |
+| `String`, `Number`, `Date` | Each chunk's extracted values; unsupported otherwise |
 
-An entity domain must contain registered instances. Existing scalar facts do not
+Without `createChunkSymbolExtractor`, an entity domain must contain registered instances. Existing scalar facts do not
 turn an open-ended schema into an enum. To model a fixed value, declare it explicitly
 with `enumeration(value)` rather than asking the classifier to discover it.
 
@@ -131,6 +131,49 @@ Fields fan out as a Cartesian product. A predicate with no fields has one candid
 proposition. Every candidate gets an independent `Choice(ASSERT, DENY, IRRELEVANT)`
 question. Assert and deny permissions for the same predicate share one question.
 No enum exclusivity or Boolean equivalence is assumed; those belong to the ruleset.
+
+### Passage symbols
+
+Pass `createChunkSymbolExtractor` to fill open-ended and entity fields from the text
+being classified. The classifier builds one extractor per job over that job's chunk,
+and asks it for the open fields of the predicates it classifies:
+
+```ts
+const run = classifier({
+  corpus,
+  input: access,
+  createChunkSymbolExtractor: (chunks) => {
+    const found = scan(chunks);
+    return {
+      query: (requests) =>
+        new Map(
+          [...requests].map(([predicate, fields]) => [
+            predicate,
+            Object.fromEntries(fields.map((name) => [name, found.for(predicate, name)])),
+          ]),
+        ),
+    };
+  },
+});
+```
+
+- Open fields are `String`, `Number`, `Date`, and entity fields. Boolean and
+  enumeration fields keep their declared domains.
+- `query` receives a map from each predicate to its open field names, and answers with
+  a map from each predicate to the values for each field, possibly asynchronously. How
+  it finds them, and what it caches, is up to the extractor.
+- The answer must cover exactly the requested predicates and fields, with values each
+  field can hold: strings, finite numbers, valid dates, or entities of the field's
+  type. Otherwise the job rejects before anything is classified.
+- Scalar fields take exactly the values answered. Entity fields take them alongside
+  their registered instances. Extracted entities are only candidates: those that
+  asserted or denied evidence mentions are registered in `run.kb.entities`, and the
+  rest are discarded.
+- A predicate with a field left empty is skipped for that chunk.
+
+An entity's type and `id` are its identity, so the extractor decides which mentions
+are the same entity by the ids it mints. `new Person("Alice")` from two chunks is one
+entity.
 
 ## Jobs and execution
 
