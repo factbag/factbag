@@ -3,13 +3,15 @@ import type { Goal } from "../types/goal";
 import type { Judgment, JudgmentSupportFor } from "../types/judgment";
 import type { AnyLiteral } from "../types/literal";
 import type { AnyRule } from "../types/rule";
-import { isVar } from "../types/variable";
+import { isTemporary, isVar } from "../types/variable";
 import type { Var } from "../types/variable";
 import { isFormula } from "../dsl/types";
 import { AssertionError } from "../utils/assert";
 import type { Explanation, EvidenceReason } from "./types";
 
 type ExplanationContext = {
+  /** The term that computes each temporary met so far, for writing one that has no value. */
+  definitions: Map<Var, ComputingGoal>;
   explanations: WeakMap<Judgment, Explanation>;
   contentKeys: WeakMap<Explanation, number>;
   keyIds: Map<string, number>;
@@ -38,6 +40,7 @@ type ExplanationContext = {
  */
 export function explainJudgment(judgment: Judgment): Explanation {
   return explainWithContext(judgment, {
+    definitions: new Map(),
     explanations: new WeakMap(),
     contentKeys: new WeakMap(),
     keyIds: new Map(),
@@ -57,8 +60,8 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   if (isClosedWorldAbsence(judgment)) {
     const atom = judgment.goal.goal.atom;
     return {
-      claim: claimForJudgment(judgment),
-      because: `${formatAtom(atom, new Map(judgment.bindings))} is closed-world, and no evidence is known`,
+      claim: claimForJudgment(judgment, context),
+      because: `${formatAtom(atom, scopeOf(judgment, context))} is closed-world, and no evidence is known`,
     };
   }
 
@@ -66,7 +69,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   const ruleSupport = supports.find((support) => support.source === "rule");
   if (ruleSupport !== undefined) {
     return {
-      claim: claimForJudgment(judgment),
+      claim: claimForJudgment(judgment, context),
       because: formatRuleApplication(ruleSupport.rule, ruleSupport.body.bindings),
       given: [explainWithContext(ruleSupport.body, context)],
     };
@@ -79,7 +82,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     const reasons = evidence.map(evidenceReason);
     const firstReason = reasons[0];
     return {
-      claim: claimForJudgment(judgment),
+      claim: claimForJudgment(judgment, context),
       because: reasons.length === 1 && firstReason !== undefined ? firstReason : reasons,
     };
   }
@@ -89,7 +92,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   );
   if (subgoals.length > 0) {
     return {
-      claim: claimForJudgment(judgment),
+      claim: claimForJudgment(judgment, context),
       given: uniqueExplanations(
         subgoals.map((subgoal) => explainWithContext(subgoal, context)),
         context,
@@ -100,18 +103,21 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   const closedWorldAbsence = supports.find((support) => support.source === "closed-world-absence");
   if (closedWorldAbsence !== undefined && judgment.goal.kind === "atom") {
     return {
-      claim: claimForJudgment(judgment),
-      because: `${formatAtom(judgment.goal.atom, new Map(judgment.bindings))} is closed-world, and no matching evidence is known`,
+      claim: claimForJudgment(judgment, context),
+      because: `${formatAtom(judgment.goal.atom, scopeOf(judgment, context))} is closed-world, and no matching evidence is known`,
     };
   }
 
   const primitive = supports.find((support) => support.source === "primitive");
   if (primitive !== undefined) {
-    return { claim: claimForJudgment(judgment), because: primitiveReason(primitive) };
+    return {
+      claim: claimForJudgment(judgment, context),
+      because: primitiveReason(primitive, scopeOf(judgment, context)),
+    };
   }
 
   return {
-    claim: claimForJudgment(judgment),
+    claim: claimForJudgment(judgment, context),
     because: "no supporting evidence or rule was found",
   };
 }
@@ -120,13 +126,13 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
  * Why a comparison, arithmetic term or aggregate has its value. It is computed rather than
  * supported by evidence or a rule, unless a variable it needs was never given a value.
  */
-function primitiveReason(support: JudgmentSupportFor<Goal>): string {
+function primitiveReason(support: JudgmentSupportFor<Goal>, scope: Scope): string {
   const uncertainty =
     support.source === "primitive" && "evaluation" in support
       ? (support.evaluation.uncertainty ?? [])
       : [];
   const missing = uncertainty.flatMap((reason) =>
-    reason.kind === "missing-binding" ? [formatValue(reason.variable)] : [],
+    reason.kind === "missing-binding" ? [formatValue(reason.variable, scope)] : [],
   );
   if (missing.length > 0) {
     return `${[...new Set(missing)].join(", ")} ${missing.length === 1 ? "has" : "have"} no value`;
@@ -215,31 +221,87 @@ function isClosedWorldAbsence(judgment: Judgment): judgment is Judgment & {
   );
 }
 
-/** The values a judgment's variables hold, for writing its goal as it was evaluated. */
-type Values = ReadonlyMap<Var, unknown>;
+/** A goal that computes a value and binds it: arithmetic, or an aggregate. */
+type ComputingGoal = Extract<Goal, { bind: Var }>;
 
-const NO_VALUES: Values = new Map();
+/**
+ * What a goal's variables stand for when it is written out: the values the judgment's
+ * variables hold, and the terms that compute the temporaries.
+ */
+type Scope = Readonly<{
+  values: ReadonlyMap<Var, unknown>;
+  definitions: ReadonlyMap<Var, ComputingGoal>;
+}>;
+
+const NO_SCOPE: Scope = { values: new Map(), definitions: new Map() };
+
+function scopeOf(judgment: Judgment, context: ExplanationContext): Scope {
+  noteDefinitions(judgment.goal, context.definitions);
+  return { values: new Map(judgment.bindings), definitions: context.definitions };
+}
+
+/** Record the term that computes each temporary in the goal. A parent is always noted before its subgoals are explained. */
+function noteDefinitions(goal: Goal, definitions: Map<Var, ComputingGoal>): void {
+  if ("bind" in goal && isTemporary(goal.bind)) {
+    definitions.set(goal.bind, goal);
+  }
+  if (goal.kind === "and" || goal.kind === "or") {
+    for (const subgoal of goal.goals) {
+      noteDefinitions(subgoal, definitions);
+    }
+  }
+}
 
 /**
  * The goal as it was evaluated, and what it came to. Variables are written as the values
  * they hold, and a variable without one keeps its name. A term that computes a value says
  * the value it computed, such as `A = mul(1000, 0.15) = 150`; every other claim ends in
- * its truth value.
+ * its truth value. A temporary is never named: the term that computes it stands for it.
  */
-function claimForJudgment(judgment: Judgment): string {
-  const values: Values = new Map(judgment.bindings);
+function claimForJudgment(judgment: Judgment, context: ExplanationContext): string {
+  const scope = scopeOf(judgment, context);
   const { goal } = judgment;
-  if (judgment.value === "true" && "bind" in goal && values.has(goal.bind)) {
-    return `${formatComputation(goal, values)} = ${formatValue(values.get(goal.bind))}`;
+  if ("bind" in goal) {
+    const computed = scope.values.has(goal.bind) && judgment.value === "true";
+    const result = computed ? formatValue(scope.values.get(goal.bind)) : judgment.value;
+    return `${formatComputation(goal, scope)} = ${result}`;
   }
-  return `${formatGoal(goal, values)} = ${judgment.value}`;
+  return `${formatGoal(goal, scope)} = ${judgment.value}`;
 }
 
-/** A computing goal with the variable it binds left as a name: `A = mul(1000, 0.15)`. */
-function formatComputation(goal: Goal & { bind: Var }, values: Values): string {
-  const unbound = new Map(values);
-  unbound.delete(goal.bind);
-  return formatGoal(goal, unbound);
+/**
+ * A computing goal with the variable it binds left as a name, `A = mul(1000, 0.15)`, or
+ * with no name when it binds a temporary, `mul(1000, 0.15)`.
+ */
+function formatComputation(goal: ComputingGoal, scope: Scope): string {
+  const values = new Map(scope.values);
+  values.delete(goal.bind);
+  const term = formatTerm(goal, { ...scope, values });
+  return isTemporary(goal.bind) ? term : `${goal.bind.name} = ${term}`;
+}
+
+/**
+ * A computing goal inside a larger one: the term and its value, `mul(1000, 0.15) = 150`,
+ * or with no value the variable it would bind, `A = mul(I, 0.15)`. A temporary with no
+ * value is written as its term wherever it is used, so here it is the term alone.
+ */
+function formatComputing(goal: ComputingGoal, scope: Scope): string {
+  const term = formatTerm(goal, scope);
+  if (scope.values.has(goal.bind)) {
+    return `${term} = ${formatValue(scope.values.get(goal.bind))}`;
+  }
+  return isTemporary(goal.bind) ? term : `${goal.bind.name} = ${term}`;
+}
+
+/** The computation itself, without the variable it binds: `mul(1000, 0.15)`. */
+function formatTerm(goal: ComputingGoal, scope: Scope): string {
+  if (goal.kind === "sum") {
+    return `sum(${formatValue(goal.value, scope)})`;
+  }
+  if (goal.kind === "count") {
+    return `count(${formatGoal(goal.where, scope)})`;
+  }
+  return `${goal.kind}(${formatValue(goal.left, scope)}, ${formatValue(goal.right, scope)})`;
 }
 
 function evidenceReason(literal: AnyLiteral): EvidenceReason {
@@ -253,11 +315,12 @@ function formatRuleApplication(
   bindings: readonly (readonly [Var, unknown])[],
 ): string {
   const base = `${formatLiteral(rule.head)} ${rule.kind} ${formatRuleBody(rule.body)}`;
-  if (bindings.length === 0) {
+  const named = bindings.filter(([variable]) => !isTemporary(variable));
+  if (named.length === 0) {
     return base;
   }
 
-  return `${base}, with ${bindings.map(([variable, value]) => `${variable.name} = ${formatValue(value)}`).join(", ")}`;
+  return `${base}, with ${named.map(([variable, value]) => `${variable.name} = ${formatValue(value)}`).join(", ")}`;
 }
 
 function formatRuleBody(body: unknown): string {
@@ -277,21 +340,19 @@ function formatLiteral(literal: AnyLiteral): string {
   return literal.sign === "-" ? `not(${formatAtom(literal.atom)})` : formatAtom(literal.atom);
 }
 
-function formatGoal(goal: Goal, values: Values = NO_VALUES): string {
-  const value = (operand: unknown): string => formatValue(operand, values);
-  const bound = (variable: Var): string => formatValue(variable, values);
+function formatGoal(goal: Goal, scope: Scope = NO_SCOPE): string {
   switch (goal.kind) {
     case "atom":
-      return formatAtom(goal.atom, values);
+      return formatAtom(goal.atom, scope);
     case "not":
-      return `not(${formatGoal(goal.goal, values)})`;
+      return `not(${formatGoal(goal.goal, scope)})`;
     case "and":
     case "or":
-      return `${goal.kind}(${goal.goals.map((subgoal) => formatGoal(subgoal, values)).join(", ")})`;
+      return `${goal.kind}(${goal.goals.map((subgoal) => formatGoal(subgoal, scope)).join(", ")})`;
     case "exists":
-      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal, values)})`;
+      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal, scope)})`;
     case "let":
-      return `let(${goal.variable.name} = ${value(goal.value)}: ${formatGoal(goal.goal, values)})`;
+      return `let(${goal.variable.name} = ${formatValue(goal.value, scope)}: ${formatGoal(goal.goal, scope)})`;
     case "add":
     case "sub":
     case "mul":
@@ -304,31 +365,33 @@ function formatGoal(goal: Goal, values: Values = NO_VALUES): string {
     case "roundTo":
     case "floorTo":
     case "ceilTo":
-      return `${bound(goal.bind)} = ${goal.kind}(${value(goal.left)}, ${value(goal.right)})`;
+    case "sum":
+    case "count":
+      return formatComputing(goal, scope);
     case "eq":
     case "neq":
     case "lt":
     case "lte":
     case "gt":
     case "gte":
-      return `${goal.kind}(${value(goal.left)}, ${value(goal.right)})`;
-    case "sum":
-      return `${bound(goal.bind)} = sum(${value(goal.value)})`;
-    case "count":
-      return `${bound(goal.bind)} = count(${formatGoal(goal.where, values)})`;
+      return `${goal.kind}(${formatValue(goal.left, scope)}, ${formatValue(goal.right, scope)})`;
     default:
       throw new AssertionError("Unhandled goal kind");
   }
 }
 
-function formatAtom(atom: AnyAtom, values: Values = NO_VALUES): string {
-  const fields = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name], values));
+function formatAtom(atom: AnyAtom, scope: Scope = NO_SCOPE): string {
+  const fields = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name], scope));
   return `${atom.predicate.name}(${fields.join(", ")})`;
 }
 
-function formatValue(value: unknown, values: Values = NO_VALUES): string {
+function formatValue(value: unknown, scope: Scope = NO_SCOPE): string {
   if (isVar(value)) {
-    return values.has(value) ? formatValue(values.get(value)) : value.name;
+    if (scope.values.has(value)) {
+      return formatValue(scope.values.get(value));
+    }
+    const definition = scope.definitions.get(value);
+    return definition === undefined ? value.name : formatTerm(definition, scope);
   }
   if (
     typeof value === "object" &&

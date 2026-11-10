@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  add,
   and,
   ceilTo,
   closedPredicate,
@@ -97,7 +98,7 @@ describe("explainJudgment", () => {
         ...("given" in node ? node.given : []).flatMap(claims),
       ];
       expect(claims(explanation)).toContainEqual(
-        expect.stringContaining(` = ${operator.name}(1, 2) = `),
+        expect.stringContaining(`${operator.name}(1, 2) = `),
       );
     },
   );
@@ -127,8 +128,64 @@ describe("explainJudgment", () => {
       "lte(1000, 36900) = true",
     ]);
     expect(children(explanation)[0]?.claim).toBe(
-      "and(income(alice, 1000), and(1000 = max(1000, 500), lte(1000, 36900))) = true",
+      "and(income(alice, 1000), and(max(1000, 500) = 1000, lte(1000, 36900))) = true",
     );
+  });
+
+  /**
+   * `$tmp0` is how the solver lowers a nested term. It names nothing in the rule, so a
+   * reader cannot look it up.
+   */
+  it("never names the temporaries of nested arithmetic", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const tax = predicate("tax", { person: Person, amount: Number });
+    const P = variable("P");
+    const I = variable("I");
+    const A = variable("A");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(tax({ person: P, amount: A })).iff(
+      and(income({ person: P, amount: I }), letIn(A, roundTo(max(I, 500), 0), gte(A, 0))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, tax({ person: alice, amount: 7 })));
+
+    // Assert
+    expect(JSON.stringify(explanation)).not.toContain("$tmp");
+    expect("because" in explanation ? explanation.because : undefined).toBe(
+      "tax(P, A) iff and(income(P, I), letIn(A, roundTo(max(I, 500), 0), gte(A, 0))), " +
+        "with P = alice, A = 7, I = 1000",
+    );
+    expect(leaves(explanation).map((leaf) => leaf.claim)).toEqual([
+      "income(alice, 1000) = true",
+      "max(1000, 500) = 1000",
+      "roundTo(1000, 0) = 1000",
+      "eq(7, 1000) = false",
+      "gte(7, 0) = true",
+    ]);
+  });
+
+  /** With no value to print, the term that would have computed it is what was asked. */
+  it("writes a temporary that has no value as the term that computes it", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const age = predicate("age", { person: Person, years: Number });
+    const adult = predicate("adult", { person: Person });
+    const P = variable("P");
+    const X = variable("X");
+    kb.rule(adult({ person: P })).iff(and(age({ person: P, years: X }), gte(add(X, 1), 18)));
+
+    // Act
+    const explanation = explainJudgment(query(kb, adult({ person: alice })));
+
+    // Assert
+    expect(leaves(explanation).map((leaf) => [leaf.claim, leaf.because])).toEqual([
+      ["age(alice, X) = unknown", "no supporting evidence or rule was found"],
+      ["add(X, 1) = unknown", "X has no value"],
+      ["gte(add(X, 1), 18) = unknown", "add(X, 1) has no value"],
+    ]);
   });
 
   /** A variable nothing binds is the open question, so it must stay visible by name. */
