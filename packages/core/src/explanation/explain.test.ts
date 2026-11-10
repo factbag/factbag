@@ -188,6 +188,25 @@ describe("explainJudgment", () => {
     ]);
   });
 
+  /** Calendar rules compare days; a timestamp on every one triples the text for nothing. */
+  it("writes a date at UTC midnight as a day and any other with its time", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const seen = predicate("seen", { person: Person, at: Date });
+    kb.asserts(seen({ person: alice, at: new Date("2015-02-03") }));
+    kb.asserts(seen({ person: bob, at: new Date("2015-02-03T09:30:00.000Z") }));
+
+    // Act
+    const day = explainJudgment(query(kb, seen({ person: alice, at: new Date("2015-02-03") })));
+    const moment = explainJudgment(
+      query(kb, seen({ person: bob, at: new Date("2015-02-03T09:30:00.000Z") })),
+    );
+
+    // Assert
+    expect(day.claim).toBe("seen(alice, 2015-02-03) = true");
+    expect(moment.claim).toBe("seen(bob, 2015-02-03T09:30:00.000Z) = true");
+  });
+
   /** A variable nothing binds is the open question, so it must stay visible by name. */
   it("keeps the name of a variable that has no value", () => {
     // Arrange

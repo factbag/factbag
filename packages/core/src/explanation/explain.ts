@@ -402,7 +402,9 @@ function formatValue(value: unknown, scope: Scope = NO_SCOPE): string {
     return value.id;
   }
   if (value instanceof Date) {
-    return value.toISOString();
+    // A date at UTC midnight is a day; its time of day is noise.
+    const text = value.toISOString();
+    return text.endsWith("T00:00:00.000Z") ? text.slice(0, 10) : text;
   }
   return String(value);
 }
