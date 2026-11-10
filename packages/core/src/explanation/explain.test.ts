@@ -127,8 +127,8 @@ describe("explainJudgment", () => {
       "H = max(1000, 500) = 1000",
       "lte(1000, 36900) = true",
     ]);
-    expect(children(explanation)[0]?.claim).toBe(
-      "and(income(alice, 1000), and(max(1000, 500) = 1000, lte(1000, 36900))) = true",
+    expect(children(explanation)[1]?.claim).toBe(
+      "and(max(1000, 500) = 1000, lte(1000, 36900)) = true",
     );
   });
 
@@ -205,6 +205,65 @@ describe("explainJudgment", () => {
     // Assert
     expect(day.claim).toBe("seen(alice, 2015-02-03) = true");
     expect(moment.claim).toBe("seen(bob, 2015-02-03T09:30:00.000Z) = true");
+  });
+
+  /**
+   * The rule already prints its body, so a step that restates the body and lists the same
+   * subgoals says nothing new. It was nearly half the text of a deep explanation.
+   */
+  it("rests a rule application directly on the subgoals of its and/or body", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const licensed = predicate("licensed", { person: Person });
+    const trained = predicate("trained", { person: Person });
+    const doctor = predicate("doctor", { person: Person });
+    const P = variable("P");
+    kb.asserts(licensed({ person: alice }));
+    kb.asserts(trained({ person: alice }));
+    kb.rule(doctor({ person: P })).iff(and(trained({ person: P }), licensed({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, doctor({ person: alice })));
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "doctor(alice) = true",
+      because: "doctor(P) iff and(trained(P), licensed(P)), with P = alice",
+      given: [
+        { claim: "trained(alice) = true", because: { claim: "trained(alice) = true" } },
+        { claim: "licensed(alice) = true", because: { claim: "licensed(alice) = true" } },
+      ],
+    });
+  });
+
+  /** Only the outermost connective is the rule's own; an inner one groups its subgoals. */
+  it("keeps a compound nested inside a rule body as its own step", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const licensed = predicate("licensed", { person: Person });
+    const trained = predicate("trained", { person: Person });
+    const honorary = predicate("honorary", { person: Person });
+    const doctor = predicate("doctor", { person: Person });
+    const P = variable("P");
+    kb.asserts(honorary({ person: alice }));
+    kb.denies(trained({ person: alice }));
+    kb.denies(licensed({ person: alice }));
+    kb.rule(doctor({ person: P })).iff(
+      or(honorary({ person: P }), and(trained({ person: P }), licensed({ person: P }))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, doctor({ person: alice })));
+
+    // Assert
+    expect(children(explanation).map((child) => child.claim)).toEqual([
+      "honorary(alice) = true",
+      "and(trained(alice), licensed(alice)) = false",
+    ]);
+    expect(children(children(explanation)[1]).map((child) => child.claim)).toEqual([
+      "trained(alice) = false",
+      "licensed(alice) = false",
+    ]);
   });
 
   /** A variable nothing binds is the open question, so it must stay visible by name. */
@@ -371,7 +430,7 @@ describe("explainJudgment", () => {
 
     // Act
     const explanation = explainJudgment(judgment);
-    const branches = children(children(explanation)[0]);
+    const branches = children(explanation);
 
     // Assert
     expect(branches.map((branch) => branch.claim)).toEqual([
@@ -434,8 +493,8 @@ describe("explainJudgment", () => {
     // Assert
     expect(judgment.value).toBe("true");
     expect(explanation.claim).toBe("level_24(alice) = true");
-    // One root; per level: or, two ands, two scoped previous atoms, a and b.
-    expect(seen.size).toBe(1 + 7 * depth);
+    // One root; per level: two ands, two scoped previous atoms, a and b.
+    expect(seen.size).toBe(1 + 6 * depth);
     expect(elapsed).toBeLessThan(3_000);
   });
 

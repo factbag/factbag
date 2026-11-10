@@ -34,7 +34,10 @@ type ExplanationContext = {
  * {
  *   "claim": "doctor(alice) = true",
  *   "because": "doctor(P) iff and(passed_medical_school(P), has_active_license(P)), with P = alice",
- *   "given": [{ "claim": "and(...) = true" }]
+ *   "given": [
+ *     { "claim": "passed_medical_school(alice) = true" },
+ *     { "claim": "has_active_license(alice) = true" }
+ *   ]
  * }
  * ```
  */
@@ -71,7 +74,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     return {
       claim: claimForJudgment(judgment, context),
       because: formatRuleApplication(ruleSupport.rule, ruleSupport.body.bindings),
-      given: [explainWithContext(ruleSupport.body, context)],
+      given: ruleBodyExplanations(ruleSupport.body, context),
     };
   }
 
@@ -138,6 +141,20 @@ function primitiveReason(support: JudgmentSupportFor<Goal>, scope: Scope): strin
     return `${[...new Set(missing)].join(", ")} ${missing.length === 1 ? "has" : "have"} no value`;
   }
   return uncertainty.length > 0 ? "computed from values that are not settled" : "computed";
+}
+
+/**
+ * What a rule application rests on. A body that is an `and` or an `or` is not a step of
+ * its own: the rule already states it, so the application rests directly on the body's
+ * subgoals. Any other body, such as a single atom or a negation, is the one thing it
+ * rests on.
+ */
+function ruleBodyExplanations(body: Judgment, context: ExplanationContext): readonly Explanation[] {
+  const explanation = explainWithContext(body, context);
+  const combines = body.goal.kind === "and" || body.goal.kind === "or";
+  return combines && "given" in explanation && !("because" in explanation)
+    ? explanation.given
+    : [explanation];
 }
 
 function uniqueExplanations(
