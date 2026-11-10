@@ -22,3 +22,17 @@ export function yearsBetween(later: Date, earlier: Date): number {
   const earlierDay = earlier.getUTCMonth() * 100 + earlier.getUTCDate();
   return laterDay < earlierDay ? years - 1 : years;
 }
+
+/**
+ * The first day of a month at UTC midnight, or undefined unless the year is a whole
+ * number a date can hold and the month a whole number from 1 to 12.
+ */
+export function firstOfMonth(year: number, month: number): Date | undefined {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return undefined;
+  }
+  const day = new Date(0);
+  // setUTCFullYear, unlike Date.UTC, takes years 0–99 as written.
+  day.setUTCFullYear(year, month - 1, 1);
+  return Number.isNaN(day.getTime()) ? undefined : day;
+}

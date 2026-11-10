@@ -18,12 +18,14 @@ export {
   ceilTo,
   daysBetween,
   div,
+  firstOfMonth,
   floorTo,
   max,
   min,
   mul,
   roundTo,
   sub,
+  yearOf,
   yearsBetween,
 } from "./operators/arithmetic";
 export { eq, gt, gte, lte, neq } from "./operators/comparison";

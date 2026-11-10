@@ -25,15 +25,25 @@ export class PrimitiveArithmeticProgrammerError extends ProgrammerError {
     operands: readonly [unknown, unknown],
     goal: ArithmeticGoal<ArithmeticKind>,
   ) {
-    const rounding = operation === "roundTo" || operation === "floorTo" || operation === "ceilTo";
-    super(
-      `${operation} expected ${operation === "daysBetween" || operation === "yearsBetween" ? "date" : "numeric"} operands${rounding ? " and a whole number of decimal places" : ""}`,
-    );
+    super(`${operation} expected ${expectedOperands(operation)}`);
     this.name = "PrimitiveArithmeticProgrammerError";
     this.operation = operation;
     this.operands = operands;
     this.goal = goal;
   }
+}
+
+function expectedOperands(operation: ArithmeticKind): string {
+  if (operation === "daysBetween" || operation === "yearsBetween") {
+    return "date operands";
+  }
+  if (operation === "firstOfMonth") {
+    return "a whole year and a whole month from 1 to 12";
+  }
+  if (operation === "roundTo" || operation === "floorTo" || operation === "ceilTo") {
+    return "numeric operands and a whole number of decimal places";
+  }
+  return "numeric operands";
 }
 
 /** Rule body uses variables before any constructive source can bind them. */

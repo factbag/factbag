@@ -28,7 +28,7 @@ export type ArithmeticGoal<Kind extends ArithmeticKind> = Readonly<{
 }>;
 
 // @public
-export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween" | "min" | "max" | "roundTo" | "floorTo" | "ceilTo";
+export type ArithmeticKind = "add" | "sub" | "mul" | "div" | "daysBetween" | "yearsBetween" | "firstOfMonth" | "min" | "max" | "roundTo" | "floorTo" | "ceilTo";
 
 // @public
 export type ArithmeticPrimitiveSupport = Readonly<{
@@ -126,10 +126,13 @@ export type ExistsGoal = Readonly<{
 }>;
 
 // @public
+export type FirstOfMonthGoal = ArithmeticGoal<"firstOfMonth">;
+
+// @public
 export type FloorToGoal = ArithmeticGoal<"floorTo">;
 
 // @public
-export type Goal = AnyAtomGoal | NotGoal | AndGoal | OrGoal | ExistsGoal | LetGoal | AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | MinGoal | MaxGoal | RoundToGoal | FloorToGoal | CeilToGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
+export type Goal = AnyAtomGoal | NotGoal | AndGoal | OrGoal | ExistsGoal | LetGoal | AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | FirstOfMonthGoal | MinGoal | MaxGoal | RoundToGoal | FloorToGoal | CeilToGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
 
 // Warning: (ae-forgotten-export) The symbol "Entity" needs to be exported by the entry point index.d.ts
 // Warning: (ae-forgotten-export) The symbol "Term" needs to be exported by the entry point index.d.ts
@@ -246,7 +249,7 @@ export type PrimitiveEvaluation = Readonly<{
 }>;
 
 // @public
-export type PrimitiveGoal = AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | MinGoal | MaxGoal | RoundToGoal | FloorToGoal | CeilToGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
+export type PrimitiveGoal = AddGoal | SubGoal | MulGoal | DivGoal | DaysBetweenGoal | YearsBetweenGoal | FirstOfMonthGoal | MinGoal | MaxGoal | RoundToGoal | FloorToGoal | CeilToGoal | EqGoal | NeqGoal | LtGoal | LteGoal | GtGoal | GteGoal | SumGoal | CountGoal;
 
 // @public
 export type PrimitiveSupport = Readonly<{
@@ -325,8 +328,8 @@ export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
 // dist/types/goal.d.ts:10:5 - (ae-forgotten-export) The symbol "Atom" needs to be exported by the entry point index.d.ts
 // dist/types/goal.d.ts:15:5 - (ae-forgotten-export) The symbol "AnyAtom" needs to be exported by the entry point index.d.ts
 // dist/types/goal.d.ts:20:5 - (ae-forgotten-export) The symbol "GroundAtom" needs to be exported by the entry point index.d.ts
-// dist/types/goal.d.ts:79:5 - (ae-forgotten-export) The symbol "Var" needs to be exported by the entry point index.d.ts
-// dist/types/goal.d.ts:80:5 - (ae-forgotten-export) The symbol "Scalar" needs to be exported by the entry point index.d.ts
+// dist/types/goal.d.ts:81:5 - (ae-forgotten-export) The symbol "Var" needs to be exported by the entry point index.d.ts
+// dist/types/goal.d.ts:82:5 - (ae-forgotten-export) The symbol "Scalar" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:9:5 - (ae-forgotten-export) The symbol "Literal" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:18:5 - (ae-forgotten-export) The symbol "Rule" needs to be exported by the entry point index.d.ts
 // dist/types/judgment.d.ts:24:5 - (ae-forgotten-export) The symbol "AnyLiteral" needs to be exported by the entry point index.d.ts
