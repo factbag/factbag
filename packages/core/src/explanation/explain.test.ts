@@ -11,6 +11,7 @@ import {
   floorTo,
   gte,
   letIn,
+  lte,
   max,
   min,
   not,
@@ -96,10 +97,61 @@ describe("explainJudgment", () => {
         ...("given" in node ? node.given : []).flatMap(claims),
       ];
       expect(claims(explanation)).toContainEqual(
-        expect.stringContaining(` = ${operator.name}(1, 2) = true`),
+        expect.stringContaining(` = ${operator.name}(1, 2) = `),
       );
     },
   );
+
+  /** `lte(I, 36900) = true` says nothing; the reader needs the income that was compared. */
+  it("writes each claim with the values its variables hold", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const low = predicate("low_income", { person: Person });
+    const P = variable("P");
+    const I = variable("I");
+    const H = variable("H");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(low({ person: P })).iff(
+      and(income({ person: P, amount: I }), letIn(H, max(I, 500), lte(H, 36_900))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, low({ person: alice })));
+
+    // Assert
+    const claims = leaves(explanation).map((leaf) => leaf.claim);
+    expect(claims).toEqual([
+      "income(alice, 1000) = true",
+      "H = max(1000, 500) = 1000",
+      "lte(1000, 36900) = true",
+    ]);
+    expect(children(explanation)[0]?.claim).toBe(
+      "and(income(alice, 1000), and(1000 = max(1000, 500), lte(1000, 36900))) = true",
+    );
+  });
+
+  /** A variable nothing binds is the open question, so it must stay visible by name. */
+  it("keeps the name of a variable that has no value", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const spouse = closedPredicate("spouse", { person: Person, spouse: Person });
+    const married = predicate("married", { person: Person });
+    const P = variable("P");
+    const S = variable("S");
+    kb.rule(married({ person: P })).iff(spouse({ person: P, spouse: S }));
+
+    // Act
+    const explanation = explainJudgment(query(kb, married({ person: alice })));
+
+    // Assert
+    expect(children(explanation)).toEqual([
+      {
+        claim: "spouse(alice, S) = false",
+        because: "spouse(alice, S) is closed-world, and no matching evidence is known",
+      },
+    ]);
+  });
 
   /** A comparison is not a fact lacking evidence; saying so misreports a sound proof. */
   it("explains a comparison and an arithmetic term as computed", () => {

@@ -58,7 +58,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     const atom = judgment.goal.goal.atom;
     return {
       claim: claimForJudgment(judgment),
-      because: `${formatAtom(atom)} is closed-world, and no evidence is known`,
+      because: `${formatAtom(atom, new Map(judgment.bindings))} is closed-world, and no evidence is known`,
     };
   }
 
@@ -101,7 +101,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   if (closedWorldAbsence !== undefined && judgment.goal.kind === "atom") {
     return {
       claim: claimForJudgment(judgment),
-      because: `${formatAtom(judgment.goal.atom)} is closed-world, and no matching evidence is known`,
+      because: `${formatAtom(judgment.goal.atom, new Map(judgment.bindings))} is closed-world, and no matching evidence is known`,
     };
   }
 
@@ -215,8 +215,31 @@ function isClosedWorldAbsence(judgment: Judgment): judgment is Judgment & {
   );
 }
 
+/** The values a judgment's variables hold, for writing its goal as it was evaluated. */
+type Values = ReadonlyMap<Var, unknown>;
+
+const NO_VALUES: Values = new Map();
+
+/**
+ * The goal as it was evaluated, and what it came to. Variables are written as the values
+ * they hold, and a variable without one keeps its name. A term that computes a value says
+ * the value it computed, such as `A = mul(1000, 0.15) = 150`; every other claim ends in
+ * its truth value.
+ */
 function claimForJudgment(judgment: Judgment): string {
-  return `${formatGoal(judgment.goal)} = ${judgment.value}`;
+  const values: Values = new Map(judgment.bindings);
+  const { goal } = judgment;
+  if (judgment.value === "true" && "bind" in goal && values.has(goal.bind)) {
+    return `${formatComputation(goal, values)} = ${formatValue(values.get(goal.bind))}`;
+  }
+  return `${formatGoal(goal, values)} = ${judgment.value}`;
+}
+
+/** A computing goal with the variable it binds left as a name: `A = mul(1000, 0.15)`. */
+function formatComputation(goal: Goal & { bind: Var }, values: Values): string {
+  const unbound = new Map(values);
+  unbound.delete(goal.bind);
+  return formatGoal(goal, unbound);
 }
 
 function evidenceReason(literal: AnyLiteral): EvidenceReason {
@@ -254,19 +277,21 @@ function formatLiteral(literal: AnyLiteral): string {
   return literal.sign === "-" ? `not(${formatAtom(literal.atom)})` : formatAtom(literal.atom);
 }
 
-function formatGoal(goal: Goal): string {
+function formatGoal(goal: Goal, values: Values = NO_VALUES): string {
+  const value = (operand: unknown): string => formatValue(operand, values);
+  const bound = (variable: Var): string => formatValue(variable, values);
   switch (goal.kind) {
     case "atom":
-      return formatAtom(goal.atom);
+      return formatAtom(goal.atom, values);
     case "not":
-      return `not(${formatGoal(goal.goal)})`;
+      return `not(${formatGoal(goal.goal, values)})`;
     case "and":
     case "or":
-      return `${goal.kind}(${goal.goals.map(formatGoal).join(", ")})`;
+      return `${goal.kind}(${goal.goals.map((subgoal) => formatGoal(subgoal, values)).join(", ")})`;
     case "exists":
-      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal)})`;
+      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal, values)})`;
     case "let":
-      return `let(${goal.variable.name} = ${formatValue(goal.value)}: ${formatGoal(goal.goal)})`;
+      return `let(${goal.variable.name} = ${value(goal.value)}: ${formatGoal(goal.goal, values)})`;
     case "add":
     case "sub":
     case "mul":
@@ -279,31 +304,31 @@ function formatGoal(goal: Goal): string {
     case "roundTo":
     case "floorTo":
     case "ceilTo":
-      return `${goal.bind.name} = ${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
+      return `${bound(goal.bind)} = ${goal.kind}(${value(goal.left)}, ${value(goal.right)})`;
     case "eq":
     case "neq":
     case "lt":
     case "lte":
     case "gt":
     case "gte":
-      return `${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
+      return `${goal.kind}(${value(goal.left)}, ${value(goal.right)})`;
     case "sum":
-      return `${goal.bind.name} = sum(${formatValue(goal.value)})`;
+      return `${bound(goal.bind)} = sum(${value(goal.value)})`;
     case "count":
-      return `${goal.bind.name} = count(${formatGoal(goal.where)})`;
+      return `${bound(goal.bind)} = count(${formatGoal(goal.where, values)})`;
     default:
       throw new AssertionError("Unhandled goal kind");
   }
 }
 
-function formatAtom(atom: AnyAtom): string {
-  const values = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name]));
-  return `${atom.predicate.name}(${values.join(", ")})`;
+function formatAtom(atom: AnyAtom, values: Values = NO_VALUES): string {
+  const fields = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name], values));
+  return `${atom.predicate.name}(${fields.join(", ")})`;
 }
 
-function formatValue(value: unknown): string {
+function formatValue(value: unknown, values: Values = NO_VALUES): string {
   if (isVar(value)) {
-    return value.name;
+    return values.has(value) ? formatValue(values.get(value)) : value.name;
   }
   if (
     typeof value === "object" &&
