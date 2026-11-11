@@ -1,6 +1,6 @@
 {
   "name": "@factbag/clef",
-  "version": "0.0.0-alpha.5",
+  "version": "0.0.0-alpha.6",
   "description": "Lazy AI-assisted classification and evidence resolution for Factbag, using Cloudflare's Clef models on Workers AI.",
   "keywords": [
     "classification",

@@ -1,5 +1,26 @@
 # @factbag/clef
 
+## 0.0.0-alpha.6
+
+### Minor Changes
+
+- 6433c6b: Classify open-ended `String`, `Number`, and `Date` fields, and entity fields with no registered entities, over the values each passage offers. Pass `createChunkSymbolExtractor` to `classifier(...)` from `@factbag/jev` or `@factbag/clef` to build an extractor per chunk whose `query` answers candidate values for the open fields of the predicates it classifies. Both packages export the `ChunkSymbolExtractor`, `CreateChunkSymbolExtractor`, and `SymbolAnswer` types.
+
+  Extracted values are candidates only. An extracted entity is registered in `run.kb.entities` when asserted or denied evidence mentions it; entities the model does not admit evidence for are discarded.
+
+### Patch Changes
+
+- Updated dependencies [7225a51]
+- Updated dependencies [7f26b45]
+- Updated dependencies [b7c85ff]
+- Updated dependencies [ed6ec84]
+- Updated dependencies [5114b2f]
+- Updated dependencies [15391f2]
+- Updated dependencies [eab3679]
+- Updated dependencies [ecbd8d9]
+- Updated dependencies [e4b343e]
+  - factbag@0.0.0-alpha.6
+
 ## 0.0.0-alpha.5
 
 ### Minor Changes

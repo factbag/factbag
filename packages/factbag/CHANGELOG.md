@@ -1,5 +1,22 @@
 # factbag
 
+## 0.0.0-alpha.6
+
+### Minor Changes
+
+- 7225a51: Add `firstOfMonth(year, month)`, a date-valued arithmetic term for the first day of a month at UTC midnight, and `yearOf(date)`, a number-valued term for a date's UTC calendar year. Rules can now derive a year's bounds, such as `firstOfMonth(Y, 1)` and `sub(firstOfMonth(add(Y, 1), 1), 86_400_000)`, instead of looking them up in asserted calendar facts. A month outside 1 to 12, or a year that is not a whole number, throws `PrimitiveArithmeticProgrammerError` rather than rolling over. The query API adds `FirstOfMonthGoal` and the `"firstOfMonth"` arithmetic kind.
+- 5114b2f: Show the `citation` and `justification` recorded with a piece of evidence in its explanation, beside its `source`. An evidence reason no longer repeats the claim of the step it supports; it names its own claim only when that differs, as in a conflict, or when the evidence has no provenance. `EvidenceReason.quote`, which was never filled, is replaced by `citation`.
+- eab3679: Explain a rule application with the rule alone, `eligible(P) iff not(active_sanction(P))`, without the trailing `, with P = alice`. The values a rule was applied to are already written into the claim it supports and the claims it rests on.
+- e4b343e: Add a `budget` option to `explainJudgment`: the most claims to explain. The conclusion is always explained, then the claims that decided it before those that were evaluated and changed nothing, and those near the conclusion before those far from it. A claim that rests on claims left out names them, with their values, under `notShown`. Without a budget the whole proof is explained, as before; written as JSON a deep proof repeats each shared claim on every path to it, so give a budget when explaining a judgment in text.
+
+### Patch Changes
+
+- 7f26b45: Write explanation claims with the values their variables hold: `lte(1000, 36900) = true` instead of `lte(I, 36900) = true`, and `spouse(alice, S) = false` instead of `spouse(P, S) = false`. A variable with no value keeps its name. A term that computes a value states it, such as `H = max(1000, 500) = 1000`, instead of ending in `= true`.
+- b7c85ff: Explain a comparison, arithmetic term or aggregate as `computed` instead of `no supporting evidence or rule was found`. When one could not be evaluated because a variable has no value, the explanation names the variable, such as `X has no value`.
+- ed6ec84: Write a date at UTC midnight as a day in explanations, `2015-12-31` instead of `2015-12-31T00:00:00.000Z`. A date with a time of day keeps its full timestamp.
+- 15391f2: Rest a rule application directly on the subgoals of its body in explanations. When a rule's body is an `and` or an `or`, the explanation no longer has a node that restates the body between the rule and its subgoals: the rule's `given` lists the subgoals themselves. A compound nested inside a body is still its own node, and so is a body that is a single atom or a negation.
+- ecbd8d9: Stop naming the solver's temporaries, such as `$tmp0`, in explanations. A nested arithmetic term is written as the term and its value, `mul(1000, 0.15) = 150`; a term that could not be computed stands in for its result wherever that is used, `gte(add(X, 1), 18) = unknown`; and a rule's `with ...` list gives only the rule's own variables.
+
 ## 0.0.0-alpha.5
 
 ### Minor Changes
