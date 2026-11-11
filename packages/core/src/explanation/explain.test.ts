@@ -57,6 +57,10 @@ function children(explanation: Explanation | undefined): readonly Explanation[] 
   return explanation.given;
 }
 
+function leaves(explanation: Explanation): readonly Explanation[] {
+  return "given" in explanation ? explanation.given.flatMap(leaves) : [explanation];
+}
+
 describe("explainJudgment", () => {
   it.each([daysBetween, yearsBetween])(
     "names the %s date operation in a rendered proof",
@@ -96,6 +100,47 @@ describe("explainJudgment", () => {
       );
     },
   );
+
+  /** A comparison is not a fact lacking evidence; saying so misreports a sound proof. */
+  it("explains a comparison and an arithmetic term as computed", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const taxed = predicate("taxed", { person: Person, amount: Number });
+    const P = variable("P");
+    const I = variable("I");
+    const A = variable("A");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(taxed({ person: P, amount: A })).iff(
+      and(income({ person: P, amount: I }), letIn(A, roundTo(I, 100), gte(A, 0))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, taxed({ person: alice, amount: 1000 })));
+
+    // Assert
+    const computed = leaves(explanation).filter((leaf) => typeof leaf.because === "string");
+    expect(computed.length).toBeGreaterThanOrEqual(2);
+    expect(computed.map((leaf) => leaf.because)).toEqual(computed.map(() => "computed"));
+  });
+
+  /** An unknown comparison must name what it is waiting on, or the unknown cannot be resolved. */
+  it("explains a comparison over a variable with no value by naming the variable", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const age = predicate("age", { person: Person, years: Number });
+    const adult = predicate("adult", { person: Person });
+    const P = variable("P");
+    const X = variable("X");
+    kb.rule(adult({ person: P })).iff(and(age({ person: P, years: X }), gte(X, 18)));
+
+    // Act
+    const explanation = explainJudgment(query(kb, adult({ person: alice })));
+
+    // Assert
+    expect(explanation.claim).toBe("adult(alice) = unknown");
+    expect(leaves(explanation).map((leaf) => leaf.because)).toContain("X has no value");
+  });
 
   it("lists equal subtrees once but keeps different derivations of the same claim", () => {
     // Arrange

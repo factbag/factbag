@@ -105,10 +105,33 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     };
   }
 
+  const primitive = supports.find((support) => support.source === "primitive");
+  if (primitive !== undefined) {
+    return { claim: claimForJudgment(judgment), because: primitiveReason(primitive) };
+  }
+
   return {
     claim: claimForJudgment(judgment),
     because: "no supporting evidence or rule was found",
   };
+}
+
+/**
+ * Why a comparison, arithmetic term or aggregate has its value. It is computed rather than
+ * supported by evidence or a rule, unless a variable it needs was never given a value.
+ */
+function primitiveReason(support: JudgmentSupportFor<Goal>): string {
+  const uncertainty =
+    support.source === "primitive" && "evaluation" in support
+      ? (support.evaluation.uncertainty ?? [])
+      : [];
+  const missing = uncertainty.flatMap((reason) =>
+    reason.kind === "missing-binding" ? [formatValue(reason.variable)] : [],
+  );
+  if (missing.length > 0) {
+    return `${[...new Set(missing)].join(", ")} ${missing.length === 1 ? "has" : "have"} no value`;
+  }
+  return uncertainty.length > 0 ? "computed from values that are not settled" : "computed";
 }
 
 function uniqueExplanations(
