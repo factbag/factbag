@@ -7,6 +7,8 @@ import { isTemporary, isVar } from "../types/variable";
 import type { Var } from "../types/variable";
 import { isFormula } from "../dsl/types";
 import { AssertionError } from "../utils/assert";
+import { withinBudget } from "./budget";
+import { noteUndecisive, undecisiveIn } from "./relevance";
 import type { Explanation, EvidenceReason } from "./types";
 
 type ExplanationContext = {
@@ -18,12 +20,28 @@ type ExplanationContext = {
 };
 
 /**
+ * How much of a judgment's proof to explain.
+ */
+export type ExplanationOptions = Readonly<{
+  /**
+   * The most claims to explain. Without it, every claim of the proof is explained.
+   *
+   * Most of a proof is conditions that held and changed nothing, and a deep rule set has
+   * hundreds of them. Within a budget, the conclusion is always explained, then what
+   * decided it before what did not, and what is near it before what is far. A claim that
+   * rests on claims left out names them, with their values, in `notShown`.
+   */
+  budget?: number;
+}>;
+
+/**
  * Convert a judgment's proof-support graph into a compact, LLM-readable
  * {@link Explanation} of what was concluded and why.
  *
- * The result is a directed acyclic graph (DAG): reused judgment objects share
- * explanation nodes within this call. Serializing the result as JSON still
- * expands shared nodes at every path to them.
+ * Without a budget, the result is a directed acyclic graph (DAG): reused judgment
+ * objects share explanation nodes within this call. Serializing it as JSON expands a
+ * shared node at every path to it, so the text of a deep proof grows with its paths, to
+ * megabytes. Give a `budget` to explain a judgment in text.
  *
  * @example
  * ```ts
@@ -41,13 +59,14 @@ type ExplanationContext = {
  * }
  * ```
  */
-export function explainJudgment(judgment: Judgment): Explanation {
-  return explainWithContext(judgment, {
+export function explainJudgment(judgment: Judgment, options: ExplanationOptions = {}): Explanation {
+  const explanation = explainWithContext(judgment, {
     definitions: new Map(),
     explanations: new WeakMap(),
     contentKeys: new WeakMap(),
     keyIds: new Map(),
   });
+  return options.budget === undefined ? explanation : withinBudget(explanation, options.budget);
 }
 
 function explainWithContext(judgment: Judgment, context: ExplanationContext): Explanation {
@@ -71,11 +90,15 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   const supports = supportsForValue(judgment);
   const ruleSupport = supports.find((support) => support.source === "rule");
   if (ruleSupport !== undefined) {
-    return {
+    const body = explainWithContext(ruleSupport.body, context);
+    const explanation = {
       claim: claimForJudgment(judgment, context),
       because: formatRule(ruleSupport.rule),
-      given: ruleBodyExplanations(ruleSupport.body, context),
+      given: ruleBodyExplanations(ruleSupport.body, body),
     };
+    // Resting directly on the body's subgoals, the application inherits which decided.
+    noteUndecisive(explanation, undecisiveIn(body));
+    return explanation;
   }
 
   const evidence = supports.flatMap((support) =>
@@ -95,13 +118,21 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     support.source === "subgoals" ? support.judgments : [],
   );
   if (subgoals.length > 0) {
-    return {
+    const explanation = {
       claim: claimForJudgment(judgment, context),
       given: uniqueExplanations(
         subgoals.map((subgoal) => explainWithContext(subgoal, context)),
         context,
       ),
     };
+    const deciding = new Set(
+      decidingSubgoals(judgment, subgoals).map((subgoal) => explainWithContext(subgoal, context)),
+    );
+    noteUndecisive(
+      explanation,
+      explanation.given.filter((given) => !deciding.has(given)),
+    );
+    return explanation;
   }
 
   const closedWorldAbsence = supports.find((support) => support.source === "closed-world-absence");
@@ -150,12 +181,38 @@ function primitiveReason(support: JudgmentSupportFor<Goal>, scope: Scope): strin
  * subgoals. Any other body, such as a single atom or a negation, is the one thing it
  * rests on.
  */
-function ruleBodyExplanations(body: Judgment, context: ExplanationContext): readonly Explanation[] {
-  const explanation = explainWithContext(body, context);
+function ruleBodyExplanations(body: Judgment, explanation: Explanation): readonly Explanation[] {
   const combines = body.goal.kind === "and" || body.goal.kind === "or";
   return combines && "given" in explanation && !("because" in explanation)
     ? explanation.given
     : [explanation];
+}
+
+/**
+ * The subgoals that give a conjunction or disjunction its value. The rest were evaluated
+ * and changed nothing.
+ *
+ * A false `and` is decided by its false subgoals, all of them: each is something that
+ * would have to change. A true `or` is decided by one true subgoal, and the first will
+ * do. A true `and` and a false `or` need every subgoal. When the value is not settled,
+ * the subgoals that are not settled either way are what it waits on.
+ */
+function decidingSubgoals(judgment: Judgment, subgoals: readonly Judgment[]): readonly Judgment[] {
+  const { kind } = judgment.goal;
+  if (kind !== "and" && kind !== "or") {
+    return subgoals;
+  }
+  const deciding = kind === "and" ? "false" : "true";
+  const neutral = kind === "and" ? "true" : "false";
+  if (judgment.value === neutral) {
+    return subgoals;
+  }
+  const decided =
+    judgment.value === deciding
+      ? subgoals.filter((subgoal) => subgoal.value === deciding)
+      : subgoals.filter((subgoal) => subgoal.value !== neutral);
+  const chosen = kind === "or" && judgment.value === "true" ? decided.slice(0, 1) : decided;
+  return chosen.length > 0 ? chosen : subgoals;
 }
 
 function uniqueExplanations(

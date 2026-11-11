@@ -1,10 +1,11 @@
 /**
- * Explanations: convert a query judgment's proof tree into a compact,
- * LLM-readable claim/because/given structure.
+ * Explanations: convert a query judgment's proof into a compact, LLM-readable
+ * claim/because/given structure.
  *
  * @packageDocumentation
  */
 export { explainJudgment } from "./explain";
+export type { ExplanationOptions } from "./explain";
 export type {
   CompoundExplanation,
   DerivedExplanation,
