@@ -12,7 +12,7 @@ export type ExplanationBase = Readonly<{
  * ```json
  * {
  *   "claim": "eligible(alice) = true",
- *   "because": "eligible(P) iff not(active_sanction(P)), with P = alice",
+ *   "because": "eligible(P) iff not(active_sanction(P))",
  *   "given": [
  *     {
  *       "claim": "not(active_sanction(alice)) = true",
@@ -76,7 +76,7 @@ export type EvidenceExplanation = ExplanationBase &
  * ```json
  * {
  *   "claim": "eligible(bob) = false",
- *   "because": "eligible(P) iff not(active_sanction(P)), with P = bob",
+ *   "because": "eligible(P) iff not(active_sanction(P))",
  *   "given": [
  *     {
  *       "claim": "not(active_sanction(bob)) = false",
