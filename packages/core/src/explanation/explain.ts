@@ -3,25 +3,45 @@ import type { Goal } from "../types/goal";
 import type { Judgment, JudgmentSupportFor } from "../types/judgment";
 import type { AnyLiteral } from "../types/literal";
 import type { AnyRule } from "../types/rule";
-import { isVar } from "../types/variable";
+import { isTemporary, isVar } from "../types/variable";
 import type { Var } from "../types/variable";
 import { isFormula } from "../dsl/types";
 import { AssertionError } from "../utils/assert";
+import { withinBudget } from "./budget";
+import { noteUndecisive, undecisiveIn } from "./relevance";
 import type { Explanation, EvidenceReason } from "./types";
 
 type ExplanationContext = {
+  /** The term that computes each temporary met so far, for writing one that has no value. */
+  definitions: Map<Var, ComputingGoal>;
   explanations: WeakMap<Judgment, Explanation>;
   contentKeys: WeakMap<Explanation, number>;
   keyIds: Map<string, number>;
 };
 
 /**
+ * How much of a judgment's proof to explain.
+ */
+export type ExplanationOptions = Readonly<{
+  /**
+   * The most claims to explain. Without it, every claim of the proof is explained.
+   *
+   * Most of a proof is conditions that held and changed nothing, and a deep rule set has
+   * hundreds of them. Within a budget, the conclusion is always explained, then what
+   * decided it before what did not, and what is near it before what is far. A claim that
+   * rests on claims left out names them, with their values, in `notShown`.
+   */
+  budget?: number;
+}>;
+
+/**
  * Convert a judgment's proof-support graph into a compact, LLM-readable
  * {@link Explanation} of what was concluded and why.
  *
- * The result is a directed acyclic graph (DAG): reused judgment objects share
- * explanation nodes within this call. Serializing the result as JSON still
- * expands shared nodes at every path to them.
+ * Without a budget, the result is a directed acyclic graph (DAG): reused judgment
+ * objects share explanation nodes within this call. Serializing it as JSON expands a
+ * shared node at every path to it, so the text of a deep proof grows with its paths, to
+ * megabytes. Give a `budget` to explain a judgment in text.
  *
  * @example
  * ```ts
@@ -31,17 +51,22 @@ type ExplanationContext = {
  * ```json
  * {
  *   "claim": "doctor(alice) = true",
- *   "because": "doctor(P) iff and(passed_medical_school(P), has_active_license(P)), with P = alice",
- *   "given": [{ "claim": "and(...) = true" }]
+ *   "because": "doctor(P) iff and(passed_medical_school(P), has_active_license(P))",
+ *   "given": [
+ *     { "claim": "passed_medical_school(alice) = true" },
+ *     { "claim": "has_active_license(alice) = true" }
+ *   ]
  * }
  * ```
  */
-export function explainJudgment(judgment: Judgment): Explanation {
-  return explainWithContext(judgment, {
+export function explainJudgment(judgment: Judgment, options: ExplanationOptions = {}): Explanation {
+  const explanation = explainWithContext(judgment, {
+    definitions: new Map(),
     explanations: new WeakMap(),
     contentKeys: new WeakMap(),
     keyIds: new Map(),
   });
+  return options.budget === undefined ? explanation : withinBudget(explanation, options.budget);
 }
 
 function explainWithContext(judgment: Judgment, context: ExplanationContext): Explanation {
@@ -57,29 +82,34 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   if (isClosedWorldAbsence(judgment)) {
     const atom = judgment.goal.goal.atom;
     return {
-      claim: claimForJudgment(judgment),
-      because: `${formatAtom(atom)} is closed-world, and no evidence is known`,
+      claim: claimForJudgment(judgment, context),
+      because: `${formatAtom(atom, scopeOf(judgment, context))} is closed-world, and no evidence is known`,
     };
   }
 
   const supports = supportsForValue(judgment);
   const ruleSupport = supports.find((support) => support.source === "rule");
   if (ruleSupport !== undefined) {
-    return {
-      claim: claimForJudgment(judgment),
-      because: formatRuleApplication(ruleSupport.rule, ruleSupport.body.bindings),
-      given: [explainWithContext(ruleSupport.body, context)],
+    const body = explainWithContext(ruleSupport.body, context);
+    const explanation = {
+      claim: claimForJudgment(judgment, context),
+      because: formatRule(ruleSupport.rule),
+      given: ruleBodyExplanations(ruleSupport.body, body),
     };
+    // Resting directly on the body's subgoals, the application inherits which decided.
+    noteUndecisive(explanation, undecisiveIn(body));
+    return explanation;
   }
 
   const evidence = supports.flatMap((support) =>
     support.source === "evidence" ? support.literals : [],
   );
   if (evidence.length > 0) {
-    const reasons = evidence.map(evidenceReason);
+    const claim = claimForJudgment(judgment, context);
+    const reasons = evidence.map((literal) => evidenceReason(literal, claim));
     const firstReason = reasons[0];
     return {
-      claim: claimForJudgment(judgment),
+      claim,
       because: reasons.length === 1 && firstReason !== undefined ? firstReason : reasons,
     };
   }
@@ -88,27 +118,101 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     support.source === "subgoals" ? support.judgments : [],
   );
   if (subgoals.length > 0) {
-    return {
-      claim: claimForJudgment(judgment),
+    const explanation = {
+      claim: claimForJudgment(judgment, context),
       given: uniqueExplanations(
         subgoals.map((subgoal) => explainWithContext(subgoal, context)),
         context,
       ),
     };
+    const deciding = new Set(
+      decidingSubgoals(judgment, subgoals).map((subgoal) => explainWithContext(subgoal, context)),
+    );
+    noteUndecisive(
+      explanation,
+      explanation.given.filter((given) => !deciding.has(given)),
+    );
+    return explanation;
   }
 
   const closedWorldAbsence = supports.find((support) => support.source === "closed-world-absence");
   if (closedWorldAbsence !== undefined && judgment.goal.kind === "atom") {
     return {
-      claim: claimForJudgment(judgment),
-      because: `${formatAtom(judgment.goal.atom)} is closed-world, and no matching evidence is known`,
+      claim: claimForJudgment(judgment, context),
+      because: `${formatAtom(judgment.goal.atom, scopeOf(judgment, context))} is closed-world, and no matching evidence is known`,
+    };
+  }
+
+  const primitive = supports.find((support) => support.source === "primitive");
+  if (primitive !== undefined) {
+    return {
+      claim: claimForJudgment(judgment, context),
+      because: primitiveReason(primitive, scopeOf(judgment, context)),
     };
   }
 
   return {
-    claim: claimForJudgment(judgment),
+    claim: claimForJudgment(judgment, context),
     because: "no supporting evidence or rule was found",
   };
+}
+
+/**
+ * Why a comparison, arithmetic term or aggregate has its value. It is computed rather than
+ * supported by evidence or a rule, unless a variable it needs was never given a value.
+ */
+function primitiveReason(support: JudgmentSupportFor<Goal>, scope: Scope): string {
+  const uncertainty =
+    support.source === "primitive" && "evaluation" in support
+      ? (support.evaluation.uncertainty ?? [])
+      : [];
+  const missing = uncertainty.flatMap((reason) =>
+    reason.kind === "missing-binding" ? [formatValue(reason.variable, scope)] : [],
+  );
+  if (missing.length > 0) {
+    return `${[...new Set(missing)].join(", ")} ${missing.length === 1 ? "has" : "have"} no value`;
+  }
+  return uncertainty.length > 0 ? "computed from values that are not settled" : "computed";
+}
+
+/**
+ * What a rule application rests on. A body that is an `and` or an `or` is not a step of
+ * its own: the rule already states it, so the application rests directly on the body's
+ * subgoals. Any other body, such as a single atom or a negation, is the one thing it
+ * rests on.
+ */
+function ruleBodyExplanations(body: Judgment, explanation: Explanation): readonly Explanation[] {
+  const combines = body.goal.kind === "and" || body.goal.kind === "or";
+  return combines && "given" in explanation && !("because" in explanation)
+    ? explanation.given
+    : [explanation];
+}
+
+/**
+ * The subgoals that give a conjunction or disjunction its value. The rest were evaluated
+ * and changed nothing.
+ *
+ * A false `and` is decided by its false subgoals, all of them: each is something that
+ * would have to change. A true `or` is decided by one true subgoal, and the first will
+ * do. A true `and` and a false `or` need every subgoal. When the value is not settled,
+ * the subgoals that are not settled either way are what it waits on.
+ */
+function decidingSubgoals(judgment: Judgment, subgoals: readonly Judgment[]): readonly Judgment[] {
+  const { kind } = judgment.goal;
+  if (kind !== "and" && kind !== "or") {
+    return subgoals;
+  }
+  const deciding = kind === "and" ? "false" : "true";
+  const neutral = kind === "and" ? "true" : "false";
+  if (judgment.value === neutral) {
+    return subgoals;
+  }
+  const decided =
+    judgment.value === deciding
+      ? subgoals.filter((subgoal) => subgoal.value === deciding)
+      : subgoals.filter((subgoal) => subgoal.value !== neutral);
+  const chosen = kind === "or" && judgment.value === "true" ? decided.slice(0, 1) : decided;
+  return chosen.length > 0 ? chosen : subgoals;
 }
 
 function uniqueExplanations(
@@ -192,26 +296,109 @@ function isClosedWorldAbsence(judgment: Judgment): judgment is Judgment & {
   );
 }
 
-function claimForJudgment(judgment: Judgment): string {
-  return `${formatGoal(judgment.goal)} = ${judgment.value}`;
+/** A goal that computes a value and binds it: arithmetic, or an aggregate. */
+type ComputingGoal = Extract<Goal, { bind: Var }>;
+
+/**
+ * What a goal's variables stand for when it is written out: the values the judgment's
+ * variables hold, and the terms that compute the temporaries.
+ */
+type Scope = Readonly<{
+  values: ReadonlyMap<Var, unknown>;
+  definitions: ReadonlyMap<Var, ComputingGoal>;
+}>;
+
+const NO_SCOPE: Scope = { values: new Map(), definitions: new Map() };
+
+function scopeOf(judgment: Judgment, context: ExplanationContext): Scope {
+  noteDefinitions(judgment.goal, context.definitions);
+  return { values: new Map(judgment.bindings), definitions: context.definitions };
 }
 
-function evidenceReason(literal: AnyLiteral): EvidenceReason {
-  const claim = `${formatAtom(literal.atom)} = ${literal.sign === "+" ? "true" : "false"}`;
-  const source = literal.metadata?.source;
-  return source === undefined ? { claim } : { claim, source };
-}
-
-function formatRuleApplication(
-  rule: AnyRule,
-  bindings: readonly (readonly [Var, unknown])[],
-): string {
-  const base = `${formatLiteral(rule.head)} ${rule.kind} ${formatRuleBody(rule.body)}`;
-  if (bindings.length === 0) {
-    return base;
+/** Record the term that computes each temporary in the goal. A parent is always noted before its subgoals are explained. */
+function noteDefinitions(goal: Goal, definitions: Map<Var, ComputingGoal>): void {
+  if ("bind" in goal && isTemporary(goal.bind)) {
+    definitions.set(goal.bind, goal);
   }
+  if (goal.kind === "and" || goal.kind === "or") {
+    for (const subgoal of goal.goals) {
+      noteDefinitions(subgoal, definitions);
+    }
+  }
+}
 
-  return `${base}, with ${bindings.map(([variable, value]) => `${variable.name} = ${formatValue(value)}`).join(", ")}`;
+/**
+ * The goal as it was evaluated, and what it came to. Variables are written as the values
+ * they hold, and a variable without one keeps its name. A term that computes a value says
+ * the value it computed, such as `A = mul(1000, 0.15) = 150`; every other claim ends in
+ * its truth value. A temporary is never named: the term that computes it stands for it.
+ */
+function claimForJudgment(judgment: Judgment, context: ExplanationContext): string {
+  const scope = scopeOf(judgment, context);
+  const { goal } = judgment;
+  if ("bind" in goal) {
+    const computed = scope.values.has(goal.bind) && judgment.value === "true";
+    const result = computed ? formatValue(scope.values.get(goal.bind)) : judgment.value;
+    return `${formatComputation(goal, scope)} = ${result}`;
+  }
+  return `${formatGoal(goal, scope)} = ${judgment.value}`;
+}
+
+/**
+ * A computing goal with the variable it binds left as a name, `A = mul(1000, 0.15)`, or
+ * with no name when it binds a temporary, `mul(1000, 0.15)`.
+ */
+function formatComputation(goal: ComputingGoal, scope: Scope): string {
+  const values = new Map(scope.values);
+  values.delete(goal.bind);
+  const term = formatTerm(goal, { ...scope, values });
+  return isTemporary(goal.bind) ? term : `${goal.bind.name} = ${term}`;
+}
+
+/**
+ * A computing goal inside a larger one: the term and its value, `mul(1000, 0.15) = 150`,
+ * or with no value the variable it would bind, `A = mul(I, 0.15)`. A temporary with no
+ * value is written as its term wherever it is used, so here it is the term alone.
+ */
+function formatComputing(goal: ComputingGoal, scope: Scope): string {
+  const term = formatTerm(goal, scope);
+  if (scope.values.has(goal.bind)) {
+    return `${term} = ${formatValue(scope.values.get(goal.bind))}`;
+  }
+  return isTemporary(goal.bind) ? term : `${goal.bind.name} = ${term}`;
+}
+
+/** The computation itself, without the variable it binds: `mul(1000, 0.15)`. */
+function formatTerm(goal: ComputingGoal, scope: Scope): string {
+  if (goal.kind === "sum") {
+    return `sum(${formatValue(goal.value, scope)})`;
+  }
+  if (goal.kind === "count") {
+    return `count(${formatGoal(goal.where, scope)})`;
+  }
+  return `${goal.kind}(${formatValue(goal.left, scope)}, ${formatValue(goal.right, scope)})`;
+}
+
+/**
+ * What one piece of evidence says and where it comes from. Its claim is left out when it
+ * only repeats `stepClaim` beside provenance, so a step states its claim once.
+ */
+function evidenceReason(literal: AnyLiteral, stepClaim: string): EvidenceReason {
+  const claim = `${formatAtom(literal.atom)} = ${literal.sign === "+" ? "true" : "false"}`;
+  const { source, citation, justification } = literal.metadata ?? {};
+  const provenance = {
+    ...(source === undefined ? {} : { source }),
+    ...(citation === undefined ? {} : { citation }),
+    ...(justification === undefined ? {} : { justification }),
+  };
+  return claim === stepClaim && Object.keys(provenance).length > 0
+    ? provenance
+    : { claim, ...provenance };
+}
+
+/** A rule as its author wrote it. The values it was applied to are in the claims it supports. */
+function formatRule(rule: AnyRule): string {
+  return `${formatLiteral(rule.head)} ${rule.kind} ${formatRuleBody(rule.body)}`;
 }
 
 function formatRuleBody(body: unknown): string {
@@ -231,55 +418,58 @@ function formatLiteral(literal: AnyLiteral): string {
   return literal.sign === "-" ? `not(${formatAtom(literal.atom)})` : formatAtom(literal.atom);
 }
 
-function formatGoal(goal: Goal): string {
+function formatGoal(goal: Goal, scope: Scope = NO_SCOPE): string {
   switch (goal.kind) {
     case "atom":
-      return formatAtom(goal.atom);
+      return formatAtom(goal.atom, scope);
     case "not":
-      return `not(${formatGoal(goal.goal)})`;
+      return `not(${formatGoal(goal.goal, scope)})`;
     case "and":
     case "or":
-      return `${goal.kind}(${goal.goals.map(formatGoal).join(", ")})`;
+      return `${goal.kind}(${goal.goals.map((subgoal) => formatGoal(subgoal, scope)).join(", ")})`;
     case "exists":
-      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal)})`;
+      return `exists(${goal.variables.map((variable) => variable.name).join(", ")}: ${formatGoal(goal.goal, scope)})`;
     case "let":
-      return `let(${goal.variable.name} = ${formatValue(goal.value)}: ${formatGoal(goal.goal)})`;
+      return `let(${goal.variable.name} = ${formatValue(goal.value, scope)}: ${formatGoal(goal.goal, scope)})`;
     case "add":
     case "sub":
     case "mul":
     case "div":
     case "daysBetween":
     case "yearsBetween":
+    case "firstOfMonth":
     case "min":
     case "max":
     case "roundTo":
     case "floorTo":
     case "ceilTo":
-      return `${goal.bind.name} = ${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
+    case "sum":
+    case "count":
+      return formatComputing(goal, scope);
     case "eq":
     case "neq":
     case "lt":
     case "lte":
     case "gt":
     case "gte":
-      return `${goal.kind}(${formatValue(goal.left)}, ${formatValue(goal.right)})`;
-    case "sum":
-      return `${goal.bind.name} = sum(${formatValue(goal.value)})`;
-    case "count":
-      return `${goal.bind.name} = count(${formatGoal(goal.where)})`;
+      return `${goal.kind}(${formatValue(goal.left, scope)}, ${formatValue(goal.right, scope)})`;
     default:
       throw new AssertionError("Unhandled goal kind");
   }
 }
 
-function formatAtom(atom: AnyAtom): string {
-  const values = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name]));
-  return `${atom.predicate.name}(${values.join(", ")})`;
+function formatAtom(atom: AnyAtom, scope: Scope = NO_SCOPE): string {
+  const fields = atom.predicate.paramNames.map((name) => formatValue(atom.fields[name], scope));
+  return `${atom.predicate.name}(${fields.join(", ")})`;
 }
 
-function formatValue(value: unknown): string {
+function formatValue(value: unknown, scope: Scope = NO_SCOPE): string {
   if (isVar(value)) {
-    return value.name;
+    if (scope.values.has(value)) {
+      return formatValue(scope.values.get(value));
+    }
+    const definition = scope.definitions.get(value);
+    return definition === undefined ? value.name : formatTerm(definition, scope);
   }
   if (
     typeof value === "object" &&
@@ -290,7 +480,9 @@ function formatValue(value: unknown): string {
     return value.id;
   }
   if (value instanceof Date) {
-    return value.toISOString();
+    // A date at UTC midnight is a day; its time of day is noise.
+    const text = value.toISOString();
+    return text.endsWith("T00:00:00.000Z") ? text.slice(0, 10) : text;
   }
   return String(value);
 }

@@ -69,6 +69,8 @@ export type DivGoal = ArithmeticGoal<"div">;
 export type DaysBetweenGoal = ArithmeticGoal<"daysBetween">;
 /** Arithmetic goal binding whole anniversary years from the right date to the left. */
 export type YearsBetweenGoal = ArithmeticGoal<"yearsBetween">;
+/** Arithmetic goal binding the first day of the right month of the left year. */
+export type FirstOfMonthGoal = ArithmeticGoal<"firstOfMonth">;
 /** Arithmetic goal binding the lesser of two numeric expressions. */
 export type MinGoal = ArithmeticGoal<"min">;
 /** Arithmetic goal binding the greater of two numeric expressions. */
@@ -88,6 +90,7 @@ export type ArithmeticKind =
   | "div"
   | "daysBetween"
   | "yearsBetween"
+  | "firstOfMonth"
   | "min"
   | "max"
   | "roundTo"
@@ -102,6 +105,7 @@ export const ARITHMETIC_KINDS: readonly ArithmeticKind[] = [
   "div",
   "daysBetween",
   "yearsBetween",
+  "firstOfMonth",
   "min",
   "max",
   "roundTo",
@@ -168,6 +172,7 @@ export type Goal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | FirstOfMonthGoal
   | MinGoal
   | MaxGoal
   | RoundToGoal
@@ -193,6 +198,7 @@ export type PrimitiveGoal =
   | DivGoal
   | DaysBetweenGoal
   | YearsBetweenGoal
+  | FirstOfMonthGoal
   | MinGoal
   | MaxGoal
   | RoundToGoal

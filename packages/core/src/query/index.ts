@@ -21,6 +21,7 @@ export type {
   DivGoal,
   EqGoal,
   ExistsGoal,
+  FirstOfMonthGoal,
   FloorToGoal,
   Goal,
   GoalExpression,

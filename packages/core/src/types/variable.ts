@@ -21,3 +21,14 @@ export class Var<Name extends string = string> {
 export function isVar(value: unknown): value is Var {
   return value instanceof Var;
 }
+
+/**
+ * The prefix of the variables the solver introduces for the intermediate results of
+ * arithmetic. No rule names them, so they are not written into explanations.
+ */
+export const TEMPORARY_PREFIX = "$tmp";
+
+/** Return whether the solver introduced the variable for an intermediate result. */
+export function isTemporary(variable: Var): boolean {
+  return variable.name.startsWith(TEMPORARY_PREFIX);
+}

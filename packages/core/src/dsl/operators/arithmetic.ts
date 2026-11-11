@@ -96,6 +96,39 @@ export function yearsBetween(
 }
 
 /**
+ * The first day of a month at UTC midnight, from a whole year and a whole month from 1
+ * (January) to 12. Other days of the year follow by date arithmetic.
+ *
+ * @example
+ * ```ts
+ * // The tax year Y runs from its first day to the day before the next year's.
+ * letIn(First, firstOfMonth(Y, 1), letIn(Last, sub(firstOfMonth(add(Y, 1), 1), dayMs), ...))
+ * ```
+ */
+export function firstOfMonth(
+  year: NumericTerm,
+  month: NumericTerm,
+): Formula<Date, readonly [NumericTerm, NumericTerm]> {
+  assertSupportedValue(year);
+  assertSupportedValue(month);
+  return { kind: "firstOfMonth", args: [year, month] };
+}
+
+/**
+ * The UTC calendar year of a date, for dates from the year 0 on: the whole years from
+ * January 1 of the year 0, so it explains as that `yearsBetween`.
+ *
+ * @example
+ * ```ts
+ * // A death in an earlier year than Y.
+ * and(died({ person: P, day: D }), gt(Y, yearOf(D)))
+ * ```
+ */
+export function yearOf(date: DateTerm): Formula<number, readonly [DateTerm, DateTerm]> {
+  return yearsBetween(date, firstOfMonth(0, 1));
+}
+
+/**
  * The lesser of two numeric terms.
  *
  * @example

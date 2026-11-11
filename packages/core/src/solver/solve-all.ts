@@ -8,7 +8,7 @@ import {
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
-import { daysBetween, yearsBetween } from "./calendar";
+import { daysBetween, firstOfMonth, yearsBetween } from "./calendar";
 import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
@@ -38,7 +38,7 @@ import type { AnyLiteral, Literal } from "../types/literal";
 import type { PredicateDeclaration } from "../types/predicate";
 import type { AnyRule } from "../types/rule";
 import type { PredicateSchema } from "../types/schema";
-import { isVar, Var } from "../types/variable";
+import { isTemporary, isVar, TEMPORARY_PREFIX, Var } from "../types/variable";
 import { isFormula, type Scalar } from "../dsl/types";
 import { assert, AssertionError } from "../utils/assert";
 import { validateQuery } from "./query-validation";
@@ -1407,7 +1407,8 @@ function evaluateAggregateInto(
   // An already-bound variable is constrained by the aggregate, not rebound: the
   // total is computed into a temporary and compared, as constrainBoundVariable does.
   const existing = valueForVariable(bindings, variable);
-  const target = existing === UNBOUND ? variable : new Var(`$tmp${context.nextTemp++}`);
+  const target =
+    existing === UNBOUND ? variable : new Var(`${TEMPORARY_PREFIX}${context.nextTemp++}`);
   const nextBindings = new Map(bindings);
   const values = rows.map((row) => resolveAggregateValue(valueExpression, row.bindings));
   let value: number | NumericRangeValue;
@@ -1848,6 +1849,13 @@ function calculateValue(
       case "daysBetween":
       case "yearsBetween":
         break;
+      case "firstOfMonth": {
+        const day = firstOfMonth(left, right);
+        if (day === undefined) {
+          throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+        }
+        return day;
+      }
       case "min":
         return Math.min(left, right);
       case "max":
@@ -2203,18 +2211,11 @@ function bindingsArray(bindings: ReadonlyMap<Var, unknown>): Bindings {
 }
 
 /**
- * The temporaries arithmetic introduces for its intermediate results. They record the
- * computation in the proof tree but are not rule variables, so two environments that
+ * Whether the result binds a rule variable the environment does not. Temporaries record
+ * the computation in the proof tree but are not rule variables, so two environments that
  * differ only in temporaries are the same environment, and a result that adds only
  * temporaries binds nothing beyond the environment it was evaluated in.
  */
-const TEMPORARY_PREFIX = "$tmp";
-
-function isTemporary(variable: Var): boolean {
-  return variable.name.startsWith(TEMPORARY_PREFIX);
-}
-
-/** Whether the result binds a rule variable the environment does not. */
 function bindsBeyond(
   result: ReadonlyMap<Var, unknown>,
   environment: ReadonlyMap<Var, unknown>,

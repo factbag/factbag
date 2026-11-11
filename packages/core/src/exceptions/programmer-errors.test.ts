@@ -3,7 +3,17 @@
  * and that primitive arithmetic errors retain operation, operands, and goal.
  */
 import { describe, expect, it } from "vitest";
-import { ceilTo, closedPredicate, floorTo, gte, letIn, predicate, roundTo, variable } from "../dsl";
+import {
+  ceilTo,
+  closedPredicate,
+  firstOfMonth,
+  floorTo,
+  gte,
+  letIn,
+  predicate,
+  roundTo,
+  variable,
+} from "../dsl";
 import { KnowledgeBase } from "../knowledge-base";
 import { queryAll } from "../query";
 import { Var } from "../types/variable";
@@ -114,4 +124,29 @@ describe("PrimitiveArithmeticProgrammerError", () => {
       });
     },
   );
+
+  it("retains firstOfMonth operands and names the calendar it expects", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const result = closedPredicate("result", { day: Date });
+    const D = variable("D");
+    kb.rule(result({ day: D })).iff(letIn(D, firstOfMonth(2018, 13), gte(D, D)));
+
+    // Act
+    let error: unknown;
+    try {
+      queryAll(kb, result({ day: D }));
+    } catch (caught) {
+      error = caught;
+    }
+
+    // Assert
+    expect(error).toBeInstanceOf(PrimitiveArithmeticProgrammerError);
+    expect(error).toMatchObject({
+      operation: "firstOfMonth",
+      operands: [2018, 13],
+      goal: { kind: "firstOfMonth", bind: D, left: 2018, right: 13 },
+      message: "firstOfMonth expected a whole year and a whole month from 1 to 12",
+    });
+  });
 });

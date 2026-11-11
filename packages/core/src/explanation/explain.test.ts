@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  add,
   and,
   ceilTo,
   closedPredicate,
@@ -11,6 +12,7 @@ import {
   floorTo,
   gte,
   letIn,
+  lte,
   max,
   min,
   not,
@@ -57,6 +59,10 @@ function children(explanation: Explanation | undefined): readonly Explanation[] 
   return explanation.given;
 }
 
+function leaves(explanation: Explanation): readonly Explanation[] {
+  return "given" in explanation ? explanation.given.flatMap(leaves) : [explanation];
+}
+
 describe("explainJudgment", () => {
   it.each([daysBetween, yearsBetween])(
     "names the %s date operation in a rendered proof",
@@ -92,10 +98,235 @@ describe("explainJudgment", () => {
         ...("given" in node ? node.given : []).flatMap(claims),
       ];
       expect(claims(explanation)).toContainEqual(
-        expect.stringContaining(` = ${operator.name}(1, 2) = true`),
+        expect.stringContaining(`${operator.name}(1, 2) = `),
       );
     },
   );
+
+  /** `lte(I, 36900) = true` says nothing; the reader needs the income that was compared. */
+  it("writes each claim with the values its variables hold", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const low = predicate("low_income", { person: Person });
+    const P = variable("P");
+    const I = variable("I");
+    const H = variable("H");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(low({ person: P })).iff(
+      and(income({ person: P, amount: I }), letIn(H, max(I, 500), lte(H, 36_900))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, low({ person: alice })));
+
+    // Assert
+    const claims = leaves(explanation).map((leaf) => leaf.claim);
+    expect(claims).toEqual([
+      "income(alice, 1000) = true",
+      "H = max(1000, 500) = 1000",
+      "lte(1000, 36900) = true",
+    ]);
+    expect(children(explanation)[1]?.claim).toBe(
+      "and(max(1000, 500) = 1000, lte(1000, 36900)) = true",
+    );
+  });
+
+  /**
+   * `$tmp0` is how the solver lowers a nested term. It names nothing in the rule, so a
+   * reader cannot look it up.
+   */
+  it("never names the temporaries of nested arithmetic", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const tax = predicate("tax", { person: Person, amount: Number });
+    const P = variable("P");
+    const I = variable("I");
+    const A = variable("A");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(tax({ person: P, amount: A })).iff(
+      and(income({ person: P, amount: I }), letIn(A, roundTo(max(I, 500), 0), gte(A, 0))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, tax({ person: alice, amount: 7 })));
+
+    // Assert
+    expect(JSON.stringify(explanation)).not.toContain("$tmp");
+    expect("because" in explanation ? explanation.because : undefined).toBe(
+      "tax(P, A) iff and(income(P, I), letIn(A, roundTo(max(I, 500), 0), gte(A, 0)))",
+    );
+    expect(leaves(explanation).map((leaf) => leaf.claim)).toEqual([
+      "income(alice, 1000) = true",
+      "max(1000, 500) = 1000",
+      "roundTo(1000, 0) = 1000",
+      "eq(7, 1000) = false",
+      "gte(7, 0) = true",
+    ]);
+  });
+
+  /** With no value to print, the term that would have computed it is what was asked. */
+  it("writes a temporary that has no value as the term that computes it", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const age = predicate("age", { person: Person, years: Number });
+    const adult = predicate("adult", { person: Person });
+    const P = variable("P");
+    const X = variable("X");
+    kb.rule(adult({ person: P })).iff(and(age({ person: P, years: X }), gte(add(X, 1), 18)));
+
+    // Act
+    const explanation = explainJudgment(query(kb, adult({ person: alice })));
+
+    // Assert
+    expect(leaves(explanation).map((leaf) => [leaf.claim, leaf.because])).toEqual([
+      ["age(alice, X) = unknown", "no supporting evidence or rule was found"],
+      ["add(X, 1) = unknown", "X has no value"],
+      ["gte(add(X, 1), 18) = unknown", "add(X, 1) has no value"],
+    ]);
+  });
+
+  /** Calendar rules compare days; a timestamp on every one triples the text for nothing. */
+  it("writes a date at UTC midnight as a day and any other with its time", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const seen = predicate("seen", { person: Person, at: Date });
+    kb.asserts(seen({ person: alice, at: new Date("2015-02-03") }));
+    kb.asserts(seen({ person: bob, at: new Date("2015-02-03T09:30:00.000Z") }));
+
+    // Act
+    const day = explainJudgment(query(kb, seen({ person: alice, at: new Date("2015-02-03") })));
+    const moment = explainJudgment(
+      query(kb, seen({ person: bob, at: new Date("2015-02-03T09:30:00.000Z") })),
+    );
+
+    // Assert
+    expect(day.claim).toBe("seen(alice, 2015-02-03) = true");
+    expect(moment.claim).toBe("seen(bob, 2015-02-03T09:30:00.000Z) = true");
+  });
+
+  /**
+   * The rule already prints its body, so a step that restates the body and lists the same
+   * subgoals says nothing new. It was nearly half the text of a deep explanation.
+   */
+  it("rests a rule application directly on the subgoals of its and/or body", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const licensed = predicate("licensed", { person: Person });
+    const trained = predicate("trained", { person: Person });
+    const doctor = predicate("doctor", { person: Person });
+    const P = variable("P");
+    kb.asserts(licensed({ person: alice }));
+    kb.asserts(trained({ person: alice }));
+    kb.rule(doctor({ person: P })).iff(and(trained({ person: P }), licensed({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, doctor({ person: alice })));
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "doctor(alice) = true",
+      because: "doctor(P) iff and(trained(P), licensed(P))",
+      given: [
+        { claim: "trained(alice) = true", because: { claim: "trained(alice) = true" } },
+        { claim: "licensed(alice) = true", because: { claim: "licensed(alice) = true" } },
+      ],
+    });
+  });
+
+  /** Only the outermost connective is the rule's own; an inner one groups its subgoals. */
+  it("keeps a compound nested inside a rule body as its own step", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const licensed = predicate("licensed", { person: Person });
+    const trained = predicate("trained", { person: Person });
+    const honorary = predicate("honorary", { person: Person });
+    const doctor = predicate("doctor", { person: Person });
+    const P = variable("P");
+    kb.asserts(honorary({ person: alice }));
+    kb.denies(trained({ person: alice }));
+    kb.denies(licensed({ person: alice }));
+    kb.rule(doctor({ person: P })).iff(
+      or(honorary({ person: P }), and(trained({ person: P }), licensed({ person: P }))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, doctor({ person: alice })));
+
+    // Assert
+    expect(children(explanation).map((child) => child.claim)).toEqual([
+      "honorary(alice) = true",
+      "and(trained(alice), licensed(alice)) = false",
+    ]);
+    expect(children(children(explanation)[1]).map((child) => child.claim)).toEqual([
+      "trained(alice) = false",
+      "licensed(alice) = false",
+    ]);
+  });
+
+  /** A variable nothing binds is the open question, so it must stay visible by name. */
+  it("keeps the name of a variable that has no value", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const spouse = closedPredicate("spouse", { person: Person, spouse: Person });
+    const married = predicate("married", { person: Person });
+    const P = variable("P");
+    const S = variable("S");
+    kb.rule(married({ person: P })).iff(spouse({ person: P, spouse: S }));
+
+    // Act
+    const explanation = explainJudgment(query(kb, married({ person: alice })));
+
+    // Assert
+    expect(children(explanation)).toEqual([
+      {
+        claim: "spouse(alice, S) = false",
+        because: "spouse(alice, S) is closed-world, and no matching evidence is known",
+      },
+    ]);
+  });
+
+  /** A comparison is not a fact lacking evidence; saying so misreports a sound proof. */
+  it("explains a comparison and an arithmetic term as computed", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const income = closedPredicate("income", { person: Person, amount: Number });
+    const taxed = predicate("taxed", { person: Person, amount: Number });
+    const P = variable("P");
+    const I = variable("I");
+    const A = variable("A");
+    kb.asserts(income({ person: alice, amount: 1000 }));
+    kb.rule(taxed({ person: P, amount: A })).iff(
+      and(income({ person: P, amount: I }), letIn(A, roundTo(I, 100), gte(A, 0))),
+    );
+
+    // Act
+    const explanation = explainJudgment(query(kb, taxed({ person: alice, amount: 1000 })));
+
+    // Assert
+    const computed = leaves(explanation).filter((leaf) => typeof leaf.because === "string");
+    expect(computed.length).toBeGreaterThanOrEqual(2);
+    expect(computed.map((leaf) => leaf.because)).toEqual(computed.map(() => "computed"));
+  });
+
+  /** An unknown comparison must name what it is waiting on, or the unknown cannot be resolved. */
+  it("explains a comparison over a variable with no value by naming the variable", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const age = predicate("age", { person: Person, years: Number });
+    const adult = predicate("adult", { person: Person });
+    const P = variable("P");
+    const X = variable("X");
+    kb.rule(adult({ person: P })).iff(and(age({ person: P, years: X }), gte(X, 18)));
+
+    // Act
+    const explanation = explainJudgment(query(kb, adult({ person: alice })));
+
+    // Assert
+    expect(explanation.claim).toBe("adult(alice) = unknown");
+    expect(leaves(explanation).map((leaf) => leaf.because)).toContain("X has no value");
+  });
 
   it("lists equal subtrees once but keeps different derivations of the same claim", () => {
     // Arrange
@@ -122,12 +353,12 @@ describe("explainJudgment", () => {
     expect(children(explanation)).toEqual([
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [{ claim: "base(alice) = true", because: { claim: "base(alice) = true" } }],
       },
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff alternate(P), with P = alice",
+        because: "derived(P) iff alternate(P)",
         given: [
           { claim: "alternate(alice) = true", because: { claim: "alternate(alice) = true" } },
         ],
@@ -154,21 +385,21 @@ describe("explainJudgment", () => {
     expect(children(explanation)).toEqual([
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [
           {
             claim: "base(alice) = true",
-            because: { claim: "base(alice) = true", source: "registry" },
+            because: { source: "registry" },
           },
         ],
       },
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [
           {
             claim: "base(alice) = true",
-            because: { claim: "base(alice) = true", source: "interview" },
+            because: { source: "interview" },
           },
         ],
       },
@@ -198,7 +429,7 @@ describe("explainJudgment", () => {
 
     // Act
     const explanation = explainJudgment(judgment);
-    const branches = children(children(explanation)[0]);
+    const branches = children(explanation);
 
     // Assert
     expect(branches.map((branch) => branch.claim)).toEqual([
@@ -261,8 +492,8 @@ describe("explainJudgment", () => {
     // Assert
     expect(judgment.value).toBe("true");
     expect(explanation.claim).toBe("level_24(alice) = true");
-    // One root; per level: or, two ands, two scoped previous atoms, a and b.
-    expect(seen.size).toBe(1 + 7 * depth);
+    // One root; per level: two ands, two scoped previous atoms, a and b.
+    expect(seen.size).toBe(1 + 6 * depth);
     expect(elapsed).toBeLessThan(3_000);
   });
 
@@ -326,9 +557,55 @@ describe("explainJudgment", () => {
         expected: {
           claim: "active_sanction(bob) = true",
           because: {
-            claim: "active_sanction(bob) = true",
             source: "sanctions_registry",
           },
+        },
+      },
+      {
+        name: "evidence quotes its citation and justification",
+        run() {
+          const kb = new KnowledgeBase();
+
+          kb.asserts(activeSanction({ person: bob }), {
+            source: "sanctions_registry",
+            citation: "Bob appears on the active sanctions list.",
+            justification: "The list names Bob without an end date.",
+          });
+
+          return explainJudgment(query(kb, activeSanction({ person: bob })));
+        },
+        expected: {
+          claim: "active_sanction(bob) = true",
+          because: {
+            source: "sanctions_registry",
+            citation: "Bob appears on the active sanctions list.",
+            justification: "The list names Bob without an end date.",
+          },
+        },
+      },
+      {
+        name: "conflicting evidence names its side beside its citation",
+        run() {
+          const kb = new KnowledgeBase();
+
+          kb.asserts(activeSanction({ person: drew }), { source: "sanctions_registry" });
+          kb.denies(activeSanction({ person: drew }), {
+            source: "appeals_board",
+            citation: "Drew's sanction was overturned on appeal.",
+          });
+
+          return explainJudgment(query(kb, activeSanction({ person: drew })));
+        },
+        expected: {
+          claim: "active_sanction(drew) = conflicted",
+          because: [
+            { claim: "active_sanction(drew) = true", source: "sanctions_registry" },
+            {
+              claim: "active_sanction(drew) = false",
+              source: "appeals_board",
+              citation: "Drew's sanction was overturned on appeal.",
+            },
+          ],
         },
       },
       {
@@ -387,7 +664,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(alice) = true",
-          because: "eligible(P) iff not(active_sanction(P)), with P = alice",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(alice)) = true",
@@ -403,7 +680,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(bob) = false",
-          because: "eligible(P) iff not(active_sanction(P)), with P = bob",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(bob)) = false",
@@ -426,7 +703,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(cara) = true",
-          because: "eligible(P) iff not(active_sanction(P)), with P = cara",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(cara)) = true",
@@ -449,7 +726,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(drew) = conflicted",
-          because: "eligible(P) iff not(active_sanction(P)), with P = drew",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(drew)) = conflicted",
@@ -477,5 +754,145 @@ describe("explainJudgment", () => {
         expect(testCase.run()).toEqual(testCase.expected);
       });
     }
+  });
+
+  /**
+   * Most of a proof is conditions that held and changed nothing. Within a budget, the
+   * reader must get the reason first, and be told what else was looked at.
+   */
+  it("spends a budget on what decided the conclusion, and names what it left out", () => {
+    // Arrange
+    const resident = closedPredicate("resident", { person: Person });
+    const licensed = closedPredicate("licensed", { person: Person });
+    const trained = closedPredicate("trained", { person: Person });
+    const qualified = predicate("qualified", { person: Person });
+    const eligible = predicate("eligible", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(resident({ person: alice }));
+    kb.asserts(trained({ person: alice }));
+    kb.rule(qualified({ person: P })).iff(and(trained({ person: P }), licensed({ person: P })));
+    kb.rule(eligible({ person: P })).iff(and(resident({ person: P }), qualified({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, eligible({ person: alice })), { budget: 3 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "eligible(alice) = false",
+      because: "eligible(P) iff and(resident(P), qualified(P))",
+      given: [
+        {
+          claim: "qualified(alice) = false",
+          because: "qualified(P) iff and(trained(P), licensed(P))",
+          given: [
+            {
+              claim: "licensed(alice) = false",
+              because: "licensed(alice) is closed-world, and no matching evidence is known",
+            },
+          ],
+          notShown: ["trained(alice) = true"],
+        },
+      ],
+      notShown: ["resident(alice) = true"],
+    });
+  });
+
+  /** One branch of an `or` is enough to make it true; the reader needs that one. */
+  it("spends a budget on the branch that made a disjunction true", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const guest = closedPredicate("guest", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(guest({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(or(member({ person: P }), guest({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, admitted({ person: alice })), { budget: 2 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "admitted(alice) = true",
+      because: "admitted(P) iff or(member(P), guest(P))",
+      given: [{ claim: "guest(alice) = true", because: { claim: "guest(alice) = true" } }],
+      notShown: ["member(alice) = false"],
+    });
+  });
+
+  it("explains every claim when the budget covers the proof", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(member({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(member({ person: P }));
+    const judgment = query(kb, admitted({ person: alice }));
+
+    // Act
+    const explanation = explainJudgment(judgment, { budget: 2 });
+
+    // Assert
+    expect(explanation).toEqual(explainJudgment(judgment));
+  });
+
+  /** A budget too small for anything still has to say what was concluded. */
+  it("explains the conclusion alone, naming what it rests on, when the budget is spent on it", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(member({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(member({ person: P }));
+
+    // Act
+    const explanation = explainJudgment(query(kb, admitted({ person: alice })), { budget: 0 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "admitted(alice) = true",
+      because: "admitted(P) iff member(P)",
+      given: [],
+      notShown: ["member(alice) = true"],
+    });
+  });
+
+  /**
+   * A diamond proof has 2^depth paths, and written as JSON a shared claim is repeated on
+   * each. A budget counts claims as written, or it would not bound the text.
+   */
+  it("writes no more claims than its budget, however many paths share them", () => {
+    // Arrange
+    const depth = 24;
+    const base = predicate("base", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(base({ person: alice }));
+    let previous = base;
+    for (let level = 1; level <= depth; level++) {
+      const next = predicate(`level_${level}`, { person: Person });
+      const a = predicate(`a_${level}`, { person: Person });
+      const b = predicate(`b_${level}`, { person: Person });
+      kb.asserts(a({ person: alice }));
+      kb.asserts(b({ person: alice }));
+      kb.rule(next({ person: P })).iff(
+        and(
+          or(previous({ person: P }), a({ person: P })),
+          or(previous({ person: P }), b({ person: P })),
+        ),
+      );
+      previous = next;
+    }
+
+    // Act
+    const explanation = explainJudgment(query(kb, previous({ person: alice })), { budget: 50 });
+
+    // Assert
+    const claims = (node: Explanation): number =>
+      1 + ("given" in node ? node.given.reduce((count, child) => count + claims(child), 0) : 0);
+    expect(claims(explanation)).toBe(50);
   });
 });

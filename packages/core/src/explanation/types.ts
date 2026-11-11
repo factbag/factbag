@@ -2,6 +2,12 @@
 export type ExplanationBase = Readonly<{
   /** The evaluated claim and its value, e.g. `eligible(alice) = true`. */
   claim: string;
+  /**
+   * Claims this one also rests on that a budget left unexplained, each with its value,
+   * e.g. `resident(alice) = true`. What decided a claim is explained before what did
+   * not, so these are most often claims that were evaluated and changed nothing.
+   */
+  notShown?: readonly string[];
 }>;
 
 /**
@@ -12,7 +18,7 @@ export type ExplanationBase = Readonly<{
  * ```json
  * {
  *   "claim": "eligible(alice) = true",
- *   "because": "eligible(P) iff not(active_sanction(P)), with P = alice",
+ *   "because": "eligible(P) iff not(active_sanction(P))",
  *   "given": [
  *     {
  *       "claim": "not(active_sanction(alice)) = true",
@@ -38,7 +44,7 @@ export type Explanation =
  *   "claim": "active_sanction(bob) = true",
  *   "because": {
  *     "source": "sanctions_registry",
- *     "quote": "Bob appears on the active sanctions list."
+ *     "citation": "Bob appears on the active sanctions list."
  *   }
  * }
  * ```
@@ -52,12 +58,12 @@ export type Explanation =
  *     {
  *       "claim": "active_sanction(drew) = true",
  *       "source": "sanctions_registry",
- *       "quote": "Drew appears on the active sanctions list."
+ *       "citation": "Drew appears on the active sanctions list."
  *     },
  *     {
  *       "claim": "active_sanction(drew) = false",
  *       "source": "appeals_board",
- *       "quote": "Drew's sanction was overturned on appeal."
+ *       "citation": "Drew's sanction was overturned on appeal."
  *     }
  *   ]
  * }
@@ -76,7 +82,7 @@ export type EvidenceExplanation = ExplanationBase &
  * ```json
  * {
  *   "claim": "eligible(bob) = false",
- *   "because": "eligible(P) iff not(active_sanction(P)), with P = bob",
+ *   "because": "eligible(P) iff not(active_sanction(P))",
  *   "given": [
  *     {
  *       "claim": "not(active_sanction(bob)) = false",
@@ -85,7 +91,7 @@ export type EvidenceExplanation = ExplanationBase &
  *           "claim": "active_sanction(bob) = true",
  *           "because": {
  *             "source": "sanctions_registry",
- *             "quote": "Bob appears on the active sanctions list."
+ *             "citation": "Bob appears on the active sanctions list."
  *           }
  *         }
  *       ]
@@ -115,12 +121,12 @@ export type DerivedExplanation = ExplanationBase &
  *         {
  *           "claim": "active_sanction(drew) = true",
  *           "source": "sanctions_registry",
- *           "quote": "Drew appears on the active sanctions list."
+ *           "citation": "Drew appears on the active sanctions list."
  *         },
  *         {
  *           "claim": "active_sanction(drew) = false",
  *           "source": "appeals_board",
- *           "quote": "Drew's sanction was overturned on appeal."
+ *           "citation": "Drew's sanction was overturned on appeal."
  *         }
  *       ]
  *     }
@@ -159,7 +165,7 @@ export type TerminalExplanation = ExplanationBase &
  * ```json
  * {
  *   "source": "sanctions_registry",
- *   "quote": "Bob appears on the active sanctions list."
+ *   "citation": "Bob appears on the active sanctions list."
  * }
  * ```
  *
@@ -169,20 +175,26 @@ export type TerminalExplanation = ExplanationBase &
  * {
  *   "claim": "active_sanction(drew) = false",
  *   "source": "appeals_board",
- *   "quote": "Drew's sanction was overturned on appeal.",
+ *   "citation": "Drew's sanction was overturned on appeal.",
  *   "metadata": { "reviewed_by": "appeals_panel" }
  * }
  * ```
  */
 export type EvidenceReason = Readonly<{
-  /** Optional when the surrounding `claim` already names what the evidence proves. */
+  /**
+   * What this evidence says, e.g. `active_sanction(drew) = false`. Left out when it only
+   * repeats the claim of the explanation it sits under and the evidence has provenance.
+   */
   claim?: string;
 
   /** Where the evidence came from, e.g. `sanctions_registry`. */
   source?: string;
 
-  /** The quoted text or excerpt that supports the evidence claim. */
-  quote?: string;
+  /** The words of the source that support the claim, as recorded with the evidence. */
+  citation?: string;
+
+  /** Why the citation supports the claim, as stated by whoever recorded the evidence. */
+  justification?: string;
 
   /** Raw source-specific details that should not be flattened into prose. */
   metadata?: Readonly<Record<string, unknown>>;

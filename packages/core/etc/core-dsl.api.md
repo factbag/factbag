@@ -105,6 +105,9 @@ export function exists<const Args extends readonly unknown[]>(...args: Args & Ex
 export function fieldEquals(left: unknown, right: unknown): boolean;
 
 // @public
+export function firstOfMonth(year: NumericTerm, month: NumericTerm): Formula<Date, readonly [NumericTerm, NumericTerm]>;
+
+// @public
 export function floorTo(value: NumericTerm, places: NumericTerm): Formula<number, readonly [NumericTerm, NumericTerm]>;
 
 // @public
@@ -252,6 +255,9 @@ export class Var<Name extends string = string> {
 
 // @public
 export function variable<const Name extends string>(name: Name): Var<Name>;
+
+// @public
+export function yearOf(date: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;
 
 // @public
 export function yearsBetween(later: DateTerm, earlier: DateTerm): Formula<number, readonly [DateTerm, DateTerm]>;

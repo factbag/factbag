@@ -221,33 +221,25 @@ An abbreviated example with supporting evidence for all three claims:
 ```json
 {
   "claim": "is_qualified_investor(alice) = true",
-  "because": "is_qualified_investor(person) if and(...), with person = alice",
+  "because": "is_qualified_investor(person) if and(...)",
   "given": [
     {
-      "claim": "and(...) = true",
-      "given": [
-        {
-          "claim": "has_income_over_200k(alice, 2024) = true",
-          "because": {
-            "claim": "has_income_over_200k(alice, 2024) = true",
-            "source": "alice-2024-federal-tax-return#0-1"
-          }
-        },
-        {
-          "claim": "has_income_over_200k(alice, 2025) = true",
-          "because": {
-            "claim": "has_income_over_200k(alice, 2025) = true",
-            "source": "alice-2025-federal-tax-return#0-1"
-          }
-        },
-        {
-          "claim": "expects_same_income(alice) = true",
-          "because": {
-            "claim": "expects_same_income(alice) = true",
-            "source": "alice-2026-employment-confirmation-letter#0-1"
-          }
-        }
-      ]
+      "claim": "has_income_over_200k(alice, 2024) = true",
+      "because": {
+        "source": "alice-2024-federal-tax-return#0-1"
+      }
+    },
+    {
+      "claim": "has_income_over_200k(alice, 2025) = true",
+      "because": {
+        "source": "alice-2025-federal-tax-return#0-1"
+      }
+    },
+    {
+      "claim": "expects_same_income(alice) = true",
+      "because": {
+        "source": "alice-2026-employment-confirmation-letter#0-1"
+      }
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysBetween, yearsBetween } from "./calendar";
+import { daysBetween, firstOfMonth, yearsBetween } from "./calendar";
 
 describe("daysBetween", () => {
   it.each([
@@ -49,5 +49,37 @@ describe("yearsBetween", () => {
     const result = yearsBetween(end, start);
     // Assert
     expect(result).toBe(expected);
+  });
+});
+
+describe("firstOfMonth", () => {
+  it.each([
+    ["January", 2018, 1, "2018-01-01"],
+    ["July", 2018, 7, "2018-07-01"],
+    ["December", 2018, 12, "2018-12-01"],
+    ["leap-year March", 2016, 3, "2016-03-01"],
+    ["year zero", 0, 1, "0000-01-01"],
+    ["two-digit year", 99, 1, "0099-01-01"],
+  ])("gives the first day of %s at UTC midnight", (_name, year, month, expected) => {
+    // Arrange: the year and month from the table.
+    // Act
+    const result = firstOfMonth(year, month);
+    // Assert
+    expect(result?.toISOString()).toBe(`${expected}T00:00:00.000Z`);
+  });
+
+  it.each([
+    ["month zero", 2018, 0],
+    ["month thirteen", 2018, 13],
+    ["fractional month", 2018, 1.5],
+    ["fractional year", 2018.5, 1],
+    ["year NaN", Number.NaN, 1],
+    ["year beyond the date range", 1e9, 1],
+  ])("gives no day for %s", (_name, year, month) => {
+    // Arrange: the out-of-range year or month from the table.
+    // Act
+    const result = firstOfMonth(year, month);
+    // Assert
+    expect(result).toBeUndefined();
   });
 });
