@@ -390,7 +390,7 @@ describe("explainJudgment", () => {
         given: [
           {
             claim: "base(alice) = true",
-            because: { claim: "base(alice) = true", source: "registry" },
+            because: { source: "registry" },
           },
         ],
       },
@@ -400,7 +400,7 @@ describe("explainJudgment", () => {
         given: [
           {
             claim: "base(alice) = true",
-            because: { claim: "base(alice) = true", source: "interview" },
+            because: { source: "interview" },
           },
         ],
       },
@@ -558,9 +558,55 @@ describe("explainJudgment", () => {
         expected: {
           claim: "active_sanction(bob) = true",
           because: {
-            claim: "active_sanction(bob) = true",
             source: "sanctions_registry",
           },
+        },
+      },
+      {
+        name: "evidence quotes its citation and justification",
+        run() {
+          const kb = new KnowledgeBase();
+
+          kb.asserts(activeSanction({ person: bob }), {
+            source: "sanctions_registry",
+            citation: "Bob appears on the active sanctions list.",
+            justification: "The list names Bob without an end date.",
+          });
+
+          return explainJudgment(query(kb, activeSanction({ person: bob })));
+        },
+        expected: {
+          claim: "active_sanction(bob) = true",
+          because: {
+            source: "sanctions_registry",
+            citation: "Bob appears on the active sanctions list.",
+            justification: "The list names Bob without an end date.",
+          },
+        },
+      },
+      {
+        name: "conflicting evidence names its side beside its citation",
+        run() {
+          const kb = new KnowledgeBase();
+
+          kb.asserts(activeSanction({ person: drew }), { source: "sanctions_registry" });
+          kb.denies(activeSanction({ person: drew }), {
+            source: "appeals_board",
+            citation: "Drew's sanction was overturned on appeal.",
+          });
+
+          return explainJudgment(query(kb, activeSanction({ person: drew })));
+        },
+        expected: {
+          claim: "active_sanction(drew) = conflicted",
+          because: [
+            { claim: "active_sanction(drew) = true", source: "sanctions_registry" },
+            {
+              claim: "active_sanction(drew) = false",
+              source: "appeals_board",
+              citation: "Drew's sanction was overturned on appeal.",
+            },
+          ],
         },
       },
       {

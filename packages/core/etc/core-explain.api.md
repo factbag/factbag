@@ -25,7 +25,8 @@ export type EvidenceExplanation = ExplanationBase & Readonly<{
 export type EvidenceReason = Readonly<{
     claim?: string;
     source?: string;
-    quote?: string;
+    citation?: string;
+    justification?: string;
     metadata?: Readonly<Record<string, unknown>>;
 }>;
 

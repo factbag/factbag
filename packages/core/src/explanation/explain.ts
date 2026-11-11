@@ -82,10 +82,11 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
     support.source === "evidence" ? support.literals : [],
   );
   if (evidence.length > 0) {
-    const reasons = evidence.map(evidenceReason);
+    const claim = claimForJudgment(judgment, context);
+    const reasons = evidence.map((literal) => evidenceReason(literal, claim));
     const firstReason = reasons[0];
     return {
-      claim: claimForJudgment(judgment, context),
+      claim,
       because: reasons.length === 1 && firstReason !== undefined ? firstReason : reasons,
     };
   }
@@ -321,10 +322,21 @@ function formatTerm(goal: ComputingGoal, scope: Scope): string {
   return `${goal.kind}(${formatValue(goal.left, scope)}, ${formatValue(goal.right, scope)})`;
 }
 
-function evidenceReason(literal: AnyLiteral): EvidenceReason {
+/**
+ * What one piece of evidence says and where it comes from. Its claim is left out when it
+ * only repeats `stepClaim` beside provenance, so a step states its claim once.
+ */
+function evidenceReason(literal: AnyLiteral, stepClaim: string): EvidenceReason {
   const claim = `${formatAtom(literal.atom)} = ${literal.sign === "+" ? "true" : "false"}`;
-  const source = literal.metadata?.source;
-  return source === undefined ? { claim } : { claim, source };
+  const { source, citation, justification } = literal.metadata ?? {};
+  const provenance = {
+    ...(source === undefined ? {} : { source }),
+    ...(citation === undefined ? {} : { citation }),
+    ...(justification === undefined ? {} : { justification }),
+  };
+  return claim === stepClaim && Object.keys(provenance).length > 0
+    ? provenance
+    : { claim, ...provenance };
 }
 
 function formatRuleApplication(
