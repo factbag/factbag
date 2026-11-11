@@ -221,7 +221,7 @@ An abbreviated example with supporting evidence for all three claims:
 ```json
 {
   "claim": "is_qualified_investor(alice) = true",
-  "because": "is_qualified_investor(person) if and(...), with person = alice",
+  "because": "is_qualified_investor(person) if and(...)",
   "given": [
     {
       "claim": "has_income_over_200k(alice, 2024) = true",

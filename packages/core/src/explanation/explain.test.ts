@@ -155,8 +155,7 @@ describe("explainJudgment", () => {
     // Assert
     expect(JSON.stringify(explanation)).not.toContain("$tmp");
     expect("because" in explanation ? explanation.because : undefined).toBe(
-      "tax(P, A) iff and(income(P, I), letIn(A, roundTo(max(I, 500), 0), gte(A, 0))), " +
-        "with P = alice, A = 7, I = 1000",
+      "tax(P, A) iff and(income(P, I), letIn(A, roundTo(max(I, 500), 0), gte(A, 0)))",
     );
     expect(leaves(explanation).map((leaf) => leaf.claim)).toEqual([
       "income(alice, 1000) = true",
@@ -228,7 +227,7 @@ describe("explainJudgment", () => {
     // Assert
     expect(explanation).toEqual({
       claim: "doctor(alice) = true",
-      because: "doctor(P) iff and(trained(P), licensed(P)), with P = alice",
+      because: "doctor(P) iff and(trained(P), licensed(P))",
       given: [
         { claim: "trained(alice) = true", because: { claim: "trained(alice) = true" } },
         { claim: "licensed(alice) = true", because: { claim: "licensed(alice) = true" } },
@@ -354,12 +353,12 @@ describe("explainJudgment", () => {
     expect(children(explanation)).toEqual([
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [{ claim: "base(alice) = true", because: { claim: "base(alice) = true" } }],
       },
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff alternate(P), with P = alice",
+        because: "derived(P) iff alternate(P)",
         given: [
           { claim: "alternate(alice) = true", because: { claim: "alternate(alice) = true" } },
         ],
@@ -386,7 +385,7 @@ describe("explainJudgment", () => {
     expect(children(explanation)).toEqual([
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [
           {
             claim: "base(alice) = true",
@@ -396,7 +395,7 @@ describe("explainJudgment", () => {
       },
       {
         claim: "derived(alice) = true",
-        because: "derived(P) iff base(P), with P = alice",
+        because: "derived(P) iff base(P)",
         given: [
           {
             claim: "base(alice) = true",
@@ -665,7 +664,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(alice) = true",
-          because: "eligible(P) iff not(active_sanction(P)), with P = alice",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(alice)) = true",
@@ -681,7 +680,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(bob) = false",
-          because: "eligible(P) iff not(active_sanction(P)), with P = bob",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(bob)) = false",
@@ -704,7 +703,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(cara) = true",
-          because: "eligible(P) iff not(active_sanction(P)), with P = cara",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(cara)) = true",
@@ -727,7 +726,7 @@ describe("explainJudgment", () => {
         },
         expected: {
           claim: "eligible(drew) = conflicted",
-          because: "eligible(P) iff not(active_sanction(P)), with P = drew",
+          because: "eligible(P) iff not(active_sanction(P))",
           given: [
             {
               claim: "not(active_sanction(drew)) = conflicted",

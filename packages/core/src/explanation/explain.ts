@@ -33,7 +33,7 @@ type ExplanationContext = {
  * ```json
  * {
  *   "claim": "doctor(alice) = true",
- *   "because": "doctor(P) iff and(passed_medical_school(P), has_active_license(P)), with P = alice",
+ *   "because": "doctor(P) iff and(passed_medical_school(P), has_active_license(P))",
  *   "given": [
  *     { "claim": "passed_medical_school(alice) = true" },
  *     { "claim": "has_active_license(alice) = true" }
@@ -73,7 +73,7 @@ function explainOnce(judgment: Judgment, context: ExplanationContext): Explanati
   if (ruleSupport !== undefined) {
     return {
       claim: claimForJudgment(judgment, context),
-      because: formatRuleApplication(ruleSupport.rule, ruleSupport.body.bindings),
+      because: formatRule(ruleSupport.rule),
       given: ruleBodyExplanations(ruleSupport.body, context),
     };
   }
@@ -339,17 +339,9 @@ function evidenceReason(literal: AnyLiteral, stepClaim: string): EvidenceReason 
     : { claim, ...provenance };
 }
 
-function formatRuleApplication(
-  rule: AnyRule,
-  bindings: readonly (readonly [Var, unknown])[],
-): string {
-  const base = `${formatLiteral(rule.head)} ${rule.kind} ${formatRuleBody(rule.body)}`;
-  const named = bindings.filter(([variable]) => !isTemporary(variable));
-  if (named.length === 0) {
-    return base;
-  }
-
-  return `${base}, with ${named.map(([variable, value]) => `${variable.name} = ${formatValue(value)}`).join(", ")}`;
+/** A rule as its author wrote it. The values it was applied to are in the claims it supports. */
+function formatRule(rule: AnyRule): string {
+  return `${formatLiteral(rule.head)} ${rule.kind} ${formatRuleBody(rule.body)}`;
 }
 
 function formatRuleBody(body: unknown): string {

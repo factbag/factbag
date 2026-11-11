@@ -507,7 +507,6 @@ function ProofNode({
   const { atom, value } = splitClaim(explanation.claim);
   const given = "given" in explanation ? explanation.given : [];
   const because = typeof explanation.because === "string" ? explanation.because : undefined;
-  const [rule, bindings] = because?.split(", with ") ?? [];
   return (
     <Box flexDirection="column">
       <Box gap={2}>
@@ -523,14 +522,11 @@ function ProofNode({
         borderDimColor
         paddingLeft={1}
       >
-        {given.length > 0 && rule !== undefined ? (
-          <Box flexDirection="column">
-            <Text>
-              <Text dimColor>by rule </Text>
-              <Text color="cyan">{rule}</Text>
-            </Text>
-            {bindings === undefined ? null : <Text dimColor>with {bindings}</Text>}
-          </Box>
+        {given.length > 0 && because !== undefined ? (
+          <Text>
+            <Text dimColor>by rule </Text>
+            <Text color="cyan">{because}</Text>
+          </Text>
         ) : null}
         {given.length === 0 && because !== undefined ? <Text dimColor>{because}</Text> : null}
         {evidenceReasons(explanation).map((reason) => (
