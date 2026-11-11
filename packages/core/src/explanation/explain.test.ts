@@ -755,4 +755,144 @@ describe("explainJudgment", () => {
       });
     }
   });
+
+  /**
+   * Most of a proof is conditions that held and changed nothing. Within a budget, the
+   * reader must get the reason first, and be told what else was looked at.
+   */
+  it("spends a budget on what decided the conclusion, and names what it left out", () => {
+    // Arrange
+    const resident = closedPredicate("resident", { person: Person });
+    const licensed = closedPredicate("licensed", { person: Person });
+    const trained = closedPredicate("trained", { person: Person });
+    const qualified = predicate("qualified", { person: Person });
+    const eligible = predicate("eligible", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(resident({ person: alice }));
+    kb.asserts(trained({ person: alice }));
+    kb.rule(qualified({ person: P })).iff(and(trained({ person: P }), licensed({ person: P })));
+    kb.rule(eligible({ person: P })).iff(and(resident({ person: P }), qualified({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, eligible({ person: alice })), { budget: 3 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "eligible(alice) = false",
+      because: "eligible(P) iff and(resident(P), qualified(P))",
+      given: [
+        {
+          claim: "qualified(alice) = false",
+          because: "qualified(P) iff and(trained(P), licensed(P))",
+          given: [
+            {
+              claim: "licensed(alice) = false",
+              because: "licensed(alice) is closed-world, and no matching evidence is known",
+            },
+          ],
+          notShown: ["trained(alice) = true"],
+        },
+      ],
+      notShown: ["resident(alice) = true"],
+    });
+  });
+
+  /** One branch of an `or` is enough to make it true; the reader needs that one. */
+  it("spends a budget on the branch that made a disjunction true", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const guest = closedPredicate("guest", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(guest({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(or(member({ person: P }), guest({ person: P })));
+
+    // Act
+    const explanation = explainJudgment(query(kb, admitted({ person: alice })), { budget: 2 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "admitted(alice) = true",
+      because: "admitted(P) iff or(member(P), guest(P))",
+      given: [{ claim: "guest(alice) = true", because: { claim: "guest(alice) = true" } }],
+      notShown: ["member(alice) = false"],
+    });
+  });
+
+  it("explains every claim when the budget covers the proof", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(member({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(member({ person: P }));
+    const judgment = query(kb, admitted({ person: alice }));
+
+    // Act
+    const explanation = explainJudgment(judgment, { budget: 2 });
+
+    // Assert
+    expect(explanation).toEqual(explainJudgment(judgment));
+  });
+
+  /** A budget too small for anything still has to say what was concluded. */
+  it("explains the conclusion alone, naming what it rests on, when the budget is spent on it", () => {
+    // Arrange
+    const member = closedPredicate("member", { person: Person });
+    const admitted = predicate("admitted", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(member({ person: alice }));
+    kb.rule(admitted({ person: P })).iff(member({ person: P }));
+
+    // Act
+    const explanation = explainJudgment(query(kb, admitted({ person: alice })), { budget: 0 });
+
+    // Assert
+    expect(explanation).toEqual({
+      claim: "admitted(alice) = true",
+      because: "admitted(P) iff member(P)",
+      given: [],
+      notShown: ["member(alice) = true"],
+    });
+  });
+
+  /**
+   * A diamond proof has 2^depth paths, and written as JSON a shared claim is repeated on
+   * each. A budget counts claims as written, or it would not bound the text.
+   */
+  it("writes no more claims than its budget, however many paths share them", () => {
+    // Arrange
+    const depth = 24;
+    const base = predicate("base", { person: Person });
+    const P = variable("P");
+    const kb = new KnowledgeBase();
+    kb.asserts(base({ person: alice }));
+    let previous = base;
+    for (let level = 1; level <= depth; level++) {
+      const next = predicate(`level_${level}`, { person: Person });
+      const a = predicate(`a_${level}`, { person: Person });
+      const b = predicate(`b_${level}`, { person: Person });
+      kb.asserts(a({ person: alice }));
+      kb.asserts(b({ person: alice }));
+      kb.rule(next({ person: P })).iff(
+        and(
+          or(previous({ person: P }), a({ person: P })),
+          or(previous({ person: P }), b({ person: P })),
+        ),
+      );
+      previous = next;
+    }
+
+    // Act
+    const explanation = explainJudgment(query(kb, previous({ person: alice })), { budget: 50 });
+
+    // Assert
+    const claims = (node: Explanation): number =>
+      1 + ("given" in node ? node.given.reduce((count, child) => count + claims(child), 0) : 0);
+    expect(claims(explanation)).toBe(50);
+  });
 });

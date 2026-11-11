@@ -2,6 +2,12 @@
 export type ExplanationBase = Readonly<{
   /** The evaluated claim and its value, e.g. `eligible(alice) = true`. */
   claim: string;
+  /**
+   * Claims this one also rests on that a budget left unexplained, each with its value,
+   * e.g. `resident(alice) = true`. What decided a claim is explained before what did
+   * not, so these are most often claims that were evaluated and changed nothing.
+   */
+  notShown?: readonly string[];
 }>;
 
 /**

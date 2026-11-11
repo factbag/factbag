@@ -33,7 +33,7 @@ export type EvidenceReason = Readonly<{
 // Warning: (ae-forgotten-export) The symbol "Judgment" needs to be exported by the entry point index.d.ts
 //
 // @public
-export function explainJudgment(judgment: Judgment): Explanation;
+export function explainJudgment(judgment: Judgment, options?: ExplanationOptions): Explanation;
 
 // @public
 export type Explanation = EvidenceExplanation | DerivedExplanation | CompoundExplanation | TerminalExplanation;
@@ -41,6 +41,12 @@ export type Explanation = EvidenceExplanation | DerivedExplanation | CompoundExp
 // @public
 export type ExplanationBase = Readonly<{
     claim: string;
+    notShown?: readonly string[];
+}>;
+
+// @public
+export type ExplanationOptions = Readonly<{
+    budget?: number;
 }>;
 
 // @public
