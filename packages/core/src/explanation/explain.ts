@@ -250,6 +250,7 @@ function formatGoal(goal: Goal): string {
     case "div":
     case "daysBetween":
     case "yearsBetween":
+    case "firstOfMonth":
     case "min":
     case "max":
     case "roundTo":

@@ -8,7 +8,7 @@ import {
   isGroundAtom,
 } from "../types/atom";
 import { PrimitiveArithmeticProgrammerError } from "../exceptions/programmer-errors";
-import { daysBetween, yearsBetween } from "./calendar";
+import { daysBetween, firstOfMonth, yearsBetween } from "./calendar";
 import type { AnyAtom, Atom, GroundAtom } from "../types/atom";
 import type {
   AndGoal,
@@ -1848,6 +1848,13 @@ function calculateValue(
       case "daysBetween":
       case "yearsBetween":
         break;
+      case "firstOfMonth": {
+        const day = firstOfMonth(left, right);
+        if (day === undefined) {
+          throw new PrimitiveArithmeticProgrammerError(kind, [left, right], goal);
+        }
+        return day;
+      }
       case "min":
         return Math.min(left, right);
       case "max":

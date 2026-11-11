@@ -1,5 +1,16 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { daysBetween, gte, letIn, mul, sub, variable, yearsBetween } from "../index";
+import {
+  add,
+  daysBetween,
+  firstOfMonth,
+  gte,
+  letIn,
+  mul,
+  sub,
+  variable,
+  yearOf,
+  yearsBetween,
+} from "../index";
 import type { DateTerm, Formula, NumericTerm } from "../types";
 import { ceilTo, floorTo, max, min, roundTo } from "./arithmetic";
 
@@ -70,5 +81,32 @@ describe.each([min, max, roundTo, floorTo, ceilTo])("%s", (operator) => {
 
     // Assert
     expect(construct).toThrow(TypeError);
+  });
+});
+
+describe("firstOfMonth", () => {
+  it("takes numeric terms and produces a date-valued formula", () => {
+    // Arrange
+    const Y = variable("Y");
+    // Act
+    const result = firstOfMonth(add(Y, 1), 1);
+    // Assert
+    expectTypeOf(result).toEqualTypeOf<Formula<Date, readonly [NumericTerm, NumericTerm]>>();
+    expect(result).toEqual({ kind: "firstOfMonth", args: [add(Y, 1), 1] });
+    // @ts-expect-error Dates are not years.
+    firstOfMonth(new Date("2020-01-01"), 1);
+  });
+});
+
+describe("yearOf", () => {
+  it("takes a date term and produces a number-valued formula", () => {
+    // Arrange
+    const D = variable("D");
+    // Act
+    const result = yearOf(D);
+    // Assert
+    expectTypeOf(result).toEqualTypeOf<Formula<number, readonly [DateTerm, DateTerm]>>();
+    // @ts-expect-error Numbers are not dates.
+    yearOf(2020);
   });
 });
