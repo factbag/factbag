@@ -10,6 +10,10 @@ and scored the same way.
 
 - [`runner`](./runner): `@factbag/eval-runner`, the contract that benchmark and systems
   packages export, `run`, and the command line they share.
+- [`benchmarks/`](./benchmarks): one package per dataset, holding its loader and where it
+  comes from. A benchmark knows nothing of the systems run on it.
+  - [`sara`](./benchmarks/sara): `@factbag/sara-benchmark`, the StAtutory Reasoning
+    Assessment.
 
 ```sh
 pnpm --filter "./evals/**" test
