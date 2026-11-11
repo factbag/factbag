@@ -3,6 +3,7 @@ packages:
   - "packages/*"
   - "providers/*"
   - "examples/*"
+  - "evals/runner"
   - "tooling/*"
 
 catalog:
