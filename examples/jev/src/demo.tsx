@@ -537,6 +537,7 @@ function ProofNode({
           <EvidenceLeaf
             key={`${reason.source}${reason.claim}`}
             reason={reason}
+            claim={reason.claim ?? explanation.claim}
             corpus={corpus}
             kb={kb}
           />
@@ -551,14 +552,17 @@ function ProofNode({
 
 function EvidenceLeaf({
   reason,
+  claim,
   corpus,
   kb,
 }: {
   reason: EvidenceReason;
+  /** What the evidence says: its own claim, or the claim of the step it supports. */
+  claim: string;
   corpus: Corpus;
   kb: KnowledgeBase;
 }): ReactElement {
-  const positive = reason.claim?.endsWith("= true") ?? false;
+  const positive = claim.endsWith("= true");
   const label = (
     <Text color={positive ? "green" : "red"} bold>
       {positive ? "+ asserted" : "− denied  "}

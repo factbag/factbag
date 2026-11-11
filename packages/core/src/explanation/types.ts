@@ -38,7 +38,7 @@ export type Explanation =
  *   "claim": "active_sanction(bob) = true",
  *   "because": {
  *     "source": "sanctions_registry",
- *     "quote": "Bob appears on the active sanctions list."
+ *     "citation": "Bob appears on the active sanctions list."
  *   }
  * }
  * ```
@@ -52,12 +52,12 @@ export type Explanation =
  *     {
  *       "claim": "active_sanction(drew) = true",
  *       "source": "sanctions_registry",
- *       "quote": "Drew appears on the active sanctions list."
+ *       "citation": "Drew appears on the active sanctions list."
  *     },
  *     {
  *       "claim": "active_sanction(drew) = false",
  *       "source": "appeals_board",
- *       "quote": "Drew's sanction was overturned on appeal."
+ *       "citation": "Drew's sanction was overturned on appeal."
  *     }
  *   ]
  * }
@@ -85,7 +85,7 @@ export type EvidenceExplanation = ExplanationBase &
  *           "claim": "active_sanction(bob) = true",
  *           "because": {
  *             "source": "sanctions_registry",
- *             "quote": "Bob appears on the active sanctions list."
+ *             "citation": "Bob appears on the active sanctions list."
  *           }
  *         }
  *       ]
@@ -115,12 +115,12 @@ export type DerivedExplanation = ExplanationBase &
  *         {
  *           "claim": "active_sanction(drew) = true",
  *           "source": "sanctions_registry",
- *           "quote": "Drew appears on the active sanctions list."
+ *           "citation": "Drew appears on the active sanctions list."
  *         },
  *         {
  *           "claim": "active_sanction(drew) = false",
  *           "source": "appeals_board",
- *           "quote": "Drew's sanction was overturned on appeal."
+ *           "citation": "Drew's sanction was overturned on appeal."
  *         }
  *       ]
  *     }
@@ -159,7 +159,7 @@ export type TerminalExplanation = ExplanationBase &
  * ```json
  * {
  *   "source": "sanctions_registry",
- *   "quote": "Bob appears on the active sanctions list."
+ *   "citation": "Bob appears on the active sanctions list."
  * }
  * ```
  *
@@ -169,20 +169,26 @@ export type TerminalExplanation = ExplanationBase &
  * {
  *   "claim": "active_sanction(drew) = false",
  *   "source": "appeals_board",
- *   "quote": "Drew's sanction was overturned on appeal.",
+ *   "citation": "Drew's sanction was overturned on appeal.",
  *   "metadata": { "reviewed_by": "appeals_panel" }
  * }
  * ```
  */
 export type EvidenceReason = Readonly<{
-  /** Optional when the surrounding `claim` already names what the evidence proves. */
+  /**
+   * What this evidence says, e.g. `active_sanction(drew) = false`. Left out when it only
+   * repeats the claim of the explanation it sits under and the evidence has provenance.
+   */
   claim?: string;
 
   /** Where the evidence came from, e.g. `sanctions_registry`. */
   source?: string;
 
-  /** The quoted text or excerpt that supports the evidence claim. */
-  quote?: string;
+  /** The words of the source that support the claim, as recorded with the evidence. */
+  citation?: string;
+
+  /** Why the citation supports the claim, as stated by whoever recorded the evidence. */
+  justification?: string;
 
   /** Raw source-specific details that should not be flattened into prose. */
   metadata?: Readonly<Record<string, unknown>>;
