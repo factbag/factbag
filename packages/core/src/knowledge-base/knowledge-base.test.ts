@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { predicate, variable } from "../dsl";
 import { ExclusiveDefinitionProgrammerError } from "../exceptions/programmer-errors";
+import { query } from "../query";
 import { KnowledgeBase } from "./knowledge-base";
 
 class Person {
@@ -10,6 +11,43 @@ class Person {
 const P = variable("P");
 
 describe("KnowledgeBase", () => {
+  for (const operation of ["asserts", "denies"] as const) {
+    for (const state of ["empty", "populated"] as const) {
+      it.fails(`${operation} rejects variable-bearing evidence without changing the ${state} KB`, () => {
+        // Arrange
+        const kb = new KnowledgeBase();
+        const status = predicate("status", { value: String });
+        const existing = state === "populated" ? [kb.asserts(status({ value: "active" }))] : [];
+        const pattern = status({ value: variable("Value") });
+
+        // Act
+        const admit = () => kb[operation](pattern);
+
+        // Assert
+        expect(admit).toThrow();
+        expect(kb.literals()).toEqual(existing);
+        if (state === "populated") {
+          expect(query(kb, status({ value: "active" })).value).toBe("true");
+        }
+      });
+    }
+
+    it(`${operation} accepts grounded evidence and preserves its sign`, () => {
+      // Arrange
+      const kb = new KnowledgeBase();
+      const status = predicate("status", { value: String });
+      const atom = status({ value: "active" });
+
+      // Act
+      const literal = kb[operation](atom);
+
+      // Assert
+      expect(kb.literals()).toEqual([{ sign: operation === "asserts" ? "+" : "-", atom }]);
+      expect(kb.literals()[0]).toBe(literal);
+      expect(query(kb, atom).value).toBe(operation === "asserts" ? "true" : "false");
+    });
+  }
+
   it("throws immediately when an if rule is added after an iff definition", () => {
     const kb = new KnowledgeBase();
     const eligible = predicate("eligible_after_iff", { person: Person });
