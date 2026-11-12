@@ -4,6 +4,7 @@ packages:
   - "providers/*"
   - "examples/*"
   - "evals/runner"
+  - "evals/benchmarks/*"
   - "tooling/*"
 
 catalog:
