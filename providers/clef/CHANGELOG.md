@@ -1,5 +1,11 @@
 # @factbag/clef
 
+## 0.1.0-alpha.7
+
+### Patch Changes
+
+- factbag@0.1.0-alpha.7
+
 ## 0.0.0-alpha.6
 
 ### Minor Changes

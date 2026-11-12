@@ -1,5 +1,9 @@
 # factbag
 
+## 0.1.0-alpha.7
+
+No changes in this release.
+
 ## 0.0.0-alpha.6
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@factbag/openai",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.7",
   "description": "Factbag knowledge-base operations as tools for OpenAI and OpenAI-compatible chat completions.",
   "keywords": [
     "llm",
