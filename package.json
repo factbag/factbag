@@ -9,8 +9,8 @@
     "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
-    "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/system-one --filter=@factbag/jev --filter=@factbag/clef --filter=@factbag/corpus --filter=@factbag/symbol-extractor-clairic",
-    "api-report:check": "turbo api-report:check --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/system-one --filter=@factbag/jev --filter=@factbag/clef --filter=@factbag/corpus --filter=@factbag/symbol-extractor-clairic",
+    "api-report": "turbo api-report --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/system-one --filter=@factbag/llm --filter=@factbag/jev --filter=@factbag/clef --filter=@factbag/openai --filter=@factbag/corpus --filter=@factbag/symbol-extractor-clairic",
+    "api-report:check": "turbo api-report:check --filter=@factbag/core --filter=@factbag/guards --filter=@factbag/system-one --filter=@factbag/llm --filter=@factbag/jev --filter=@factbag/clef --filter=@factbag/openai --filter=@factbag/corpus --filter=@factbag/symbol-extractor-clairic",
     "build": "turbo build",
     "build:verify": "node scripts/verify-packed-consumer.ts",
     "changeset": "changeset",

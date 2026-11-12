@@ -1,0 +1,66 @@
+{
+  "name": "@factbag/llm",
+  "version": "0.0.0",
+  "description": "Factbag knowledge-base operations as provider-neutral LLM tools, for provider packages.",
+  "keywords": [
+    "llm",
+    "tools",
+    "function-calling",
+    "ai",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/llm#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/llm"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "tsdown": {
+    "entry": [
+      "src/index.ts"
+    ],
+    "dts": false,
+    "sourcemap": true,
+    "fixedExtension": false
+  },
+  "dependencies": {
+    "factbag": "workspace:*"
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "private": true
+}

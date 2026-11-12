@@ -1,0 +1,107 @@
+{
+  "name": "@factbag/openai",
+  "version": "0.0.0",
+  "description": "Factbag knowledge-base operations as tools for OpenAI and OpenAI-compatible chat completions.",
+  "keywords": [
+    "llm",
+    "tools",
+    "function-calling",
+    "openai",
+    "ai",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/providers/openai#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "providers/openai"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist/public",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "published": {
+        "types": "./dist/public/index.d.ts",
+        "import": "./dist/public/index.js"
+      },
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/public/index.d.ts",
+        "import": "./dist/public/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "tsdown": [
+    {
+      "entry": [
+        "src/index.ts"
+      ],
+      "dts": false,
+      "sourcemap": true,
+      "fixedExtension": false,
+      "deps": {
+        "neverBundle": true
+      }
+    },
+    {
+      "entry": {
+        "index": "src/index.ts"
+      },
+      "outDir": "dist/public",
+      "clean": false,
+      "dts": true,
+      "fixedExtension": false,
+      "tsconfig": "tsconfig.public.json",
+      "deps": {
+        "alwaysBundle": [
+          "@factbag/llm"
+        ],
+        "neverBundle": true,
+        "onlyImport": [
+          "factbag"
+        ]
+      },
+      "publint": true,
+      "attw": {
+        "profile": "esm-only",
+        "level": "error"
+      }
+    }
+  ],
+  "devDependencies": {
+    "@factbag/llm": "workspace:*",
+    "@factbag/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "factbag": "workspace:*"
+  }
+}

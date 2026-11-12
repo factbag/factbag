@@ -37,7 +37,8 @@ npm install factbag@alpha @factbag/jev@alpha @typesafe-ai/sdk@^0.7.0
 
 `@factbag/jev` is released with `factbag` and needs the same version. To use
 Cloudflare's Clef models on Workers AI instead, install `@factbag/clef@alpha`, which
-does not need the TypeSafe SDK.
+does not need the TypeSafe SDK. To let an OpenAI-compatible model read and write a
+knowledge base through tool calls, install `@factbag/openai@alpha`.
 
 ESM only. Requires Node 22.18+ on the 22.x line, or Node 24 or 26.
 

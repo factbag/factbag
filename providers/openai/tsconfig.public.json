@@ -1,0 +1,9 @@
+{
+  "extends": "@factbag/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The published build bundles the LLM toolkit from source; factbag stays a peer.
+    "paths": { "@factbag/llm": ["../../packages/llm/src/index.ts"] }
+  },
+  "files": []
+}

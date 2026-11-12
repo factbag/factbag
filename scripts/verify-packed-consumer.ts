@@ -24,7 +24,7 @@ console.log(`Verifying packed packages on Node ${process.versions.node}`);
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Released together through a Changesets fixed group.
-const publicPackages = ["packages/factbag", "providers/jev", "providers/clef"];
+const publicPackages = ["packages/factbag", "providers/jev", "providers/clef", "providers/openai"];
 const manifests = await Promise.all(
   publicPackages.map(async (directory) => {
     const manifest = JSON.parse(
@@ -106,11 +106,16 @@ try {
   const storePath = workspaceStorePath();
 
   for (const withSdk of [false, true]) {
-    console.log(`Checking ${withSdk ? "Jev with the SDK" : "factbag and Clef without the SDK"}`);
+    console.log(
+      `Checking ${withSdk ? "Jev with the SDK" : "factbag, Clef, and OpenAI without the SDK"}`,
+    );
     const consumerDirectory = await mkdtemp(path.join(os.tmpdir(), "factbag-packed-consumer-"));
     try {
       const realConsumerDirectory = await realpath(consumerDirectory);
-      const installed = ["factbag", withSdk ? "@factbag/jev" : "@factbag/clef"];
+      const installed = [
+        "factbag",
+        ...(withSdk ? ["@factbag/jev"] : ["@factbag/clef", "@factbag/openai"]),
+      ];
       const dependencies: Record<string, string> = Object.fromEntries(
         installed.map((name) => {
           const tarball = tarballs.get(name);

@@ -9,6 +9,7 @@
   "dependencies": {
     "@factbag/clef": "workspace:*",
     "@factbag/jev": "workspace:*",
+    "@factbag/openai": "workspace:*",
     "factbag": "workspace:*"
   },
   "devDependencies": {
