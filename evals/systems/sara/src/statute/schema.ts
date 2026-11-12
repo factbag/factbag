@@ -553,6 +553,20 @@ export const gross_income = closedPredicate(
   },
 );
 
+const disabled = dated(
+  "disabled",
+  { person: Person },
+  "the person is, or was, disabled",
+  "A diagnosis of disability on a day starts the state on that day.",
+);
+
+const retired = dated(
+  "retired",
+  { person: Person },
+  "the person is, or was, retired",
+  "Retiring on a day, or in a year, starts the state then.",
+);
+
 export const has_disability_plan = closedPredicate(
   "has_disability_plan",
   { employer: Person },
@@ -566,6 +580,23 @@ export const has_disability_plan = closedPredicate(
     ),
   },
 );
+
+function yearlyPredicates<Fields extends StateFields>(
+  state: Yearly<Fields>,
+): readonly [Yearly<Fields>["undated"], Yearly<Fields>["inYear"]] {
+  return [state.undated, state.inYear];
+}
+
+function datedPredicates<Fields extends StateFields>(
+  state: Dated<Fields>,
+): readonly [
+  Dated<Fields>["undated"],
+  Dated<Fields>["inYear"],
+  Dated<Fields>["since"],
+  Dated<Fields>["until"],
+] {
+  return [state.undated, state.inYear, state.since, state.until];
+}
 
 // --- Amounts the text states, for §1, §63, §68 and §151(d) ---
 
@@ -932,3 +963,89 @@ export const business_entity = dated(
     "of any kind: IRRELEVANT for them. A trust 'established', 'created' or 'formed' on a " +
     "day began on that day; one 'dissolved', 'terminated' or 'wound up' on a day ended then.",
 );
+
+/**
+ * Names the fact vocabulary and its instructions, so a results file says which extraction
+ * produced it. Bump it when a predicate or instruction changes. "probe-4-2026-10-22" was
+ * the first frozen baseline; "d2-2026-10-22" split step relations out of child_of for
+ * §152(d)(2); "hh-2026-10-23" made the joint return a one-person fact and added the stated
+ * marital, surviving-spouse and head-of-household statuses for the household provisions;
+ * "explicit-2026-10-24" went with the scanner cut back to what the text states;
+ * "coverage-2026-10-24" added the business entity of §63(c)(6)(D) for the test split's
+ * citations; "ranges-2026-10-24" changed no predicate but had the scanner offer every year
+ * of a range the text states as one, so a results file says which candidates it had.
+ */
+export const EXTRACTION_VERSION = "ranges-2026-10-24";
+
+/** The predicates Jev may assert or deny from a case's text. */
+export const FACT_PREDICATES = [
+  married_on,
+  married_undated,
+  legally_separated,
+  died,
+  born,
+  nonresident_alien,
+  nonresident_alien_since,
+  nonresident_alien_until,
+  child_of,
+  stepchild_of,
+  sibling_of,
+  ...datedPredicates(shares_home),
+  ...datedPredicates(maintains_home),
+  home_cost_share,
+  ...yearlyPredicates(deduction_151c),
+  ...yearlyPredicates(exemption_151b),
+  ...yearlyPredicates(qualifying_child_152c),
+  ...yearlyPredicates(dependent_152),
+  ...yearlyPredicates(satisfies_152c2),
+  ...yearlyPredicates(satisfies_152c3),
+  ...yearlyPredicates(joint_return),
+  ...yearlyPredicates(separate_return),
+  ...yearlyPredicates(married_stated),
+  ...yearlyPredicates(surviving_spouse_stated),
+  ...yearlyPredicates(head_of_household_stated),
+  ...datedPredicates(employed),
+  employed_on,
+  agricultural_labor,
+  paid,
+  gross_income,
+  ...datedPredicates(disabled),
+  ...datedPredicates(retired),
+  has_disability_plan,
+  taxable_income,
+  ...yearlyPredicates(stated_amount),
+  ...yearlyPredicates(additional_amount_63f),
+  ...yearlyPredicates(own_additional_amount_63f),
+  ...yearlyPredicates(passed_away),
+  joint_gross_income,
+  aged,
+  ...datedPredicates(blind),
+  paid_in,
+  paid_on,
+  domestic_service,
+  service_outside_business,
+  paid_in_kind,
+  paid_into_plan,
+  termination_payment,
+  paid_under_employer_plan,
+  service_abroad,
+  american_employer,
+  us_citizen,
+  admitted_alien_farm_worker,
+  ...yearlyPredicates(works_for_institution),
+  ...datedPredicates(enrolled_at_school),
+  ...datedPredicates(enrolled_at_nursing_school),
+  ...datedPredicates(hospital_patient),
+  ...datedPredicates(committed_to_penal_institution),
+  ...datedPredicates(business_entity),
+] as const;
+
+// --- The years a question may ask about ---
+
+const FIRST_YEAR = 1900;
+const LAST_YEAR = 2100;
+
+/** Whether a figure is a plausible tax year, so a question may be asking about it. */
+export function isCalendarYear(figure: number): boolean {
+  return Number.isInteger(figure) && figure >= FIRST_YEAR && figure <= LAST_YEAR;
+}

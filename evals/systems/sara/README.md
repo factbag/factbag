@@ -1,21 +1,116 @@
 # SARA systems
 
-Systems for the [SARA benchmark](../../benchmarks/sara), run with the
-[eval runner](../../runner).
+Two systems for the [SARA benchmark](../../benchmarks/sara), run with the
+[eval runner](../../runner): Jev as the reader, with and without the knowledge base.
 
-So far this package holds what the Factbag systems share and no system yet:
+|     | Model answers | Statute rules answer |
+| --- | ------------- | -------------------- |
+| Jev | `jev-direct`  | `jev-factbag`        |
+
+Each system is a directory of `src/`, named as `--system` takes it, and exports its
+`SystemDefinition` from `system.ts`:
+
+- `src/jev-factbag/`: Jev's classifier with the Clairic symbol extractor fills a knowledge
+  base holding the statute's rules, and the rules decide.
+- `src/jev-direct/`: the control: one Jev request per case carrying the cited section and
+  the scenario, with no knowledge base, rules or query, so it measures what Factbag adds.
+  Its prompt is frozen (`PROMPT_VERSION`) and tuned no further.
+
+What they share:
 
 - `src/statute/`: the ruleset written from the statute, the fact vocabulary
-  (`schema.ts`), and the registry of provisions a question can cite (`index.ts`).
+  (`schema.ts`), the registry of provisions a question can cite, and the record a run
+  keeps of each case with the `replay` and `trace` tools that read it. `jev-factbag` uses
+  it; `jev-direct` does not.
+- `src/models/`: how the models are priced and retried: the 429 retry and the list prices.
+- `src/main.ts`: hands the benchmark and the two definitions to the runner's `main`.
 
-The statute rules are one ruleset, written once from the statute text. Each predicate is
-defined by one `iff`, with `or` for alternatives, so a false answer is a definite false and
-sections may negate each other the way the statute says "unless". Only the text, question
-and answer of each case are read; SARA's own Prolog facts and goals are never used.
+## Running
 
 ```sh
 pnpm --filter @factbag/sara-systems test
+pnpm --filter @factbag/sara-systems eval --system jev-factbag --data /path/to/sara
+pnpm --filter @factbag/sara-systems eval --system jev-direct
+pnpm --filter @factbag/sara-systems eval --system jev-factbag --tag "citation=2(a)(1)(A),7703(a)(2)"
+pnpm --filter @factbag/sara-systems eval --system jev-factbag --cases tax_case_12,s151_a_pos
+pnpm --filter @factbag/sara-systems replay --facts results/<run>.jsonl
+pnpm --filter @factbag/sara-systems trace --facts results/<run>.jsonl --case s151_a_pos
 ```
+
+`eval` runs the train split unless `--split test` is passed, and takes the runner's
+flags (`--cases`, `--tag`, `--limit`, `--concurrency`, `--out`). The data defaults to
+`$FACTBAG_DATA_DIR/sara`. A flag that the chosen system does not take is refused. Live runs
+need `TYPESAFE_API_KEY` for Jev and, for `jev-factbag`, `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN` for Clairic. Each case reports its usage of each model at list price
+(`src/models/prices.ts`). The test split is not run until a
+configuration is frozen; descriptions and rules are tuned on train only.
+
+For `jev-factbag`, routing takes `--predicate-threshold`, `--symbol-threshold` and
+`--candidate-product-cutoff`, which default to Jev's and are validated by Jev; a run's
+summary records Jev's full settings. A Clairic request that Workers AI turns away with 429
+is retried up to four times, backing off from one second, before the case fails. A case
+whose citation the statute does not cover is unanswered and costs no requests, and an
+unreadable question is never answered Contradiction. Each case's record keeps every
+admitted fact, the people, the query atom and its value, or why the question went unread.
+
+`replay` re-solves the facts of a saved `jev-factbag` run and question readings under the current
+rules with no requests, and reports which answers changed; a case whose question went
+unread stays unanswered. `trace` rebuilds one saved case and prints what every
+intermediate predicate makes of it, for each person and the case's year, so a wrong
+answer can be laid at the extraction's door or at a rule's.
+
+## The Jev Factbag system
+
+One ruleset, written once from the statute text, applied to facts that Jev reads out of
+each case. The pipeline for a case is:
+
+1. **Grounding** (`src/jev-factbag/ground.ts`): Jev's classifier, with routing on, fills a fresh
+   knowledge base holding the statute's rules. It asserts or denies facts
+   over the vocabulary in `src/statute/schema.ts`: marriages, decrees, deaths, births,
+   nonresident alien status, family relationships, households, returns, stated amounts,
+   employment and payments. Routing keeps the predicates the text may bear on; Clairic
+   then reads the passage's values for each of their open fields; routing keeps the
+   values the text mentions; and the final classification judges each remaining
+   candidate fact. Jev's resolver then settles any fact left with evidence
+   of both signs; a case is one passage, so there is seldom one.
+2. **Symbols** (`src/jev-factbag/symbols.ts`): `@factbag/symbol-extractor-clairic`, Cloudflare's
+   Clairic extraction model on Workers AI, with a `Person` factory. A person's id is
+   their name as Clairic reads it. Nothing here decides what is true.
+3. **Question reading** (`src/jev-factbag/question.ts`): the citation picks the provision from the
+   registry in `src/statute/index.ts`, which fixes the predicate and its roles. Clairic
+   reads the question, with the citation taken out, for the people it names, the tax
+   year it asks about and any dollar amount; every assignment of them to the
+   provision's roles is a reading. With one reading no Jev request is made; otherwise
+   Jev picks one in a single choice question.
+4. **Query**: the statute decides. A true answer is Entailment, a false one
+   Contradiction; anything else is unanswered and scores as wrong.
+
+The statute rules live in `src/statute/`. Each predicate is defined by one `iff`, with
+`or` for alternatives, so a false answer is a definite false and sections may negate each
+other the way the statute says "unless". Only the text, question and answer of each case
+are read; SARA's own Prolog facts and goals are never used.
+
+## Candidates
+
+Every candidate a fact can take comes from Clairic. For each open field of each routed
+predicate, it is asked for every value in the passage that could fill that field, with
+the predicate's description and the field's parameter description as its instructions,
+so the descriptions in `src/statute/schema.ts` steer extraction as well as classification.
+People are read as names, amounts and years as numbers, and days as ISO dates. Clairic
+does not resolve identity: "her spouse" makes no entity unless Clairic reads a name for
+it, and a person the text never names takes no part in the facts.
+
+Under the closed world, a fact predicate the passage offers no candidate for is not
+merely unknown but false, so a spouse the text leaves unnamed leaves the taxpayer
+unmarried, and a year the text does not name is a year in which nothing happened. A value
+Clairic misses is therefore a wrong answer, not an unanswered one.
+
+A question's year is the tax year Clairic reads in it, and must be a plausible tax year
+(1900 to 2100). Its people are the names it shares with the case text,
+or every name in the text when it names too few. A provision with both a yes-or-no and a
+valued form offers both readings, the valued one with each amount Clairic reads other
+than the year; Jev then chooses. The question reader takes the year from the question or
+reports the question unreadable.
 
 ## Coverage
 
@@ -39,7 +134,7 @@ Questions come in two forms. A yes-or-no question asks whether a provision appli
 people it names; a value question names an amount ("is equal to $4,000", "have to pay
 $7,208", "equal to 22") and asks whether the provision's amount is that one. A provision
 may have either form or both (§63(c)(5) and §68(b)(1)(A) have both); for a provision with
-both, whatever reads the question chooses between them. The amount sits in the query atom, so
+both, Jev chooses between the readings, as described under Candidates. The amount sits in the query atom, so
 the solver's constraint on an already bound `letIn` variable does the comparison; the
 rules round as the reference does, to whole dollars with halves away from zero, and the
 percentage rules keep to whole-number arithmetic so that a half never meets a float.

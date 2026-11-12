@@ -5,6 +5,7 @@
  */
 import type { GroundAtom, PredicateDeclaration } from "factbag/dsl";
 import { KnowledgeBase } from "factbag/kb";
+import { citationOf } from "@factbag/sara-benchmark";
 import type { Person } from "./schema";
 import { defineHelpers } from "./helpers";
 import {
@@ -226,6 +227,25 @@ export type Provision = Readonly<{
 function bears(text: string): string {
   return `${text} The question reads 'X bears a relationship to Y': X is the individual and Y is the taxpayer.`;
 }
+
+/** What each role name means, for reading a question's people into roles. */
+export const ROLE_MEANINGS: Readonly<Record<string, string>> = {
+  taxpayer: "the taxpayer the provision is applied to: the person it is asked about",
+  spouse: "the taxpayer's spouse",
+  individual:
+    "the individual whose relationship to, or status with respect to, the taxpayer is asked " +
+    "about: the dependent, child or relative, not the taxpayer",
+  a: "one of the two people the provision is applied to",
+  b: "the other of the two people",
+  dependent: "the dependent the exemption or deduction is for",
+  child:
+    "the qualifying child the clause is about: 'with X as the qualifying child', or the " +
+    "child the clause is applied to",
+  employer: "the employer: the person who employed the other, or paid for their work",
+  employee: "the employee: the person who did the work for the employer",
+  payer: "the person who made the payment",
+  payee: "the person the payment was made to, or for",
+};
 
 const TAXPAYER_YEAR = ["taxpayer"] as const;
 
@@ -952,6 +972,12 @@ export const PROVISIONS: readonly Provision[] = [
       "the question names: 6 percent of the wages paid with respect to employment.",
   },
 ];
+
+/** The provision a question cites, when the statute covers it. */
+export function provisionFor(question: string): Provision | undefined {
+  const citation = citationOf(question);
+  return PROVISIONS.find((provision) => provision.citation === citation);
+}
 
 /**
  * The ground atom a question about a provision resolves to: the valued form when the

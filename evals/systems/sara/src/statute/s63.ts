@@ -164,7 +164,7 @@ export const s63_d = closedPredicate("s63_d", taxpayerYear);
 /** (d)(2): the taxpayer's stated deduction is one for personal exemptions under §151. */
 export const s63_d_2 = closedPredicate("s63_d_2", taxpayerYear);
 /** The §151 deductions on the return: the taxpayer's, plus the spouse's on a joint return. */
-const s151_return = closedPredicate("s151_return", valued);
+export const s151_return = closedPredicate("s151_return", valued);
 const has_joint_spouse_63 = closedPredicate("has_joint_spouse_63", taxpayerYear);
 /** A dependent of the spouse who is not also the taxpayer's. */
 const spouse_only_dependent = closedPredicate("spouse_only_dependent", {
