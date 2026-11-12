@@ -1,11 +1,13 @@
 # SARA systems
 
-Two systems for the [SARA benchmark](../../benchmarks/sara), run with the
-[eval runner](../../runner): Jev as the reader, with and without the knowledge base.
+Four systems for the [SARA benchmark](../../benchmarks/sara), run with the
+[eval runner](../../runner). Together they are a two-by-two: Jev or a general LLM as the
+reader, with or without the knowledge base.
 
-|     | Model answers | Statute rules answer |
-| --- | ------------- | -------------------- |
-| Jev | `jev-direct`  | `jev-factbag`        |
+|         | Model answers | Statute rules answer |
+| ------- | ------------- | -------------------- |
+| Jev     | `jev-direct`  | `jev-factbag`        |
+| Any LLM | `llm-direct`  | `llm-factbag`        |
 
 Each system is a directory of `src/`, named as `--system` takes it, and exports its
 `SystemDefinition` from `system.ts`:
@@ -15,15 +17,20 @@ Each system is a directory of `src/`, named as `--system` takes it, and exports 
 - `src/jev-direct/`: the control: one Jev request per case carrying the cited section and
   the scenario, with no knowledge base, rules or query, so it measures what Factbag adds.
   Its prompt is frozen (`PROMPT_VERSION`) and tuned no further.
+- `src/llm-factbag/`: a general LLM fills the same knowledge base through
+  `@factbag/openai`'s tools and the same rules decide.
+- `src/llm-direct/`: the LLM's control: one request per case carrying the cited section,
+  the scenario and the statement, answered by the model.
 
 What they share:
 
 - `src/statute/`: the ruleset written from the statute, the fact vocabulary
   (`schema.ts`), the registry of provisions a question can cite, and the record a run
-  keeps of each case with the `replay` and `trace` tools that read it. `jev-factbag` uses
-  it; `jev-direct` does not.
-- `src/models/`: how the models are priced and retried: the 429 retry and the list prices.
-- `src/main.ts`: hands the benchmark and the two definitions to the runner's `main`.
+  keeps of each case with the `replay` and `trace` tools that read it. Both Factbag
+  systems use it; the direct ones do not.
+- `src/models/`: how the models are reached and priced: the conversation with a model over
+  the Responses API or Chat Completions, the 429 retry and the list prices.
+- `src/main.ts`: hands the benchmark and the four definitions to the runner's `main`.
 
 ## Running
 
@@ -31,6 +38,9 @@ What they share:
 pnpm --filter @factbag/sara-systems test
 pnpm --filter @factbag/sara-systems eval --system jev-factbag --data /path/to/sara
 pnpm --filter @factbag/sara-systems eval --system jev-direct
+pnpm --filter @factbag/sara-systems eval --system llm-factbag --model <id> --input-price 1.25 --output-price 10
+pnpm --filter @factbag/sara-systems eval --system llm-factbag --queries checked --model <id> --input-price 1.25 --output-price 10
+pnpm --filter @factbag/sara-systems eval --system llm-direct --model <id> --input-price 1.25 --output-price 10
 pnpm --filter @factbag/sara-systems eval --system jev-factbag --tag "citation=2(a)(1)(A),7703(a)(2)"
 pnpm --filter @factbag/sara-systems eval --system jev-factbag --cases tax_case_12,s151_a_pos
 pnpm --filter @factbag/sara-systems replay --facts results/<run>.jsonl
@@ -42,7 +52,17 @@ flags (`--cases`, `--tag`, `--limit`, `--concurrency`, `--out`). The data defaul
 `$FACTBAG_DATA_DIR/sara`. A flag that the chosen system does not take is refused. Live runs
 need `TYPESAFE_API_KEY` for Jev and, for `jev-factbag`, `CLOUDFLARE_ACCOUNT_ID` and
 `CLOUDFLARE_API_TOKEN` for Clairic. Each case reports its usage of each model at list price
-(`src/models/prices.ts`). The test split is not run until a
+(`src/models/prices.ts`). The LLM systems call an
+OpenAI-compatible endpoint with `fetch`: they need `OPENAI_API_KEY`, take
+`OPENAI_BASE_URL` for an endpoint other than OpenAI's, and have no default model or price,
+so pass `--model` and the model's list prices in USD per million tokens as `--input-price`
+and `--output-price`. `--cached-input-price` prices the input the endpoint read from its
+cache, which is most of a tool conversation; without it that input is priced as any other.
+`--api responses|chat` picks the Responses API, the default, or Chat Completions, which
+other providers serve; OpenAI's reasoning models take function tools through the Responses
+API only. `--reasoning-effort` is passed to the model as given and becomes part of the
+run's name. Over the Responses API the conversation is kept by the eval and sent whole
+each turn with `store: false`. The test split is not run until a
 configuration is frozen; descriptions and rules are tuned on train only.
 
 For `jev-factbag`, routing takes `--predicate-threshold`, `--symbol-threshold` and
@@ -53,11 +73,98 @@ whose citation the statute does not cover is unanswered and costs no requests, a
 unreadable question is never answered Contradiction. Each case's record keeps every
 admitted fact, the people, the query atom and its value, or why the question went unread.
 
-`replay` re-solves the facts of a saved `jev-factbag` run and question readings under the current
+`replay` re-solves the facts of a saved `jev-factbag` or `llm-factbag` run and question readings under the current
 rules with no requests, and reports which answers changed; a case whose question went
 unread stays unanswered. `trace` rebuilds one saved case and prints what every
 intermediate predicate makes of it, for each person and the case's year, so a wrong
 answer can be laid at the extraction's door or at a rule's.
+
+## The LLM systems
+
+`llm-factbag` gives the model the scenario, the statement and the knowledge base's tool, and not
+the statute. The one tool, `knowledge_base`, runs an operation per call: `add` on `person`, `assert`
+or `deny` on a predicate of the fact vocabulary, and `query` on the cited provision. Its
+description lists each of those names once.
+Its definition is about 87,000 characters in every request, nearly all of it the
+vocabulary's descriptions. The model registers the people, asserts what the
+scenario states and queries the statement; the eval runs each tool call and sends back its
+result, including mistakes the model can fix. The answer is the value of a query, never
+the model's text. A model that never queries leaves the case unanswered, and a conversation
+is cut off after 16 model turns. Facts are closed, so what is not asserted is already
+false; the deny operations are there because a model that reads "Alice is not married"
+and has only assert to hand asserts the marriage.
+
+A fact the model both asserted and denied is settled after the conversation, the way
+`@factbag/jev`'s `resolver` settles one. Each contradiction is one further request, apart
+from the conversation, that shows the scenario, the fact and every record of it with the
+reason the model gave, and asks of each record KEEP or RETRACT. Retracted records are
+taken out, and the statute is asked again over what stands. Keeping is the default, so a
+contradiction the model does not judge stays, and the case is unanswered. The model
+judges its records, never the statement. `jev-factbag` runs Jev's resolver at the same
+point, after grounding, though a case is one passage and seldom leaves it anything to settle.
+
+`--queries` says what the model learns of its query:
+
+- `once`, the default: the conversation ends at the first query. The model is not told the
+  value, so it cannot revise its facts to change it. This measures the model as a reader.
+- `checked`: the model is told each query's value and its explanation, cut to the 20
+  claims that decided it. It may record a fact it missed and query again, and the last
+  query is the answer. This is the loop an agent built on Factbag would run. Nothing can
+  be taken back, so a fact recorded wrongly stays. Its runs are named
+  `llm-factbag-checked-<model>`.
+
+Each case's record has the same shape as `jev-factbag`'s, so `replay` and `trace`
+read an `llm-factbag` run too, and adds the model turns, queries, output tokens, cached
+input tokens, tool errors, and the contradictions found and records retracted. Spend
+counts output tokens, which the runner's per-model `inputTokens` does not show.
+
+`llm-direct` asks for reasoning followed by a final line that is exactly `Entailment` or
+`Contradiction`, and takes the last label the reply names.
+
+The prompts are frozen (`PROMPT_VERSION` and `PROMPTS` in the two files), so that runs of
+different models compare.
+
+## Published work this compares with
+
+SARA has 376 cases: 276 entailment cases (176 train, 100 test), which are the ones loaded
+here, and 100 numeric cases that ask for a tax owed.
+
+| Work                                                         | Cases                | Setup                                                    | Result                         |
+| ------------------------------------------------------------ | -------------------- | -------------------------------------------------------- | ------------------------------ |
+| [Holzenberger et al. 2020](https://arxiv.org/abs/2005.05257) | 100 test, entailment | BERT-based reader                                        | 59%                            |
+|                                                              |                      | SARA's own Prolog statutes and case facts                | 100%                           |
+| [Blair-Stanek et al. 2023](https://arxiv.org/abs/2302.06100) | 100 test, entailment | Majority label                                           | 50%                            |
+|                                                              |                      | GPT-3, zero-shot, cited section in the prompt            | 71%                            |
+|                                                              |                      | GPT-3, 4-shot, section, "think step by step"             | 60%                            |
+| [Blair-Stanek et al. 2023](https://arxiv.org/abs/2309.09992) | all 276, entailment  | GPT-4 with the statute                                   | 67%                            |
+| [Jurayj et al. 2025](https://arxiv.org/abs/2508.21051)       | 100 numeric          | GPT-5 answers directly                                   | 76 right, 24 wrong             |
+|                                                              |                      | o3 writes statute and case as Prolog                     | 75 right, 15 wrong, 10 abstain |
+|                                                              |                      | GPT-4.1 writes the case's facts for gold Prolog statutes | 87 right, 8 wrong, 5 abstain   |
+| [Dou et al. 2026](https://arxiv.org/abs/2604.04443)          | 30 hard, entailment  | Claude Sonnet 4.5 directly; as Prolog                    | macro-F1 70.0; 43.9            |
+|                                                              |                      | o3 directly; as Prolog                                   | macro-F1 59.5; 32.3            |
+
+How the systems here line up with those:
+
+- `llm-direct` is Blair-Stanek et al.'s best setup, zero-shot with the cited section, and
+  the "direct" arm of the two later papers. It is the baseline to beat.
+- `llm-factbag` is nearest Jurayj et al.'s gold-statute arm: the statute is formalized by
+  hand once, and the model only reads the case. Two things differ. The model does not
+  write a program that must then run; it calls a typed tool one fact at a time and is
+  told of each mistake it can fix. And the rules are three-valued, so a case can come
+  back unknown or conflicted, where a Prolog program either runs or does not.
+- Jurayj et al. accept an answer only when two attempts agree, and count the rest as
+  abstentions. Nothing here scores two runs that way.
+- No system here writes the statute as a program, the arm both later papers find weakest
+  on entailment. Their figures stand in for it.
+
+What to keep in mind when reading a number beside these:
+
+- The published entailment figures are on the test split. The rules here were written
+  against the train split, so a train score flatters the Factbag systems and only a test
+  run of a frozen configuration compares.
+- Dou et al.'s 30 cases are the ones frontier models failed, scored by macro-F1 over four
+  samples, so their figures are lower than a full-split accuracy would be.
+- Jurayj et al.'s cases are the numeric ones, which are not loaded here.
 
 ## The Jev Factbag system
 

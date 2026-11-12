@@ -231,6 +231,9 @@ importers:
       '@factbag/jev':
         specifier: workspace:*
         version: link:../../../providers/jev
+      '@factbag/openai':
+        specifier: workspace:*
+        version: link:../../../providers/openai
       '@factbag/sara-benchmark':
         specifier: workspace:*
         version: link:../../benchmarks/sara
