@@ -14,6 +14,9 @@ and scored the same way.
   comes from. A benchmark knows nothing of the systems run on it.
   - [`sara`](./benchmarks/sara): `@factbag/sara-benchmark`, the StAtutory Reasoning
     Assessment.
+- [`systems/`](./systems): one package per benchmark, holding a directory for each system
+  that answers it and what those systems share.
+  - [`sara`](./systems/sara): `@factbag/sara-systems`, so far the statute's rules.
 
 ```sh
 pnpm --filter "./evals/**" test

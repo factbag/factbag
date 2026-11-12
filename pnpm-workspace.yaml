@@ -5,6 +5,7 @@ packages:
   - "examples/*"
   - "evals/runner"
   - "evals/benchmarks/*"
+  - "evals/systems/*"
   - "tooling/*"
 
 catalog:
