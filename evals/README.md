@@ -16,8 +16,9 @@ and scored the same way.
     Assessment.
 - [`systems/`](./systems): one package per benchmark, holding a directory for each system
   that answers it and what those systems share.
-  - [`sara`](./systems/sara): `@factbag/sara-systems`, so far the statute's rules.
+  - [`sara`](./systems/sara): `@factbag/sara-systems`: `jev-factbag` and `jev-direct`.
 
 ```sh
 pnpm --filter "./evals/**" test
+pnpm --filter @factbag/sara-systems eval --system jev-factbag
 ```

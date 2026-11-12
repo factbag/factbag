@@ -276,7 +276,7 @@ const excluded_b_10 = closedPredicate("excluded_b_10", payment);
 /** Wages paid to one employee in the year, capped at $7,000 under (b)(1). */
 const capped_wages = closedPredicate("capped_wages", { ...payment, amount: Number });
 /** Total wages the employer paid in the year with respect to employment. */
-const total_wages = closedPredicate("total_wages", {
+export const total_wages = closedPredicate("total_wages", {
   employer: Person,
   year: Number,
   amount: Number,

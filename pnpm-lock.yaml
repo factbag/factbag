@@ -225,15 +225,33 @@ importers:
 
   evals/systems/sara:
     devDependencies:
+      '@factbag/eval-runner':
+        specifier: workspace:*
+        version: link:../../runner
+      '@factbag/jev':
+        specifier: workspace:*
+        version: link:../../../providers/jev
+      '@factbag/sara-benchmark':
+        specifier: workspace:*
+        version: link:../../benchmarks/sara
+      '@factbag/symbol-extractor-clairic':
+        specifier: workspace:*
+        version: link:../../../packages/symbol-extractor-clairic
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../../tooling/tsconfig
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
+      '@typesafe-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.7.0
       factbag:
         specifier: workspace:*
         version: link:../../../packages/factbag
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
