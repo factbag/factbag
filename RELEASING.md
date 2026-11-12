@@ -1,6 +1,6 @@
 # Releasing Factbag
 
-`factbag`, `@factbag/jev`, and `@factbag/clef` are published, always together at the same version through a Changesets fixed group. Other component packages, widgets, examples, tooling, and the repository root remain private.
+`factbag`, `@factbag/jev`, `@factbag/clef`, and `@factbag/openai` are published, always together at the same version through a Changesets fixed group. Other component packages, widgets, examples, tooling, and the repository root remain private.
 
 ## Release changes
 

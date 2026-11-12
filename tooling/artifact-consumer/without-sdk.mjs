@@ -1,8 +1,10 @@
 import { invariant, atom, corpus, guarded } from "./base.mjs";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { query } from "factbag/dsl";
+import { predicate, query } from "factbag/dsl";
+import { KnowledgeBase, guard } from "factbag/kb";
 import { classifier, createConfig } from "@factbag/clef";
+import { toolkit } from "@factbag/openai";
 
 // Check from both the application and the installed package. A transitive or
 // auto-installed peer must not silently satisfy the SDK-free consumer test.
@@ -54,3 +56,21 @@ invariant(
   "Clef classifier did not use its binding",
 );
 invariant(query(run.kb, atom).value === "true", "Clef classifier did not admit evidence");
+
+// The OpenAI tools describe and run knowledge-base operations without a model client.
+const shipped = predicate("shipped", { value: Boolean });
+const kit = toolkit(guard(new KnowledgeBase()).permit("assert", shipped), { source: "packed" });
+invariant(kit.tools()[0]?.function.strict === true, "OpenAI tools are not strict");
+const { message: reply, outcome } = kit.answer({
+  id: "call",
+  function: {
+    name: "knowledge_base",
+    arguments: JSON.stringify({
+      operation: "assert",
+      name: "shipped",
+      arguments: '{"value":true,"justification":"packed"}',
+    }),
+  },
+});
+invariant(reply.content === "Asserted shipped(value=true)", "OpenAI tool call did not assert");
+invariant(outcome?.operation === "assert", "OpenAI tool call reported no outcome");
