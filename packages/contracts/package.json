@@ -1,0 +1,67 @@
+{
+  "name": "@factbag/contracts",
+  "version": "0.1.0-next.0",
+  "description": "The plain data shapes Factbag passes around and persists, and the contract a solver implements.",
+  "keywords": [
+    "logic",
+    "rules-engine",
+    "knowledge-base",
+    "typescript"
+  ],
+  "homepage": "https://github.com/factbag/factbag/tree/main/packages/contracts#readme",
+  "bugs": {
+    "url": "https://github.com/factbag/factbag/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/factbag/factbag.git",
+    "directory": "packages/contracts"
+  },
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assert": {
+      "types": "./dist/assert.d.ts",
+      "import": "./dist/assert.js"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "api-report": "api-extractor run --local",
+    "api-report:check": "api-extractor run",
+    "build": "tsdown && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "tsdown": {
+    "entry": [
+      "src/index.ts",
+      "src/assert.ts"
+    ],
+    "dts": false,
+    "sourcemap": true,
+    "fixedExtension": false
+  },
+  "devDependencies": {
+    "@factbag/tsconfig": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "private": true
+}
