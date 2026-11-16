@@ -45,6 +45,10 @@
       "./corpus": {
         "types": "./dist/corpus.d.ts",
         "import": "./dist/corpus.js"
+      },
+      "./contracts": {
+        "types": "./dist/contracts.d.ts",
+        "import": "./dist/contracts.js"
       }
     }
   },
@@ -90,6 +94,13 @@
         "import": "./dist/corpus.js"
       },
       "default": "./src/corpus.ts"
+    },
+    "./contracts": {
+      "published": {
+        "types": "./dist/contracts.d.ts",
+        "import": "./dist/contracts.js"
+      },
+      "default": "./src/contracts.ts"
     }
   },
   "scripts": {
@@ -101,7 +112,8 @@
       "kb": "src/kb.ts",
       "explain": "src/explain.ts",
       "exceptions": "src/exceptions.ts",
-      "corpus": "src/corpus.ts"
+      "corpus": "src/corpus.ts",
+      "contracts": "src/contracts.ts"
     },
     "dts": true,
     "fixedExtension": false,

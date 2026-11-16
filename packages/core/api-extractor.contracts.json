@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "./api-extractor.json",
+  "mainEntryPointFilePath": "<projectFolder>/dist/contracts/index.d.ts",
+  "apiReport": {
+    "reportFileName": "core-contracts"
+  },
+  "docModel": {
+    "apiJsonFilePath": "<projectFolder>/temp/core-contracts.api.json"
+  }
+}

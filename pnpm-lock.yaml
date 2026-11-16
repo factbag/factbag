@@ -343,6 +343,9 @@ importers:
 
   packages/core:
     devDependencies:
+      '@factbag/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@factbag/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig

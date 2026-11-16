@@ -1,3 +1,4 @@
+import { assertIsProgram, type Program } from "factbag/contracts";
 import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { predicate, query, type Judgment } from "factbag/dsl";
 import { explainJudgment, type Explanation } from "factbag/explain";
@@ -40,3 +41,6 @@ void explanation;
 void chunks;
 const publicTypes: [Judgment?, Explanation?] = [];
 void publicTypes;
+
+const program: Program = { predicates: [], literals: [], rules: [] };
+assertIsProgram(program);

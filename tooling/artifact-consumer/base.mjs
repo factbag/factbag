@@ -1,3 +1,4 @@
+import { isProgram, assertIsProgram } from "factbag/contracts";
 import { predicate, query } from "factbag/dsl";
 import { explainJudgment } from "factbag/explain";
 import { KnowledgeBase, guard } from "factbag/kb";
@@ -10,6 +11,7 @@ for (const name of [
   "react",
   "react-dom",
   "@factbag/core",
+  "@factbag/contracts",
   "@factbag/corpus",
   "@factbag/guards",
   "@factbag/system-one",
@@ -60,3 +62,8 @@ const guarded = guard(kb).permit("*", fact);
 invariant(guarded.query(atom).value === "true", "Guarded query did not return true");
 
 export { invariant, atom, kb, corpus, document, guarded };
+
+const program = { predicates: [], literals: [], rules: [] };
+assertIsProgram(program);
+assert.equal(isProgram(program), true);
+assert.equal(isProgram({ predicates: [], literals: [] }), false);
