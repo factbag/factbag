@@ -49,6 +49,6 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
             git diff | head -200
-            echo "::error::A generated file is out of sync with its generator. Run the relevant generator (for API reports: 'pnpm api-report') and commit the result."
+            echo "::error::A generated file is out of sync with its generator. Run the relevant generator ('pnpm generate' for contracts; 'pnpm api-report' for API reports) and commit the result."
             exit 1
           fi
