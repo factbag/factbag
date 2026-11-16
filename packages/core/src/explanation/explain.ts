@@ -411,6 +411,9 @@ function formatRuleBody(body: unknown): string {
   if (isFormula(body)) {
     return `${body.kind}(${body.args.map(formatRuleBody).join(", ")})`;
   }
+  if (typeof body === "object" && body !== null && "completeWhen" in body) {
+    return `completeWhen(${formatRuleBody(body.completeWhen)})`;
+  }
   return formatValue(body);
 }
 

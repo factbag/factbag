@@ -19,6 +19,7 @@ import {
   or,
   predicate,
   roundTo,
+  sum,
   variable,
   yearsBetween,
 } from "../dsl";
@@ -79,6 +80,34 @@ describe("explainJudgment", () => {
       expect(JSON.stringify(explanation)).toContain(`${operator.name}(`);
     },
   );
+
+  /** A completeness condition has no kind of its own, so a generic walk printed it as "[object Object]". */
+  it("writes an aggregate's completeness condition in the rule it explains", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const paid = closedPredicate("paid", { person: Person, amount: Number });
+    const reviewed = closedPredicate("reviewed", { person: Person });
+    const wellPaid = predicate("well_paid", { person: Person });
+    const Amount = variable("Amount");
+    const Total = variable("Total");
+    kb.asserts(paid({ person: alice, amount: 10 }));
+    kb.asserts(reviewed({ person: alice }));
+    kb.rule(wellPaid({ person: alice })).iff(
+      letIn(
+        Total,
+        sum(Amount).where(paid({ person: alice, amount: Amount }), {
+          completeWhen: reviewed({ person: alice }),
+        }),
+        gte(Total, 5),
+      ),
+    );
+    // Act
+    const explanation = explainJudgment(query(kb, wellPaid({ person: alice })));
+    // Assert
+    const text = JSON.stringify(explanation);
+    expect(text).toContain("completeWhen(reviewed(alice))");
+    expect(text).not.toContain("[object Object]");
+  });
 
   it.each([min, max, roundTo, floorTo, ceilTo])(
     "names %s in primitive explanation claims",
