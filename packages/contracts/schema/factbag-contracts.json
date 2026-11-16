@@ -1,0 +1,1486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "factbag-contracts.json",
+  "$defs": {
+    "EntityRef": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EntityRef.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "entity"
+        },
+        "type": {
+          "$ref": "Name.json"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["kind", "type", "id"],
+      "description": "A reference to an entity: its class name (`type`) and id."
+    },
+    "Name": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Name.json",
+      "type": "string",
+      "pattern": "\\S",
+      "description": "A string that names something: not empty and not only whitespace."
+    },
+    "InfiniteNumber": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "InfiniteNumber.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "number"
+        },
+        "value": {
+          "$ref": "InfiniteNumberValue.json"
+        }
+      },
+      "required": ["kind", "value"],
+      "description": "An infinite number. Finite numbers are written as JSON numbers."
+    },
+    "InfiniteNumberValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "InfiniteNumberValue.json",
+      "type": "string",
+      "enum": ["Infinity", "-Infinity"],
+      "description": "Which infinity."
+    },
+    "DateValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "DateValue.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "date"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^(\\d{4}|[+-]\\d{6})-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        }
+      },
+      "required": ["kind", "value"],
+      "description": "A date, as an ISO 8601 UTC string in the exact form JavaScript's `Date.prototype.toISOString` writes."
+    },
+    "Variable": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Variable.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "var"
+        },
+        "name": {
+          "$ref": "Name.json"
+        }
+      },
+      "required": ["kind", "name"],
+      "description": "A logic variable. Names are scoped to one rule."
+    },
+    "Atom": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Atom.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "atom"
+        },
+        "predicate": {
+          "$ref": "Name.json"
+        },
+        "fields": {
+          "$ref": "#/$defs/RecordTerm"
+        }
+      },
+      "required": ["kind", "predicate", "fields"],
+      "description": "An atom as rules and queries write it: a predicate name and, for each field, a value or a variable.",
+      "$defs": {
+        "RecordTerm": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "Term.json"
+          }
+        }
+      }
+    },
+    "Term": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Term.json",
+      "oneOf": [
+        {
+          "$ref": "Value.json"
+        },
+        {
+          "$ref": "Variable.json"
+        }
+      ],
+      "description": "A field value in an atom: a ground value or a variable."
+    },
+    "Value": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Value.json",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "InfiniteNumber.json"
+        },
+        {
+          "$ref": "DateValue.json"
+        },
+        {
+          "$ref": "EntityRef.json"
+        }
+      ],
+      "description": "A ground value. Strings, finite numbers, and booleans are written as\nthemselves; infinities, dates, and entities are tagged."
+    },
+    "GroundAtom": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "GroundAtom.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "atom"
+        },
+        "predicate": {
+          "$ref": "Name.json"
+        },
+        "fields": {
+          "$ref": "#/$defs/RecordValue"
+        }
+      },
+      "required": ["kind", "predicate", "fields"],
+      "description": "An atom with a value for every field and no variables, as evidence states it.",
+      "$defs": {
+        "RecordValue": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "Value.json"
+          }
+        }
+      }
+    },
+    "EvidenceMetadata": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EvidenceMetadata.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Name of the system or document the fact came from."
+        },
+        "citation": {
+          "type": "string",
+          "description": "Quotation or reference into the supporting material."
+        },
+        "justification": {
+          "type": "string",
+          "description": "The asserter's stated reason for accepting the fact."
+        },
+        "scores": {
+          "$ref": "#/$defs/RecordFloat64",
+          "description": "Named numeric scores, stored without being combined or interpreted."
+        },
+        "annotations": {
+          "$ref": "#/$defs/RecordAnnotationValue",
+          "description": "Application-specific annotations, retained on supporting evidence in judgments."
+        }
+      },
+      "description": "Where accepted evidence came from.",
+      "$defs": {
+        "RecordFloat64": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "type": "number"
+          }
+        },
+        "RecordAnnotationValue": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "AnnotationValue.json"
+          }
+        }
+      }
+    },
+    "AnnotationValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "AnnotationValue.json",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "AnnotationValue.json"
+          }
+        },
+        {
+          "$ref": "#/$defs/RecordAnnotationValue"
+        }
+      ],
+      "description": "JSON data carried without interpretation.",
+      "$defs": {
+        "RecordAnnotationValue": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "AnnotationValue.json"
+          }
+        }
+      }
+    },
+    "Literal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Literal.json",
+      "type": "object",
+      "properties": {
+        "sign": {
+          "$ref": "Sign.json"
+        },
+        "atom": {
+          "$ref": "GroundAtom.json"
+        },
+        "metadata": {
+          "$ref": "EvidenceMetadata.json"
+        }
+      },
+      "required": ["sign", "atom"],
+      "description": "Accepted evidence: a ground atom asserted or denied, with where it came from."
+    },
+    "Sign": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Sign.json",
+      "type": "string",
+      "enum": ["asserted", "denied"],
+      "description": "Whether evidence asserts or denies its atom."
+    },
+    "EnumType": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EnumType.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "enum"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "EnumValue.json"
+          }
+        }
+      },
+      "required": ["kind", "values"],
+      "description": "A field holding one of a fixed set of strings, numbers, or dates."
+    },
+    "EnumValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EnumValue.json",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "InfiniteNumber.json"
+        },
+        {
+          "$ref": "DateValue.json"
+        }
+      ],
+      "description": "A value an enum field may list."
+    },
+    "EntityType": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EntityType.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "entityType"
+        },
+        "type": {
+          "$ref": "Name.json"
+        }
+      },
+      "required": ["kind", "type"],
+      "description": "A field holding entities of one class, named by `type`."
+    },
+    "PredicateMetadata": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PredicateMetadata.json",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "parameters": {
+          "$ref": "#/$defs/RecordString"
+        },
+        "annotations": {
+          "$ref": "#/$defs/RecordAnnotationValue"
+        }
+      },
+      "required": ["description"],
+      "description": "Domain guidance for interpreting a predicate, available to evidence producers.",
+      "$defs": {
+        "RecordString": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "type": "string"
+          }
+        },
+        "RecordAnnotationValue": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "AnnotationValue.json"
+          }
+        }
+      }
+    },
+    "Predicate": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Predicate.json",
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "Name.json"
+        },
+        "world": {
+          "$ref": "PredicateWorld.json"
+        },
+        "params": {
+          "$ref": "#/$defs/RecordFieldType"
+        },
+        "metadata": {
+          "$ref": "PredicateMetadata.json"
+        }
+      },
+      "required": ["name", "world", "params"],
+      "description": "A predicate declaration: its name, world, and the type of each field.",
+      "$defs": {
+        "RecordFieldType": {
+          "type": "object",
+          "properties": {},
+          "unevaluatedProperties": {
+            "$ref": "FieldType.json"
+          }
+        }
+      }
+    },
+    "PredicateWorld": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PredicateWorld.json",
+      "type": "string",
+      "enum": ["open", "closed"],
+      "description": "Whether absence of evidence counts as falsity (`closed`) or unknown (`open`)."
+    },
+    "FieldType": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "FieldType.json",
+      "oneOf": [
+        {
+          "$ref": "ScalarType.json"
+        },
+        {
+          "$ref": "EnumType.json"
+        },
+        {
+          "$ref": "EntityType.json"
+        }
+      ],
+      "description": "The type of one predicate field."
+    },
+    "ScalarType": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ScalarType.json",
+      "type": "string",
+      "enum": ["string", "number", "boolean", "date"],
+      "description": "A field holding any string, number, boolean, or date."
+    },
+    "Arithmetic": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Arithmetic.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "ArithmeticKind.json"
+        },
+        "left": {
+          "$ref": "Expression.json"
+        },
+        "right": {
+          "$ref": "Expression.json"
+        }
+      },
+      "required": ["kind", "left", "right"],
+      "description": "Applies a primitive operation to two expressions."
+    },
+    "ArithmeticKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ArithmeticKind.json",
+      "type": "string",
+      "enum": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "daysBetween",
+        "yearsBetween",
+        "min",
+        "max",
+        "roundTo",
+        "floorTo",
+        "ceilTo"
+      ],
+      "description": "The primitive arithmetic operations."
+    },
+    "Expression": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Expression.json",
+      "oneOf": [
+        {
+          "$ref": "Term.json"
+        },
+        {
+          "$ref": "Arithmetic.json"
+        },
+        {
+          "$ref": "Aggregate.json"
+        }
+      ],
+      "description": "A value-producing expression in a rule body: a term, or a formula whose kind is its operator."
+    },
+    "Aggregate": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Aggregate.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "AggregateKind.json"
+        },
+        "value": {
+          "$ref": "Expression.json"
+        },
+        "where": {
+          "$ref": "Condition.json"
+        },
+        "completeWhen": {
+          "$ref": "Condition.json",
+          "description": "When the matches are known to be complete."
+        }
+      },
+      "required": ["kind", "value", "where"],
+      "description": "Totals (`sum`) or counts (`count`) `value` over every way the `where`\ncondition holds."
+    },
+    "AggregateKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "AggregateKind.json",
+      "type": "string",
+      "enum": ["sum", "count"],
+      "description": "Whether an aggregate totals (`sum`) or counts (`count`) its matches."
+    },
+    "Condition": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Condition.json",
+      "oneOf": [
+        {
+          "$ref": "Atom.json"
+        },
+        {
+          "$ref": "Not.json"
+        },
+        {
+          "$ref": "Connective.json"
+        },
+        {
+          "$ref": "Exists.json"
+        },
+        {
+          "$ref": "LetIn.json"
+        },
+        {
+          "$ref": "Comparison.json"
+        }
+      ],
+      "description": "A rule-body condition: an atom, a negated atom, or a formula whose kind is its operator.",
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "atom": "Atom.json",
+          "not": "Not.json",
+          "and": "Connective.json",
+          "or": "Connective.json",
+          "exists": "Exists.json",
+          "letIn": "LetIn.json",
+          "eq": "Comparison.json",
+          "neq": "Comparison.json",
+          "lt": "Comparison.json",
+          "lte": "Comparison.json",
+          "gt": "Comparison.json",
+          "gte": "Comparison.json"
+        }
+      }
+    },
+    "Not": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Not.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "not"
+        },
+        "atom": {
+          "$ref": "Atom.json"
+        }
+      },
+      "required": ["kind", "atom"],
+      "description": "Requires explicit evidence against an atom."
+    },
+    "Connective": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Connective.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "ConnectiveKind.json"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "Condition.json"
+          }
+        }
+      },
+      "required": ["kind", "conditions"],
+      "description": "Holds when every (`and`) or any (`or`) of its conditions holds."
+    },
+    "ConnectiveKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ConnectiveKind.json",
+      "type": "string",
+      "enum": ["and", "or"],
+      "description": "Whether every argument must hold (`and`) or any (`or`)."
+    },
+    "Exists": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Exists.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "exists"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "Variable.json"
+          }
+        },
+        "condition": {
+          "$ref": "Condition.json"
+        }
+      },
+      "required": ["kind", "variables", "condition"],
+      "description": "Holds when the condition holds for some values of the variables."
+    },
+    "LetIn": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "LetIn.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "letIn"
+        },
+        "variable": {
+          "$ref": "Variable.json"
+        },
+        "value": {
+          "$ref": "Expression.json"
+        },
+        "condition": {
+          "$ref": "Condition.json"
+        }
+      },
+      "required": ["kind", "variable", "value", "condition"],
+      "description": "Binds a variable to an expression's value for the condition that follows."
+    },
+    "Comparison": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Comparison.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "ComparisonKind.json"
+        },
+        "left": {
+          "$ref": "Expression.json"
+        },
+        "right": {
+          "$ref": "Expression.json"
+        }
+      },
+      "required": ["kind", "left", "right"],
+      "description": "Compares two expressions."
+    },
+    "ComparisonKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ComparisonKind.json",
+      "type": "string",
+      "enum": ["eq", "neq", "lt", "lte", "gt", "gte"],
+      "description": "The comparison operations."
+    },
+    "Rule": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Rule.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "RuleKind.json"
+        },
+        "head": {
+          "$ref": "Atom.json"
+        },
+        "body": {
+          "$ref": "Condition.json"
+        }
+      },
+      "required": ["kind", "head", "body"],
+      "description": "A rule: the head holds `if` (or, for `iff`, exactly when) the body holds."
+    },
+    "RuleKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "RuleKind.json",
+      "type": "string",
+      "enum": ["if", "iff"],
+      "description": "Rule semantics: `if` states a sufficient condition, `iff` a definition."
+    },
+    "Program": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Program.json",
+      "type": "object",
+      "properties": {
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "Predicate.json"
+          },
+          "description": "Every predicate the evidence and rules use, each name appearing once."
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "Literal.json"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "Rule.json"
+          }
+        }
+      },
+      "required": ["predicates", "literals", "rules"],
+      "description": "What a solver reasons over: the vocabulary, the accepted evidence, and the rules."
+    },
+    "KnowledgeBaseDocument": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "KnowledgeBaseDocument.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "KnowledgeBase"
+        },
+        "apiVersion": {
+          "type": "string",
+          "const": "factbag/v1alpha1",
+          "description": "Format version."
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "EntityRef.json"
+          },
+          "description": "Entities registered with the knowledge base."
+        },
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "Predicate.json"
+          },
+          "description": "Every predicate the evidence and rules use, each name appearing once."
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "Literal.json"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "Rule.json"
+          }
+        }
+      },
+      "required": ["kind", "apiVersion", "entities", "predicates", "literals", "rules"],
+      "description": "A whole knowledge base as a document: a versioned program plus its registered entities."
+    },
+    "AtomGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "AtomGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "atom"
+        },
+        "atom": {
+          "$ref": "Atom.json"
+        }
+      },
+      "required": ["kind", "op", "atom"],
+      "description": "A goal that is a single atom."
+    },
+    "NotGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "NotGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "not"
+        },
+        "goal": {
+          "$ref": "Goal.json"
+        }
+      },
+      "required": ["kind", "op", "goal"]
+    },
+    "Goal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Goal.json",
+      "oneOf": [
+        {
+          "$ref": "AtomGoal.json"
+        },
+        {
+          "$ref": "NotGoal.json"
+        },
+        {
+          "$ref": "ConnectiveGoal.json"
+        },
+        {
+          "$ref": "ExistsGoal.json"
+        },
+        {
+          "$ref": "LetGoal.json"
+        },
+        {
+          "$ref": "ArithmeticGoal.json"
+        },
+        {
+          "$ref": "ComparisonGoal.json"
+        },
+        {
+          "$ref": "SumGoal.json"
+        },
+        {
+          "$ref": "CountGoal.json"
+        }
+      ],
+      "description": "What a solver evaluates: a rule body in the solver's own normal form. `op` says which.",
+      "discriminator": {
+        "propertyName": "op",
+        "mapping": {
+          "atom": "AtomGoal.json",
+          "not": "NotGoal.json",
+          "and": "ConnectiveGoal.json",
+          "or": "ConnectiveGoal.json",
+          "exists": "ExistsGoal.json",
+          "let": "LetGoal.json",
+          "add": "ArithmeticGoal.json",
+          "sub": "ArithmeticGoal.json",
+          "mul": "ArithmeticGoal.json",
+          "div": "ArithmeticGoal.json",
+          "daysBetween": "ArithmeticGoal.json",
+          "yearsBetween": "ArithmeticGoal.json",
+          "min": "ArithmeticGoal.json",
+          "max": "ArithmeticGoal.json",
+          "roundTo": "ArithmeticGoal.json",
+          "floorTo": "ArithmeticGoal.json",
+          "ceilTo": "ArithmeticGoal.json",
+          "eq": "ComparisonGoal.json",
+          "neq": "ComparisonGoal.json",
+          "lt": "ComparisonGoal.json",
+          "lte": "ComparisonGoal.json",
+          "gt": "ComparisonGoal.json",
+          "gte": "ComparisonGoal.json",
+          "sum": "SumGoal.json",
+          "count": "CountGoal.json"
+        }
+      }
+    },
+    "ConnectiveGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ConnectiveGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "ConnectiveKind.json"
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "$ref": "Goal.json"
+          }
+        }
+      },
+      "required": ["kind", "op", "goals"]
+    },
+    "ExistsGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ExistsGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "exists"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "Variable.json"
+          }
+        },
+        "goal": {
+          "$ref": "Goal.json"
+        }
+      },
+      "required": ["kind", "op", "variables", "goal"]
+    },
+    "LetGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "LetGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "let"
+        },
+        "variable": {
+          "$ref": "Variable.json"
+        },
+        "value": {
+          "$ref": "Term.json"
+        },
+        "goal": {
+          "$ref": "Goal.json"
+        }
+      },
+      "required": ["kind", "op", "variable", "value", "goal"]
+    },
+    "ArithmeticGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ArithmeticGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "ArithmeticKind.json"
+        },
+        "bind": {
+          "$ref": "Variable.json"
+        },
+        "left": {
+          "$ref": "Term.json"
+        },
+        "right": {
+          "$ref": "Term.json"
+        }
+      },
+      "required": ["kind", "op", "bind", "left", "right"]
+    },
+    "ComparisonGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ComparisonGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "ComparisonKind.json"
+        },
+        "left": {
+          "$ref": "Term.json"
+        },
+        "right": {
+          "$ref": "Term.json"
+        }
+      },
+      "required": ["kind", "op", "left", "right"]
+    },
+    "SumGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "SumGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "sum"
+        },
+        "bind": {
+          "$ref": "Variable.json"
+        },
+        "value": {
+          "$ref": "Term.json"
+        },
+        "where": {
+          "$ref": "Goal.json"
+        },
+        "completeWhen": {
+          "$ref": "Goal.json"
+        }
+      },
+      "required": ["kind", "op", "bind", "value", "where"]
+    },
+    "CountGoal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "CountGoal.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "count"
+        },
+        "bind": {
+          "$ref": "Variable.json"
+        },
+        "where": {
+          "$ref": "Goal.json"
+        },
+        "completeWhen": {
+          "$ref": "Goal.json"
+        }
+      },
+      "required": ["kind", "op", "bind", "where"]
+    },
+    "MissingBinding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "MissingBinding.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "missing-binding"
+        },
+        "variable": {
+          "$ref": "Variable.json"
+        }
+      },
+      "required": ["kind", "variable"],
+      "description": "A variable an operation needed had no binding."
+    },
+    "UnsettledEvidence": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "UnsettledEvidence.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "UnsettledKind.json"
+        },
+        "count": {
+          "type": "number"
+        }
+      },
+      "required": ["kind"],
+      "description": "Evidence the result depends on is conflicted or unknown."
+    },
+    "UnsettledKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "UnsettledKind.json",
+      "type": "string",
+      "enum": ["conflict", "unknown"],
+      "description": "Whether the evidence disagrees (`conflict`) or is missing (`unknown`)."
+    },
+    "OpenWorld": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OpenWorld.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "open-world"
+        }
+      },
+      "required": ["kind"],
+      "description": "An open-world predicate may have matches that are not recorded."
+    },
+    "NumericRange": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "NumericRange.json",
+      "type": "object",
+      "properties": {
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "InfiniteNumber.json"
+            }
+          ]
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "InfiniteNumber.json"
+            }
+          ]
+        }
+      },
+      "required": ["lower", "upper"],
+      "description": "Lower and upper bounds on a number; an unbounded side is infinite."
+    },
+    "NumericRangeValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "NumericRangeValue.json",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "numeric-range"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "InfiniteNumber.json"
+            }
+          ]
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "InfiniteNumber.json"
+            }
+          ]
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "$ref": "Uncertainty.json"
+          }
+        }
+      },
+      "required": ["kind", "lower", "upper", "uncertainty"],
+      "description": "A count known only within bounds, with why it is not exact."
+    },
+    "Uncertainty": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Uncertainty.json",
+      "oneOf": [
+        {
+          "$ref": "UnsettledEvidence.json"
+        },
+        {
+          "$ref": "OpenWorld.json"
+        },
+        {
+          "$ref": "MissingBinding.json"
+        }
+      ],
+      "description": "Why a result is not exact.",
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "conflict": "UnsettledEvidence.json",
+          "unknown": "UnsettledEvidence.json",
+          "open-world": "OpenWorld.json",
+          "missing-binding": "MissingBinding.json"
+        }
+      }
+    },
+    "EvidenceSupport": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EvidenceSupport.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "evidence"
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "Literal.json"
+          }
+        }
+      },
+      "required": ["source", "literals"],
+      "description": "Stored evidence for or against the atom."
+    },
+    "ClosedWorldAbsenceSupport": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ClosedWorldAbsenceSupport.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "closed-world-absence"
+        }
+      },
+      "required": ["source"],
+      "description": "A closed-world predicate has no evidence for the atom."
+    },
+    "RuleSupport": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "RuleSupport.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "rule"
+        },
+        "rule": {
+          "$ref": "Rule.json"
+        },
+        "body": {
+          "$ref": "Judgment.json"
+        }
+      },
+      "required": ["source", "rule", "body"],
+      "description": "A rule whose head matches the atom, with the judgment of its body."
+    },
+    "Judgment": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Judgment.json",
+      "type": "object",
+      "properties": {
+        "goal": {
+          "$ref": "Goal.json"
+        },
+        "value": {
+          "$ref": "TruthValue.json"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "Variable.json"
+              },
+              {
+                "$ref": "BoundValue.json"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "The variable assignments in scope for this goal."
+        },
+        "positive": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "What supports the goal."
+        },
+        "negative": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "What refutes the goal."
+        },
+        "inconclusive": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "The derivations that could not settle the goal."
+        }
+      },
+      "required": ["goal", "value", "bindings"],
+      "description": "A solver's verdict on one goal, with the proof behind it."
+    },
+    "TruthValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "TruthValue.json",
+      "type": "string",
+      "enum": ["true", "false", "unknown", "conflicted"],
+      "description": "The four values a goal can have."
+    },
+    "BoundValue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "BoundValue.json",
+      "oneOf": [
+        {
+          "$ref": "Value.json"
+        },
+        {
+          "$ref": "NumericRangeValue.json"
+        }
+      ],
+      "description": "What a variable can be bound to: a value, or a count that is not exactly known."
+    },
+    "Support": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Support.json",
+      "oneOf": [
+        {
+          "$ref": "EvidenceSupport.json"
+        },
+        {
+          "$ref": "ClosedWorldAbsenceSupport.json"
+        },
+        {
+          "$ref": "RuleSupport.json"
+        },
+        {
+          "$ref": "SubgoalsSupport.json"
+        },
+        {
+          "$ref": "PrimitiveSupport.json"
+        }
+      ],
+      "description": "One reason for a judgment's value. `source` says which.",
+      "discriminator": {
+        "propertyName": "source",
+        "mapping": {
+          "evidence": "EvidenceSupport.json",
+          "closed-world-absence": "ClosedWorldAbsenceSupport.json",
+          "rule": "RuleSupport.json",
+          "subgoals": "SubgoalsSupport.json",
+          "primitive": "PrimitiveSupport.json"
+        }
+      }
+    },
+    "SubgoalsSupport": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "SubgoalsSupport.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "subgoals"
+        },
+        "judgments": {
+          "type": "array",
+          "items": {
+            "$ref": "Judgment.json"
+          }
+        }
+      },
+      "required": ["source", "judgments"],
+      "description": "The judgments of a compound goal's children."
+    },
+    "PrimitiveSupport": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PrimitiveSupport.json",
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "primitive"
+        },
+        "evaluation": {
+          "$ref": "PrimitiveEvaluation.json"
+        }
+      },
+      "required": ["source", "evaluation"],
+      "description": "The evaluation of an arithmetic, comparison, or aggregate goal."
+    },
+    "PrimitiveEvaluation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PrimitiveEvaluation.json",
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "operands": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "BoundValue.json"
+              },
+              {
+                "$ref": "MissingBinding.json"
+              }
+            ]
+          }
+        },
+        "value": {
+          "$ref": "TruthValue.json"
+        },
+        "result": {
+          "$ref": "BoundValue.json"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "Variable.json"
+              },
+              {
+                "$ref": "BoundValue.json"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "range": {
+          "$ref": "NumericRange.json"
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "$ref": "Uncertainty.json"
+          }
+        }
+      },
+      "required": ["operation", "operands", "value"],
+      "description": "What a primitive operation was given and what it produced."
+    },
+    "QueryJudgment": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "QueryJudgment.json",
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "TruthValue.json"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "Variable.json"
+              },
+              {
+                "$ref": "BoundValue.json"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "The variable assignments in scope for this goal."
+        },
+        "positive": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "What supports the goal."
+        },
+        "negative": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "What refutes the goal."
+        },
+        "inconclusive": {
+          "type": "array",
+          "items": {
+            "$ref": "Support.json"
+          },
+          "description": "The derivations that could not settle the goal."
+        },
+        "goal": {
+          "$ref": "AtomGoal.json"
+        }
+      },
+      "required": ["value", "bindings", "goal"],
+      "description": "The judgment a query returns: its goal is the ground atom that was asked about or matched."
+    }
+  }
+}

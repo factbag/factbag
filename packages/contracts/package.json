@@ -1,0 +1,13 @@
+{
+  "name": "@factbag/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "tsp compile spec && oxfmt schema"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "catalog:",
+    "@typespec/json-schema": "catalog:"
+  }
+}
