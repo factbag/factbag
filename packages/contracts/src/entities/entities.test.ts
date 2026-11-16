@@ -14,6 +14,7 @@ import type { KnowledgeBaseDocument } from "./knowledge-base";
 import { assertIsLiteral, isLiteral } from "./literal";
 import type { Literal } from "./literal";
 import { assertIsPredicate, isPredicate } from "./predicate";
+import { assertIsProgram, isProgram } from "./program";
 import type { Predicate } from "./predicate";
 import { assertIsRule, isRule } from "./rule";
 import type { Rule } from "./rule";
@@ -299,6 +300,26 @@ const shapes: readonly Readonly<{
       {
         name: "a body that is a value",
         json: { ...rule, body: true },
+      },
+    ],
+  },
+  {
+    shape: "Program",
+    is: isProgram,
+    assert: assertIsProgram,
+    accepts: [{ predicates: [predicate], literals: [literal], rules: [rule] }],
+    rejects: [
+      {
+        name: "a literal with an unknown sign",
+        json: { predicates: [], literals: [{ ...literal, sign: "?" }], rules: [] },
+      },
+      {
+        name: "a section that is not a list",
+        json: { predicates: "income", literals: [], rules: [] },
+      },
+      {
+        name: "a missing section",
+        json: { predicates: [], literals: [] },
       },
     ],
   },

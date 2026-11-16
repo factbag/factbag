@@ -82,6 +82,7 @@ export type {
   TruthValue,
   Uncertainty,
 } from "./solver/judgment";
+export { assertIsProgram, isProgram } from "./entities/program";
 export type { Program } from "./entities/program";
 export type { Solver } from "./solver/solver";
 export { COMPARISON_KINDS } from "./entities/condition";

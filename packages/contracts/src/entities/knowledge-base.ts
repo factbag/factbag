@@ -1,9 +1,7 @@
 import { assert } from "../assert";
 import { assertIsEntityRef, isEntityRef } from "./entity";
 import type { EntityRef } from "./entity";
-import { assertIsLiteral, isLiteral } from "./literal";
-import { assertIsPredicate, isPredicate } from "./predicate";
-import { assertIsRule, isRule } from "./rule";
+import { assertIsProgram, isProgram } from "./program";
 import type { Program } from "./program";
 import { assertIsArrayOf, assertIsShape, isArrayOf, isShape } from "../shape";
 import type { Shape } from "../shape";
@@ -23,10 +21,8 @@ export function isKnowledgeBaseDocument(value: unknown): value is KnowledgeBaseD
   return (
     isShape(value, "KnowledgeBase") &&
     value["apiVersion"] === "factbag/v1alpha1" &&
-    isArrayOf(value["predicates"], isPredicate) &&
     isArrayOf(value["entities"], isEntityRef) &&
-    isArrayOf(value["literals"], isLiteral) &&
-    isArrayOf(value["rules"], isRule)
+    isProgram(value)
   );
 }
 
@@ -36,8 +32,6 @@ export function assertIsKnowledgeBaseDocument(
 ): asserts value is KnowledgeBaseDocument {
   assertIsShape(value, "KnowledgeBase");
   assert(value["apiVersion"] === "factbag/v1alpha1");
-  assertIsArrayOf(value["predicates"], assertIsPredicate);
   assertIsArrayOf(value["entities"], assertIsEntityRef);
-  assertIsArrayOf(value["literals"], assertIsLiteral);
-  assertIsArrayOf(value["rules"], assertIsRule);
+  assertIsProgram(value);
 }

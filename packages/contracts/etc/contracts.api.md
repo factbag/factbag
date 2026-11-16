@@ -71,6 +71,9 @@ export function assertIsLiteral(value: unknown): asserts value is Literal;
 export function assertIsPredicate(value: unknown): asserts value is Predicate;
 
 // @public
+export function assertIsProgram(value: unknown): asserts value is Program;
+
+// @public
 export function assertIsRule(value: unknown): asserts value is Rule;
 
 // @public
@@ -260,6 +263,9 @@ export function isLiteral(value: unknown): value is Literal;
 
 // @public
 export function isPredicate(value: unknown): value is Predicate;
+
+// @public
+export function isProgram(value: unknown): value is Program;
 
 // @public
 export function isRule(value: unknown): value is Rule;
