@@ -4,10 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "tsp compile spec && oxfmt schema"
+    "generate": "tsp compile spec && node scripts/generate.mjs && oxfmt schema src/generated",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@typespec/compiler": "catalog:",
-    "@typespec/json-schema": "catalog:"
+    "@typespec/json-schema": "catalog:",
+    "@exodus/schemasafe": "catalog:",
+    "json-schema-to-typescript": "catalog:",
+    "@factbag/tsconfig": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
