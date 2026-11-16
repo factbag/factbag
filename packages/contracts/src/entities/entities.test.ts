@@ -40,24 +40,29 @@ const aliceIncome = {
 } satisfies GroundAtom;
 const total = {
   kind: "sum",
-  args: [T, income, { completeWhen: { kind: "not", atom: income } }],
+  value: T,
+  where: income,
+  completeWhen: { kind: "not", atom: income },
 } satisfies Expression;
 const body = {
   kind: "and",
-  args: [
-    { kind: "exists", args: [T, income] },
-    { kind: "letIn", args: [T, { kind: "add", args: [total, 1] }, { kind: "gte", args: [T, 2] }] },
+  conditions: [
+    { kind: "exists", variables: [T], condition: income },
+    {
+      kind: "letIn",
+      variable: T,
+      value: { kind: "add", left: total, right: 1 },
+      condition: { kind: "gte", left: T, right: 2 },
+    },
   ],
 } satisfies Condition;
 const rule = { kind: "iff", head: income, body } satisfies Rule;
 const literal = {
-  kind: "literal",
-  sign: "-",
+  sign: "denied",
   atom: aliceIncome,
   metadata: { source: "w2", scores: { probability: 0.9 }, annotations: { pages: [1, null] } },
 } satisfies Literal;
 const predicate = {
-  kind: "predicate",
   name: "income",
   world: "open",
   params: {
@@ -191,7 +196,7 @@ const shapes: readonly Readonly<{
     shape: "Predicate",
     is: isPredicate,
     assert: assertIsPredicate,
-    accepts: [predicate, { kind: "predicate", name: "flagged", world: "closed", params: {} }],
+    accepts: [predicate, { name: "flagged", world: "closed", params: {} }],
     rejects: [
       {
         name: "an unknown world",
@@ -219,7 +224,7 @@ const shapes: readonly Readonly<{
     shape: "Literal",
     is: isLiteral,
     assert: assertIsLiteral,
-    accepts: [literal, { kind: "literal", sign: "+", atom: aliceIncome }],
+    accepts: [literal, { sign: "asserted", atom: aliceIncome }],
     rejects: [
       {
         name: "a negated atom from a rule body",
@@ -243,27 +248,27 @@ const shapes: readonly Readonly<{
     shape: "Condition",
     is: isCondition,
     assert: assertIsCondition,
-    accepts: [income, body, { kind: "not", atom: income }, { kind: "or", args: [] }],
+    accepts: [income, body, { kind: "not", atom: income }, { kind: "or", conditions: [] }],
     rejects: [
       {
         name: "an expression",
-        json: { kind: "add", args: [1, 2] },
+        json: { kind: "add", left: 1, right: 2 },
       },
       {
         name: "a comparison with one operand",
-        json: { kind: "eq", args: [1] },
+        json: { kind: "eq", left: 1 },
       },
       {
         name: "exists without a condition",
-        json: { kind: "exists", args: [] },
+        json: { kind: "exists", variables: [] },
       },
       {
         name: "exists quantifying over a value",
-        json: { kind: "exists", args: [1, income] },
+        json: { kind: "exists", variables: [1], condition: income },
       },
       {
         name: "a malformed condition nested in a connective",
-        json: { kind: "and", args: [income, { kind: "not", atom: 1 }] },
+        json: { kind: "and", conditions: [income, { kind: "not", atom: 1 }] },
       },
     ],
   },
@@ -271,19 +276,19 @@ const shapes: readonly Readonly<{
     shape: "Expression",
     is: isExpression,
     assert: assertIsExpression,
-    accepts: [1, T, total, { kind: "count", args: [T, income] }],
+    accepts: [1, T, total, { kind: "count", value: T, where: income }],
     rejects: [
       {
         name: "an aggregate without a condition",
-        json: { kind: "sum", args: [T] },
+        json: { kind: "sum", value: T },
       },
       {
-        name: "aggregate options without completeWhen",
-        json: { kind: "sum", args: [T, income, {}] },
+        name: "a completeness condition that is not a condition",
+        json: { kind: "sum", value: T, where: income, completeWhen: {} },
       },
       {
         name: "arithmetic over a condition",
-        json: { kind: "add", args: [1, income] },
+        json: { kind: "add", left: 1, right: income },
       },
     ],
   },

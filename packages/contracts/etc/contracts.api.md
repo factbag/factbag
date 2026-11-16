@@ -6,7 +6,9 @@
 
 // @public
 export type Aggregate = Shape<"sum" | "count"> & Readonly<{
-    args: readonly [Expression, Condition] | readonly [Expression, Condition, CompleteWhen];
+    value: Expression;
+    where: Condition;
+    completeWhen?: Condition;
 }>;
 
 // @public
@@ -19,7 +21,8 @@ export type AnnotationValue = null | boolean | number | string | readonly Annota
 
 // @public
 export type Arithmetic = Shape<ArithmeticKind> & Readonly<{
-    args: readonly [Expression, Expression];
+    left: Expression;
+    right: Expression;
 }>;
 
 // @public
@@ -109,7 +112,8 @@ export type ClosedWorldAbsenceSupport = SupportShape<"closed-world-absence">;
 
 // @public
 export type Comparison = Shape<ComparisonKind> & Readonly<{
-    args: readonly [Expression, Expression];
+    left: Expression;
+    right: Expression;
 }>;
 
 // @public
@@ -125,16 +129,11 @@ export type ComparisonGoal = GoalShape<ComparisonKind> & Readonly<{
 export type ComparisonKind = "eq" | "neq" | "lt" | "lte" | "gt" | "gte";
 
 // @public
-export type CompleteWhen = Readonly<{
-    completeWhen: Condition;
-}>;
-
-// @public
 export type Condition = Atom | Not | Connective | Exists | LetIn | Comparison;
 
 // @public
 export type Connective = Shape<"and" | "or"> & Readonly<{
-    args: readonly Condition[];
+    conditions: readonly Condition[];
 }>;
 
 // @public
@@ -196,7 +195,8 @@ export class ExclusiveDefinitionProgrammerError extends ProgrammerError {
 
 // @public
 export type Exists = Shape<"exists"> & Readonly<{
-    args: readonly [...(readonly Variable[]), Condition];
+    variables: readonly Variable[];
+    condition: Condition;
 }>;
 
 // @public
@@ -307,12 +307,14 @@ export type LetGoal = GoalShape<"let"> & Readonly<{
 
 // @public
 export type LetIn = Shape<"letIn"> & Readonly<{
-    args: readonly [Variable, Expression, Condition];
+    variable: Variable;
+    value: Expression;
+    condition: Condition;
 }>;
 
 // @public
-export type Literal = Shape<"literal"> & Readonly<{
-    sign: "+" | "-";
+export type Literal = Readonly<{
+    sign: "asserted" | "denied";
     atom: GroundAtom;
     metadata?: EvidenceMetadata;
 }>;
@@ -354,7 +356,7 @@ export type NumericRangeValue = Shape<"numeric-range"> & NumericRange & Readonly
 }>;
 
 // @public
-export type Predicate = Shape<"predicate"> & Readonly<{
+export type Predicate = Readonly<{
     name: string;
     world: PredicateWorld;
     params: Readonly<Record<string, FieldType>>;

@@ -1,4 +1,3 @@
-import { assert } from "../assert";
 import { assertIsAtom, isAtom } from "./atom";
 import type { Atom } from "./atom";
 import { assertIsExpression, isExpression } from "./expression";
@@ -10,26 +9,26 @@ import type { Variable } from "./variable";
 
 /**
  * A rule-body condition: an atom, a negated atom, or a formula whose kind is
- * its operator. Arguments are positional, as the DSL builds them.
+ * its operator.
  */
 export type Condition = Atom | Not | Connective | Exists | LetIn | Comparison;
 
 /** Requires explicit evidence against an atom. */
 export type Not = Shape<"not"> & Readonly<{ atom: Atom }>;
 
-/** Holds when every (`and`) or any (`or`) argument holds. */
-export type Connective = Shape<"and" | "or"> & Readonly<{ args: readonly Condition[] }>;
+/** Holds when every (`and`) or any (`or`) of its conditions holds. */
+export type Connective = Shape<"and" | "or"> & Readonly<{ conditions: readonly Condition[] }>;
 
-/** Holds when the last argument holds for some values of the variables before it. */
+/** Holds when the condition holds for some values of the variables. */
 export type Exists = Shape<"exists"> &
-  Readonly<{ args: readonly [...(readonly Variable[]), Condition] }>;
+  Readonly<{ variables: readonly Variable[]; condition: Condition }>;
 
 /** Binds a variable to an expression's value for the condition that follows. */
-export type LetIn = Shape<"letIn"> & Readonly<{ args: readonly [Variable, Expression, Condition] }>;
+export type LetIn = Shape<"letIn"> &
+  Readonly<{ variable: Variable; value: Expression; condition: Condition }>;
 
 /** Compares two expressions. */
-export type Comparison = Shape<ComparisonKind> &
-  Readonly<{ args: readonly [Expression, Expression] }>;
+export type Comparison = Shape<ComparisonKind> & Readonly<{ left: Expression; right: Expression }>;
 
 /** The comparison operations. The solver evaluates `lt`, though the DSL does not emit it. */
 export type ComparisonKind = "eq" | "neq" | "lt" | "lte" | "gt" | "gte";
@@ -45,56 +44,44 @@ export function isCondition(value: unknown): value is Condition {
   if (isShape(value, "not")) {
     return isAtom(value["atom"]);
   }
-  const args: unknown = isShape(value, "and", "or", "exists", "letIn", ...COMPARISON_KINDS)
-    ? value["args"]
-    : undefined;
-  if (!Array.isArray(args)) {
-    return false;
-  }
   if (isShape(value, "and", "or")) {
-    return isArrayOf(args, isCondition);
+    return isArrayOf(value["conditions"], isCondition);
   }
   if (isShape(value, "exists")) {
-    return args.length > 0 && isArrayOf(args.slice(0, -1), isVariable) && isCondition(args.at(-1));
+    return isArrayOf(value["variables"], isVariable) && isCondition(value["condition"]);
   }
   if (isShape(value, "letIn")) {
     return (
-      args.length === 3 && isVariable(args[0]) && isExpression(args[1]) && isCondition(args[2])
+      isVariable(value["variable"]) &&
+      isExpression(value["value"]) &&
+      isCondition(value["condition"])
     );
   }
-  return args.length === 2 && isArrayOf(args, isExpression);
+  return (
+    isShape(value, ...COMPARISON_KINDS) &&
+    isExpression(value["left"]) &&
+    isExpression(value["right"])
+  );
 }
 
 /** Assert that a value is a rule-body condition. */
 export function assertIsCondition(value: unknown): asserts value is Condition {
   if (isShape(value, "atom")) {
     assertIsAtom(value);
-    return;
-  }
-  if (isShape(value, "not")) {
+  } else if (isShape(value, "not")) {
     assertIsAtom(value["atom"]);
-    return;
+  } else if (isShape(value, "and", "or")) {
+    assertIsArrayOf(value["conditions"], assertIsCondition);
+  } else if (isShape(value, "exists")) {
+    assertIsArrayOf(value["variables"], assertIsVariable);
+    assertIsCondition(value["condition"]);
+  } else if (isShape(value, "letIn")) {
+    assertIsVariable(value["variable"]);
+    assertIsExpression(value["value"]);
+    assertIsCondition(value["condition"]);
+  } else {
+    assertIsShape(value, ...COMPARISON_KINDS);
+    assertIsExpression(value["left"]);
+    assertIsExpression(value["right"]);
   }
-  assertIsShape(value, "and", "or", "exists", "letIn", ...COMPARISON_KINDS);
-  const args: unknown = value["args"];
-  assert(Array.isArray(args));
-  if (isShape(value, "and", "or")) {
-    assertIsArrayOf(args, assertIsCondition);
-    return;
-  }
-  if (isShape(value, "exists")) {
-    assert(args.length > 0);
-    assertIsArrayOf(args.slice(0, -1), assertIsVariable);
-    assertIsCondition(args.at(-1));
-    return;
-  }
-  if (isShape(value, "letIn")) {
-    assert(args.length === 3);
-    assertIsVariable(args[0]);
-    assertIsExpression(args[1]);
-    assertIsCondition(args[2]);
-    return;
-  }
-  assert(args.length === 2);
-  assertIsArrayOf(args, assertIsExpression);
 }

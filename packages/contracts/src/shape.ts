@@ -2,11 +2,10 @@ import { assert } from "./assert";
 import { isPlainObject } from "./is-plain-object";
 
 /**
- * The base of every contract shape. `kind` says what the shape is, and no two
- * shapes share a kind, so a shape can be recognised on its own, wherever it
- * appears. Strings, finite numbers, and booleans are the only contract data
- * without a kind, and records keyed by name (an atom's `fields`, a
- * predicate's `params`) are containers rather than shapes.
+ * The base of a contract shape that can stand where another shape could.
+ * `kind` says which it is, and no two shapes share a kind. Shapes that only
+ * ever appear in a position of their own (a predicate, a literal, a program)
+ * carry no kind.
  */
 export type Shape<Kind extends string> = Readonly<{ kind: Kind }>;
 

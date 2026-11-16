@@ -12,12 +12,14 @@ Under `src/`:
   program they form, and the knowledge-base document that persists it.
 - `solver/`: what a reasoning engine takes and returns: the `Solver`
   interface, and the judgments and goals in its results.
-- `shape.ts`: the base every shape extends.
+- `shape.ts`: the base for tagged alternatives.
 
-Every shape is JSON data that extends `Shape` (`shape.ts`): its `kind` says
-what it is, and no two shapes share a kind. Shapes refer to each other by
-name: an atom names its predicate, an entity reference names its class and
-id, a variable has a name.
+All contracts are JSON data. Alternatives use `kind` to identify their shape;
+predicates, literals, and programs have no tag because their position identifies
+them. Rule bodies use named fields (`conditions`, `left`/`right`, `value`/`where`)
+and literals use `asserted` or `denied` signs. Shapes refer to each other by name:
+an atom names its predicate, an entity reference names its class and id, and a
+variable has a name.
 
 Each file defines a shape with a guard (`isAtom`) and an assert
 (`assertIsAtom`). The assert is built from the asserts of its parts, down to

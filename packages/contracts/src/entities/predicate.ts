@@ -7,7 +7,6 @@ import {
   assertIsName,
   assertIsOptional,
   assertIsRecordOf,
-  assertIsShape,
   assertIsString,
   isArrayOf,
   isName,
@@ -19,13 +18,12 @@ import { assertIsValue, isValue, valueEquals } from "./value";
 import type { DateValue, InfiniteNumber, Value } from "./value";
 
 /** A predicate declaration: its name, world, and the type of each field. */
-export type Predicate = Shape<"predicate"> &
-  Readonly<{
-    name: string;
-    world: PredicateWorld;
-    params: Readonly<Record<string, FieldType>>;
-    metadata?: PredicateMetadata;
-  }>;
+export type Predicate = Readonly<{
+  name: string;
+  world: PredicateWorld;
+  params: Readonly<Record<string, FieldType>>;
+  metadata?: PredicateMetadata;
+}>;
 
 /** Whether absence of evidence counts as falsity (`closed`) or unknown (`open`). */
 export type PredicateWorld = "open" | "closed";
@@ -56,7 +54,7 @@ export type PredicateMetadata = Readonly<{
 /** Return whether a value is a predicate declaration. */
 export function isPredicate(value: unknown): value is Predicate {
   return (
-    isShape(value, "predicate") &&
+    isPlainObject(value) &&
     isName(value["name"]) &&
     (value["world"] === "open" || value["world"] === "closed") &&
     isRecordOf(value["params"], isFieldType) &&
@@ -66,7 +64,7 @@ export function isPredicate(value: unknown): value is Predicate {
 
 /** Assert that a value is a predicate declaration. */
 export function assertIsPredicate(value: unknown): asserts value is Predicate {
-  assertIsShape(value, "predicate");
+  assert(isPlainObject(value));
   assertIsName(value["name"]);
   assert(value["world"] === "open" || value["world"] === "closed");
   assertIsRecordOf(value["params"], assertIsFieldType);

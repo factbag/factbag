@@ -1,8 +1,6 @@
-import { assert } from "../assert";
-import { isPlainObject } from "../is-plain-object";
 import { assertIsCondition, isCondition } from "./condition";
 import type { Condition } from "./condition";
-import { assertIsArrayOf, assertIsOptional, isArrayOf, isShape } from "../shape";
+import { assertIsOptional, isShape } from "../shape";
 import type { Shape } from "../shape";
 import { assertIsTerm, isTerm } from "./term";
 import type { Term } from "./term";
@@ -14,20 +12,15 @@ import type { Term } from "./term";
 export type Expression = Term | Arithmetic | Aggregate;
 
 /** Applies a primitive operation to two expressions. */
-export type Arithmetic = Shape<ArithmeticKind> &
-  Readonly<{ args: readonly [Expression, Expression] }>;
+export type Arithmetic = Shape<ArithmeticKind> & Readonly<{ left: Expression; right: Expression }>;
 
 /**
- * Totals (`sum`) or counts (`count`) the first argument over every way the
- * condition holds, optionally stating when the matches are known to be complete.
+ * Totals (`sum`) or counts (`count`) `value` over every way the `where`
+ * condition holds. `completeWhen` states when those matches are known to be
+ * complete.
  */
 export type Aggregate = Shape<"sum" | "count"> &
-  Readonly<{
-    args: readonly [Expression, Condition] | readonly [Expression, Condition, CompleteWhen];
-  }>;
-
-/** An aggregate's options: the condition under which its matches are complete. */
-export type CompleteWhen = Readonly<{ completeWhen: Condition }>;
+  Readonly<{ value: Expression; where: Condition; completeWhen?: Condition }>;
 
 /** The primitive arithmetic operations. */
 export type ArithmeticKind =
@@ -63,46 +56,30 @@ export function isExpression(value: unknown): value is Expression {
   if (isTerm(value)) {
     return true;
   }
-  const args: unknown = isShape(value, "sum", "count", ...ARITHMETIC_KINDS)
-    ? value["args"]
-    : undefined;
-  if (!Array.isArray(args)) {
-    return false;
-  }
   if (isShape(value, "sum", "count")) {
     return (
-      (args.length === 2 || (args.length === 3 && isCompleteWhen(args[2]))) &&
-      isExpression(args[0]) &&
-      isCondition(args[1])
+      isExpression(value["value"]) &&
+      isCondition(value["where"]) &&
+      (value["completeWhen"] === undefined || isCondition(value["completeWhen"]))
     );
   }
-  return args.length === 2 && isArrayOf(args, isExpression);
+  return (
+    isShape(value, ...ARITHMETIC_KINDS) &&
+    isExpression(value["left"]) &&
+    isExpression(value["right"])
+  );
 }
 
 /** Assert that a value is an expression. */
 export function assertIsExpression(value: unknown): asserts value is Expression {
-  if (!isShape(value, "sum", "count", ...ARITHMETIC_KINDS)) {
-    assertIsTerm(value);
-    return;
-  }
-  const args: unknown = value["args"];
-  assert(Array.isArray(args));
   if (isShape(value, "sum", "count")) {
-    assert(args.length === 2 || args.length === 3);
-    assertIsExpression(args[0]);
-    assertIsCondition(args[1]);
-    assertIsOptional(args[2], assertIsCompleteWhen);
-    return;
+    assertIsExpression(value["value"]);
+    assertIsCondition(value["where"]);
+    assertIsOptional(value["completeWhen"], assertIsCondition);
+  } else if (isShape(value, ...ARITHMETIC_KINDS)) {
+    assertIsExpression(value["left"]);
+    assertIsExpression(value["right"]);
+  } else {
+    assertIsTerm(value);
   }
-  assert(args.length === 2);
-  assertIsArrayOf(args, assertIsExpression);
-}
-
-function isCompleteWhen(value: unknown): value is CompleteWhen {
-  return isPlainObject(value) && isCondition(value["completeWhen"]);
-}
-
-function assertIsCompleteWhen(value: unknown): asserts value is CompleteWhen {
-  assert(isPlainObject(value));
-  assertIsCondition(value["completeWhen"]);
 }

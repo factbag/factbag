@@ -22,13 +22,7 @@ export type {
 export { assertIsEntityRef, isEntityRef } from "./entities/entity";
 export type { EntityRef } from "./entities/entity";
 export { assertIsExpression, isExpression } from "./entities/expression";
-export type {
-  ArithmeticKind,
-  Aggregate,
-  Arithmetic,
-  CompleteWhen,
-  Expression,
-} from "./entities/expression";
+export type { ArithmeticKind, Aggregate, Arithmetic, Expression } from "./entities/expression";
 export { assertIsKnowledgeBaseDocument, isKnowledgeBaseDocument } from "./entities/knowledge-base";
 export type { KnowledgeBaseDocument } from "./entities/knowledge-base";
 export { assertIsLiteral, isLiteral } from "./entities/literal";
