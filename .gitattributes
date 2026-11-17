@@ -1,0 +1,16 @@
+# TypeSpec-generated schemas, types, and validators.
+/packages/contracts/schema/** linguist-generated=true
+/packages/contracts/src/generated/** linguist-generated=true
+
+# API Extractor reports.
+/packages/*/etc/*.api.md linguist-generated=true
+/providers/*/etc/*.api.md linguist-generated=true
+
+# Changesets release outputs and pnpm dependency resolution.
+/packages/*/CHANGELOG.md linguist-generated=true
+/providers/*/CHANGELOG.md linguist-generated=true
+/.changeset/pre.json linguist-generated=true
+/pnpm-lock.yaml linguist-generated=true
+
+# Copied from the root README by the factbag build.
+/packages/factbag/README.md linguist-generated=true
