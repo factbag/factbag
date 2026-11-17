@@ -1,0 +1,1325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "EntityRef": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "entity"
+        },
+        "type": {
+          "$ref": "#/$defs/Name"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["kind", "type", "id"],
+      "description": "A reference to an entity: its class name (`type`) and id."
+    },
+    "Name": {
+      "type": "string",
+      "pattern": "\\S",
+      "description": "A string that names something: not empty and not only whitespace."
+    },
+    "InfiniteNumber": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "number"
+        },
+        "value": {
+          "$ref": "#/$defs/InfiniteNumberValue"
+        }
+      },
+      "required": ["kind", "value"],
+      "description": "An infinite number. Finite numbers are written as JSON numbers."
+    },
+    "InfiniteNumberValue": {
+      "type": "string",
+      "enum": ["Infinity", "-Infinity"],
+      "description": "Which infinity."
+    },
+    "DateValue": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "date"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^(\\d{4}|[+-]\\d{6})-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        }
+      },
+      "required": ["kind", "value"],
+      "description": "A date, as an ISO 8601 UTC string in the exact form JavaScript's `Date.prototype.toISOString` writes."
+    },
+    "Variable": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "var"
+        },
+        "name": {
+          "$ref": "#/$defs/Name"
+        }
+      },
+      "required": ["kind", "name"],
+      "description": "A logic variable. Names are scoped to one rule."
+    },
+    "RecordTerm": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "$ref": "#/$defs/Term"
+      }
+    },
+    "Atom": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "atom"
+        },
+        "predicate": {
+          "$ref": "#/$defs/Name"
+        },
+        "fields": {
+          "$ref": "#/$defs/RecordTerm"
+        }
+      },
+      "required": ["kind", "predicate", "fields"],
+      "description": "An atom as rules and queries write it: a predicate name and, for each field, a value or a variable."
+    },
+    "Term": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Value"
+        },
+        {
+          "$ref": "#/$defs/Variable"
+        }
+      ],
+      "description": "A field value in an atom: a ground value or a variable."
+    },
+    "Value": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/InfiniteNumber"
+        },
+        {
+          "$ref": "#/$defs/DateValue"
+        },
+        {
+          "$ref": "#/$defs/EntityRef"
+        }
+      ],
+      "description": "A ground value. Strings, finite numbers, and booleans are written as\nthemselves; infinities, dates, and entities are tagged."
+    },
+    "RecordValue": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "$ref": "#/$defs/Value"
+      }
+    },
+    "GroundAtom": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "atom"
+        },
+        "predicate": {
+          "$ref": "#/$defs/Name"
+        },
+        "fields": {
+          "$ref": "#/$defs/RecordValue"
+        }
+      },
+      "required": ["kind", "predicate", "fields"],
+      "description": "An atom with a value for every field and no variables, as evidence states it."
+    },
+    "RecordFloat64": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "type": "number"
+      }
+    },
+    "RecordAnnotationValue": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "$ref": "#/$defs/AnnotationValue"
+      }
+    },
+    "EvidenceMetadata": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Name of the system or document the fact came from."
+        },
+        "citation": {
+          "type": "string",
+          "description": "Quotation or reference into the supporting material."
+        },
+        "justification": {
+          "type": "string",
+          "description": "The asserter's stated reason for accepting the fact."
+        },
+        "scores": {
+          "$ref": "#/$defs/RecordFloat64",
+          "description": "Named numeric scores, stored without being combined or interpreted."
+        },
+        "annotations": {
+          "$ref": "#/$defs/RecordAnnotationValue",
+          "description": "Application-specific annotations, retained on supporting evidence in judgments."
+        }
+      },
+      "description": "Where accepted evidence came from."
+    },
+    "AnnotationValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AnnotationValue"
+          }
+        },
+        {
+          "$ref": "#/$defs/RecordAnnotationValue"
+        }
+      ],
+      "description": "JSON data carried without interpretation."
+    },
+    "Literal": {
+      "type": "object",
+      "properties": {
+        "sign": {
+          "$ref": "#/$defs/Sign"
+        },
+        "atom": {
+          "$ref": "#/$defs/GroundAtom"
+        },
+        "metadata": {
+          "$ref": "#/$defs/EvidenceMetadata"
+        }
+      },
+      "required": ["sign", "atom"],
+      "description": "Accepted evidence: a ground atom asserted or denied, with where it came from."
+    },
+    "Sign": {
+      "type": "string",
+      "enum": ["asserted", "denied"],
+      "description": "Whether evidence asserts or denies its atom."
+    },
+    "EnumType": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "enum"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EnumValue"
+          }
+        }
+      },
+      "required": ["kind", "values"],
+      "description": "A field holding one of a fixed set of strings, numbers, or dates."
+    },
+    "EnumValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/InfiniteNumber"
+        },
+        {
+          "$ref": "#/$defs/DateValue"
+        }
+      ],
+      "description": "A value an enum field may list."
+    },
+    "EntityType": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "entityType"
+        },
+        "type": {
+          "$ref": "#/$defs/Name"
+        }
+      },
+      "required": ["kind", "type"],
+      "description": "A field holding entities of one class, named by `type`."
+    },
+    "RecordString": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "type": "string"
+      }
+    },
+    "PredicateMetadata": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "parameters": {
+          "$ref": "#/$defs/RecordString"
+        },
+        "annotations": {
+          "$ref": "#/$defs/RecordAnnotationValue"
+        }
+      },
+      "required": ["description"],
+      "description": "Domain guidance for interpreting a predicate, available to evidence producers."
+    },
+    "RecordFieldType": {
+      "type": "object",
+      "properties": {},
+      "unevaluatedProperties": {
+        "$ref": "#/$defs/FieldType"
+      }
+    },
+    "Predicate": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Name"
+        },
+        "world": {
+          "$ref": "#/$defs/PredicateWorld"
+        },
+        "params": {
+          "$ref": "#/$defs/RecordFieldType"
+        },
+        "metadata": {
+          "$ref": "#/$defs/PredicateMetadata"
+        }
+      },
+      "required": ["name", "world", "params"],
+      "description": "A predicate declaration: its name, world, and the type of each field."
+    },
+    "PredicateWorld": {
+      "type": "string",
+      "enum": ["open", "closed"],
+      "description": "Whether absence of evidence counts as falsity (`closed`) or unknown (`open`)."
+    },
+    "FieldType": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ScalarType"
+        },
+        {
+          "$ref": "#/$defs/EnumType"
+        },
+        {
+          "$ref": "#/$defs/EntityType"
+        }
+      ],
+      "description": "The type of one predicate field."
+    },
+    "ScalarType": {
+      "type": "string",
+      "enum": ["string", "number", "boolean", "date"],
+      "description": "A field holding any string, number, boolean, or date."
+    },
+    "Arithmetic": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ArithmeticKind"
+        },
+        "left": {
+          "$ref": "#/$defs/Expression"
+        },
+        "right": {
+          "$ref": "#/$defs/Expression"
+        }
+      },
+      "required": ["kind", "left", "right"],
+      "description": "Applies a primitive operation to two expressions."
+    },
+    "ArithmeticKind": {
+      "type": "string",
+      "enum": [
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "daysBetween",
+        "yearsBetween",
+        "min",
+        "max",
+        "roundTo",
+        "floorTo",
+        "ceilTo"
+      ],
+      "description": "The primitive arithmetic operations."
+    },
+    "Expression": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Term"
+        },
+        {
+          "$ref": "#/$defs/Arithmetic"
+        },
+        {
+          "$ref": "#/$defs/Aggregate"
+        }
+      ],
+      "description": "A value-producing expression in a rule body: a term, or a formula whose kind is its operator."
+    },
+    "Aggregate": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/AggregateKind"
+        },
+        "value": {
+          "$ref": "#/$defs/Expression"
+        },
+        "where": {
+          "$ref": "#/$defs/Condition"
+        },
+        "completeWhen": {
+          "$ref": "#/$defs/Condition",
+          "description": "When the matches are known to be complete."
+        }
+      },
+      "required": ["kind", "value", "where"],
+      "description": "Totals (`sum`) or counts (`count`) `value` over every way the `where`\ncondition holds."
+    },
+    "AggregateKind": {
+      "type": "string",
+      "enum": ["sum", "count"],
+      "description": "Whether an aggregate totals (`sum`) or counts (`count`) its matches."
+    },
+    "Condition": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Atom"
+        },
+        {
+          "$ref": "#/$defs/Not"
+        },
+        {
+          "$ref": "#/$defs/Connective"
+        },
+        {
+          "$ref": "#/$defs/Exists"
+        },
+        {
+          "$ref": "#/$defs/LetIn"
+        },
+        {
+          "$ref": "#/$defs/Comparison"
+        }
+      ],
+      "description": "A rule-body condition: an atom, a negated atom, or a formula whose kind is its operator.",
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "atom": "#/$defs/Atom",
+          "not": "#/$defs/Not",
+          "and": "#/$defs/Connective",
+          "or": "#/$defs/Connective",
+          "exists": "#/$defs/Exists",
+          "letIn": "#/$defs/LetIn",
+          "eq": "#/$defs/Comparison",
+          "neq": "#/$defs/Comparison",
+          "lt": "#/$defs/Comparison",
+          "lte": "#/$defs/Comparison",
+          "gt": "#/$defs/Comparison",
+          "gte": "#/$defs/Comparison"
+        }
+      }
+    },
+    "Not": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "not"
+        },
+        "atom": {
+          "$ref": "#/$defs/Atom"
+        }
+      },
+      "required": ["kind", "atom"],
+      "description": "Requires explicit evidence against an atom."
+    },
+    "Connective": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ConnectiveKind"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Condition"
+          }
+        }
+      },
+      "required": ["kind", "conditions"],
+      "description": "Holds when every (`and`) or any (`or`) of its conditions holds."
+    },
+    "ConnectiveKind": {
+      "type": "string",
+      "enum": ["and", "or"],
+      "description": "Whether every argument must hold (`and`) or any (`or`)."
+    },
+    "Exists": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "exists"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "condition": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": ["kind", "variables", "condition"],
+      "description": "Holds when the condition holds for some values of the variables."
+    },
+    "LetIn": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "letIn"
+        },
+        "variable": {
+          "$ref": "#/$defs/Variable"
+        },
+        "value": {
+          "$ref": "#/$defs/Expression"
+        },
+        "condition": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": ["kind", "variable", "value", "condition"],
+      "description": "Binds a variable to an expression's value for the condition that follows."
+    },
+    "Comparison": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ComparisonKind"
+        },
+        "left": {
+          "$ref": "#/$defs/Expression"
+        },
+        "right": {
+          "$ref": "#/$defs/Expression"
+        }
+      },
+      "required": ["kind", "left", "right"],
+      "description": "Compares two expressions."
+    },
+    "ComparisonKind": {
+      "type": "string",
+      "enum": ["eq", "neq", "lt", "lte", "gt", "gte"],
+      "description": "The comparison operations."
+    },
+    "Rule": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/RuleKind"
+        },
+        "head": {
+          "$ref": "#/$defs/Atom"
+        },
+        "body": {
+          "$ref": "#/$defs/Condition"
+        }
+      },
+      "required": ["kind", "head", "body"],
+      "description": "A rule: the head holds `if` (or, for `iff`, exactly when) the body holds."
+    },
+    "RuleKind": {
+      "type": "string",
+      "enum": ["if", "iff"],
+      "description": "Rule semantics: `if` states a sufficient condition, `iff` a definition."
+    },
+    "Program": {
+      "type": "object",
+      "properties": {
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          },
+          "description": "Every predicate the evidence and rules use, each name appearing once."
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Literal"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Rule"
+          }
+        }
+      },
+      "required": ["predicates", "literals", "rules"],
+      "description": "What a solver reasons over: the vocabulary, the accepted evidence, and the rules."
+    },
+    "KnowledgeBaseDocument": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "KnowledgeBase"
+        },
+        "apiVersion": {
+          "type": "string",
+          "const": "factbag/v1alpha1",
+          "description": "Format version."
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntityRef"
+          },
+          "description": "Entities registered with the knowledge base."
+        },
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Predicate"
+          },
+          "description": "Every predicate the evidence and rules use, each name appearing once."
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Literal"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Rule"
+          }
+        }
+      },
+      "required": ["kind", "apiVersion", "entities", "predicates", "literals", "rules"],
+      "description": "A whole knowledge base as a document: a versioned program plus its registered entities."
+    },
+    "AtomGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "atom"
+        },
+        "atom": {
+          "$ref": "#/$defs/Atom"
+        }
+      },
+      "required": ["kind", "op", "atom"],
+      "description": "A goal that is a single atom."
+    },
+    "NotGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "not"
+        },
+        "goal": {
+          "$ref": "#/$defs/Goal"
+        }
+      },
+      "required": ["kind", "op", "goal"]
+    },
+    "Goal": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AtomGoal"
+        },
+        {
+          "$ref": "#/$defs/NotGoal"
+        },
+        {
+          "$ref": "#/$defs/ConnectiveGoal"
+        },
+        {
+          "$ref": "#/$defs/ExistsGoal"
+        },
+        {
+          "$ref": "#/$defs/LetGoal"
+        },
+        {
+          "$ref": "#/$defs/ArithmeticGoal"
+        },
+        {
+          "$ref": "#/$defs/ComparisonGoal"
+        },
+        {
+          "$ref": "#/$defs/SumGoal"
+        },
+        {
+          "$ref": "#/$defs/CountGoal"
+        }
+      ],
+      "description": "What a solver evaluates: a rule body in the solver's own normal form. `op` says which.",
+      "discriminator": {
+        "propertyName": "op",
+        "mapping": {
+          "atom": "#/$defs/AtomGoal",
+          "not": "#/$defs/NotGoal",
+          "and": "#/$defs/ConnectiveGoal",
+          "or": "#/$defs/ConnectiveGoal",
+          "exists": "#/$defs/ExistsGoal",
+          "let": "#/$defs/LetGoal",
+          "add": "#/$defs/ArithmeticGoal",
+          "sub": "#/$defs/ArithmeticGoal",
+          "mul": "#/$defs/ArithmeticGoal",
+          "div": "#/$defs/ArithmeticGoal",
+          "daysBetween": "#/$defs/ArithmeticGoal",
+          "yearsBetween": "#/$defs/ArithmeticGoal",
+          "min": "#/$defs/ArithmeticGoal",
+          "max": "#/$defs/ArithmeticGoal",
+          "roundTo": "#/$defs/ArithmeticGoal",
+          "floorTo": "#/$defs/ArithmeticGoal",
+          "ceilTo": "#/$defs/ArithmeticGoal",
+          "eq": "#/$defs/ComparisonGoal",
+          "neq": "#/$defs/ComparisonGoal",
+          "lt": "#/$defs/ComparisonGoal",
+          "lte": "#/$defs/ComparisonGoal",
+          "gt": "#/$defs/ComparisonGoal",
+          "gte": "#/$defs/ComparisonGoal",
+          "sum": "#/$defs/SumGoal",
+          "count": "#/$defs/CountGoal"
+        }
+      }
+    },
+    "ConnectiveGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "#/$defs/ConnectiveKind"
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Goal"
+          }
+        }
+      },
+      "required": ["kind", "op", "goals"]
+    },
+    "ExistsGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "exists"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "goal": {
+          "$ref": "#/$defs/Goal"
+        }
+      },
+      "required": ["kind", "op", "variables", "goal"]
+    },
+    "LetGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "let"
+        },
+        "variable": {
+          "$ref": "#/$defs/Variable"
+        },
+        "value": {
+          "$ref": "#/$defs/Term"
+        },
+        "goal": {
+          "$ref": "#/$defs/Goal"
+        }
+      },
+      "required": ["kind", "op", "variable", "value", "goal"]
+    },
+    "ArithmeticGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "#/$defs/ArithmeticKind"
+        },
+        "bind": {
+          "$ref": "#/$defs/Variable"
+        },
+        "left": {
+          "$ref": "#/$defs/Term"
+        },
+        "right": {
+          "$ref": "#/$defs/Term"
+        }
+      },
+      "required": ["kind", "op", "bind", "left", "right"]
+    },
+    "ComparisonGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "$ref": "#/$defs/ComparisonKind"
+        },
+        "left": {
+          "$ref": "#/$defs/Term"
+        },
+        "right": {
+          "$ref": "#/$defs/Term"
+        }
+      },
+      "required": ["kind", "op", "left", "right"]
+    },
+    "SumGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "sum"
+        },
+        "bind": {
+          "$ref": "#/$defs/Variable"
+        },
+        "value": {
+          "$ref": "#/$defs/Term"
+        },
+        "where": {
+          "$ref": "#/$defs/Goal"
+        },
+        "completeWhen": {
+          "$ref": "#/$defs/Goal"
+        }
+      },
+      "required": ["kind", "op", "bind", "value", "where"]
+    },
+    "CountGoal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "goal"
+        },
+        "op": {
+          "type": "string",
+          "const": "count"
+        },
+        "bind": {
+          "$ref": "#/$defs/Variable"
+        },
+        "where": {
+          "$ref": "#/$defs/Goal"
+        },
+        "completeWhen": {
+          "$ref": "#/$defs/Goal"
+        }
+      },
+      "required": ["kind", "op", "bind", "where"]
+    },
+    "MissingBinding": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "missing-binding"
+        },
+        "variable": {
+          "$ref": "#/$defs/Variable"
+        }
+      },
+      "required": ["kind", "variable"],
+      "description": "A variable an operation needed had no binding."
+    },
+    "UnsettledEvidence": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/UnsettledKind"
+        },
+        "count": {
+          "type": "number"
+        }
+      },
+      "required": ["kind"],
+      "description": "Evidence the result depends on is conflicted or unknown."
+    },
+    "UnsettledKind": {
+      "type": "string",
+      "enum": ["conflict", "unknown"],
+      "description": "Whether the evidence disagrees (`conflict`) or is missing (`unknown`)."
+    },
+    "OpenWorld": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "open-world"
+        }
+      },
+      "required": ["kind"],
+      "description": "An open-world predicate may have matches that are not recorded."
+    },
+    "NumericRange": {
+      "type": "object",
+      "properties": {
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InfiniteNumber"
+            }
+          ]
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InfiniteNumber"
+            }
+          ]
+        }
+      },
+      "required": ["lower", "upper"],
+      "description": "Lower and upper bounds on a number; an unbounded side is infinite."
+    },
+    "NumericRangeValue": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "numeric-range"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InfiniteNumber"
+            }
+          ]
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InfiniteNumber"
+            }
+          ]
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Uncertainty"
+          }
+        }
+      },
+      "required": ["kind", "lower", "upper", "uncertainty"],
+      "description": "A count known only within bounds, with why it is not exact."
+    },
+    "Uncertainty": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/UnsettledEvidence"
+        },
+        {
+          "$ref": "#/$defs/OpenWorld"
+        },
+        {
+          "$ref": "#/$defs/MissingBinding"
+        }
+      ],
+      "description": "Why a result is not exact.",
+      "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+          "conflict": "#/$defs/UnsettledEvidence",
+          "unknown": "#/$defs/UnsettledEvidence",
+          "open-world": "#/$defs/OpenWorld",
+          "missing-binding": "#/$defs/MissingBinding"
+        }
+      }
+    },
+    "EvidenceSupport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "evidence"
+        },
+        "literals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Literal"
+          }
+        }
+      },
+      "required": ["source", "literals"],
+      "description": "Stored evidence for or against the atom."
+    },
+    "ClosedWorldAbsenceSupport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "closed-world-absence"
+        }
+      },
+      "required": ["source"],
+      "description": "A closed-world predicate has no evidence for the atom."
+    },
+    "RuleSupport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "rule"
+        },
+        "rule": {
+          "$ref": "#/$defs/Rule"
+        },
+        "body": {
+          "$ref": "#/$defs/Judgment"
+        }
+      },
+      "required": ["source", "rule", "body"],
+      "description": "A rule whose head matches the atom, with the judgment of its body."
+    },
+    "Judgment": {
+      "type": "object",
+      "properties": {
+        "goal": {
+          "$ref": "#/$defs/Goal"
+        },
+        "value": {
+          "$ref": "#/$defs/TruthValue"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/BoundValue"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "The variable assignments in scope for this goal."
+        },
+        "positive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "What supports the goal."
+        },
+        "negative": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "What refutes the goal."
+        },
+        "inconclusive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "The derivations that could not settle the goal."
+        }
+      },
+      "required": ["goal", "value", "bindings"],
+      "description": "A solver's verdict on one goal, with the proof behind it."
+    },
+    "TruthValue": {
+      "type": "string",
+      "enum": ["true", "false", "unknown", "conflicted"],
+      "description": "The four values a goal can have."
+    },
+    "BoundValue": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Value"
+        },
+        {
+          "$ref": "#/$defs/NumericRangeValue"
+        }
+      ],
+      "description": "What a variable can be bound to: a value, or a count that is not exactly known."
+    },
+    "Support": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/EvidenceSupport"
+        },
+        {
+          "$ref": "#/$defs/ClosedWorldAbsenceSupport"
+        },
+        {
+          "$ref": "#/$defs/RuleSupport"
+        },
+        {
+          "$ref": "#/$defs/SubgoalsSupport"
+        },
+        {
+          "$ref": "#/$defs/PrimitiveSupport"
+        }
+      ],
+      "description": "One reason for a judgment's value. `source` says which.",
+      "discriminator": {
+        "propertyName": "source",
+        "mapping": {
+          "evidence": "#/$defs/EvidenceSupport",
+          "closed-world-absence": "#/$defs/ClosedWorldAbsenceSupport",
+          "rule": "#/$defs/RuleSupport",
+          "subgoals": "#/$defs/SubgoalsSupport",
+          "primitive": "#/$defs/PrimitiveSupport"
+        }
+      }
+    },
+    "SubgoalsSupport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "subgoals"
+        },
+        "judgments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Judgment"
+          }
+        }
+      },
+      "required": ["source", "judgments"],
+      "description": "The judgments of a compound goal's children."
+    },
+    "PrimitiveSupport": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "primitive"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/PrimitiveEvaluation"
+        }
+      },
+      "required": ["source", "evaluation"],
+      "description": "The evaluation of an arithmetic, comparison, or aggregate goal."
+    },
+    "PrimitiveEvaluation": {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "operands": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/BoundValue"
+              },
+              {
+                "$ref": "#/$defs/MissingBinding"
+              }
+            ]
+          }
+        },
+        "value": {
+          "$ref": "#/$defs/TruthValue"
+        },
+        "result": {
+          "$ref": "#/$defs/BoundValue"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/BoundValue"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "range": {
+          "$ref": "#/$defs/NumericRange"
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Uncertainty"
+          }
+        }
+      },
+      "required": ["operation", "operands", "value"],
+      "description": "What a primitive operation was given and what it produced."
+    },
+    "QueryJudgment": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/TruthValue"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/BoundValue"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "description": "The variable assignments in scope for this goal."
+        },
+        "positive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "What supports the goal."
+        },
+        "negative": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "What refutes the goal."
+        },
+        "inconclusive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Support"
+          },
+          "description": "The derivations that could not settle the goal."
+        },
+        "goal": {
+          "$ref": "#/$defs/AtomGoal"
+        }
+      },
+      "required": ["value", "bindings", "goal"],
+      "description": "The judgment a query returns: its goal is the ground atom that was asked about or matched."
+    }
+  }
+}

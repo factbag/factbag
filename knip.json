@@ -16,7 +16,8 @@
       ]
     },
     "packages/contracts": {
-      "ignoreDependencies": ["@typespec/json-schema"]
+      "ignoreDependencies": ["@typespec/json-schema"],
+      "entry": ["src/generated/types.ts", "src/generated/validators.js"]
     }
   }
 }

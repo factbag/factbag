@@ -11,6 +11,7 @@ packages:
 catalog:
   "@arethetypeswrong/core": "0.18.5"
   "@changesets/cli": "3.0.3"
+  "@exodus/schemasafe": "1.3.0"
   "@microsoft/api-extractor": "7.59.4"
   "@storybook/addon-docs": "10.6.3"
   "@storybook/react-vite": "10.6.3"
@@ -22,6 +23,7 @@ catalog:
   "@typespec/compiler": "1.18.0"
   "@typespec/json-schema": "1.18.0"
   ink: "7.1.1"
+  json-schema-to-typescript: "16.0.0"
   knip: "6.42.0"
   lefthook: "2.2.2"
   lucide-react: "1.59.0"
