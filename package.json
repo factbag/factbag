@@ -31,9 +31,10 @@
     "test:examples": "turbo test:examples --filter=@factbag/core",
     "typecheck": "turbo typecheck && tsc -p scripts/tsconfig.json",
     "knip": "knip",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:release && pnpm build && pnpm api-report:check",
+    "check": "pnpm generate && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:release && pnpm build && pnpm api-report:check",
     "test:release": "node --test scripts/release-artifact.test.ts",
-    "release:verify-packed": "node scripts/verify-packed-consumer.ts --release"
+    "release:verify-packed": "node scripts/verify-packed-consumer.ts --release",
+    "generate": "turbo run generate"
   },
   "devDependencies": {
     "@changesets/cli": "catalog:",
