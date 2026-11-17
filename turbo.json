@@ -31,6 +31,9 @@
     "typecheck": {
       "dependsOn": ["^build", "^typecheck"],
       "outputs": []
+    },
+    "generate": {
+      "cache": false
     }
   }
 }
