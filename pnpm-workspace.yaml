@@ -19,6 +19,8 @@ catalog:
   "@types/react": "19.3.0"
   "@types/react-dom": "19.3.0"
   "@typesafe-ai/sdk": "0.7.0"
+  "@typespec/compiler": "1.18.0"
+  "@typespec/json-schema": "1.18.0"
   ink: "7.1.1"
   knip: "6.42.0"
   lefthook: "2.2.2"
@@ -52,3 +54,14 @@ allowBuilds:
   # Node-only HTTP interception; no browser worker setup needed.
   msw: false
 engineStrict: true
+
+# @typespec/compiler's prompts raised their Node floor past our declared engines range.
+overrides:
+  "@inquirer/ansi": "2.0.10"
+  "@inquirer/checkbox": "5.2.8"
+  "@inquirer/confirm": "6.3.5"
+  "@inquirer/core": "12.0.6"
+  "@inquirer/figures": "2.0.10"
+  "@inquirer/input": "5.1.9"
+  "@inquirer/select": "5.2.8"
+  "@inquirer/type": "4.2.1"

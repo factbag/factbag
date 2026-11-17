@@ -14,6 +14,9 @@
         "@factbag/corpus",
         "@factbag/guards"
       ]
+    },
+    "packages/contracts": {
+      "ignoreDependencies": ["@typespec/json-schema"]
     }
   }
 }
