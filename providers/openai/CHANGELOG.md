@@ -1,5 +1,12 @@
 # @factbag/openai
 
+## 0.1.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [dc5f44d]
+  - factbag@0.1.0-alpha.8
+
 ## 0.1.0-alpha.7
 
 ### Minor Changes

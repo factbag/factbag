@@ -1,5 +1,11 @@
 # factbag
 
+## 0.1.0-alpha.8
+
+### Patch Changes
+
+- dc5f44d: Render aggregate completeness conditions as `completeWhen(...)` in explained rules instead of `[object Object]`.
+
 ## 0.1.0-alpha.7
 
 No changes in this release.
