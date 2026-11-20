@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { chunkers } from "./index";
 
 describe("chunkers.recursive", () => {
+  it.fails("supports a non-monotonic measure satisfying the documented contract", () => {
+    const measure = (text: string) => (text.length === 1 ? 2 : 1);
+    const chunker = chunkers.recursive({ size: 1, measure });
+    expect(measure("ab")).toBe(1);
+
+    expect([...chunker.split("ab")]).toEqual([{ start: 0, end: 2 }]);
+  });
+
   it("is the sole built-in chunker factory", () => {
     expect(Object.keys(chunkers)).toEqual(["recursive"]);
   });
