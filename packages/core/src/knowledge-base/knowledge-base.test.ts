@@ -63,4 +63,20 @@ describe("KnowledgeBase", () => {
 
     expect(kb.rules()).toHaveLength(2);
   });
+
+  it.fails("rejects distinct predicate declarations with the same display name", () => {
+    // Arrange
+    const kb = new KnowledgeBase();
+    const alice = new Person("alice");
+    const first = predicate("eligible", { person: Person });
+    const second = predicate("eligible", { person: Person });
+    kb.asserts(first({ person: alice }));
+
+    // Act
+    const addDuplicate = () => kb.asserts(second({ person: alice }));
+
+    // Assert
+    expect(addDuplicate).toThrow(/Predicate name "eligible" is already registered/u);
+    expect(kb.literals()).toHaveLength(1);
+  });
 });
