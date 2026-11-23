@@ -22,7 +22,7 @@ catalog:
   "@typesafe-ai/sdk": "0.7.0"
   "@typespec/compiler": "1.18.0"
   "@typespec/json-schema": "1.18.0"
-  ink: "7.1.1"
+  ink: "8.0.0"
   json-schema-to-typescript: "16.0.0"
   knip: "6.44.2"
   lefthook: "2.2.2"
